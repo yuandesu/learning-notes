@@ -18,6 +18,7 @@
 - **Java Tracer SQL 擷取流程** — APM 如何從 JDBC 層攔截並正規化 SQL（含互動模擬器）
 
 ### APM 概念
+- **Span Sampling 完全理解** — Head/Tail-based sampling 與 Ingestion Control 完整拆解
 - **LLM Observability 完整指南** — LLM 應用的可觀測性核心概念與實作
 - **APM Tagging 完全理解** — 5 層 telemetry 結構與 tag 繼承規則
 

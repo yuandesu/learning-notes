@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第一性原理：Datadog Span Sampling 完全理解</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#070a10;--s:#0e1219;--s2:#141a25;--bd:#1a2235;--t:#dce4f0;--t2:#8a99b4;--t3:#4a5b72;--orange:#f59e0b;--oranged:rgba(245,158,11,.1);--green:#22c55e;--greend:rgba(34,197,94,.1);--blue:#3b82f6;--blued:rgba(59,130,246,.1);--cyan:#06b6d4;--cyand:rgba(6,182,212,.1);--purple:#8b5cf6;--purpled:rgba(139,92,246,.12);--purpleg:rgba(139,92,246,.25);--red:#ef4444;--redd:rgba(239,68,68,.1);--amber:#d97706;--amberd:rgba(217,119,6,.1);--pink:#ec4899;--pinkd:rgba(236,72,153,.1);--r:10px}
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--t);line-height:1.8;overflow-x:hidden}
+code{font-family:'IBM Plex Mono',monospace;font-size:12px;background:rgba(255,255,255,.06);padding:2px 8px;border-radius:5px;color:#c4b5fd}
+pre{font-family:'IBM Plex Mono',monospace;font-size:12px;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);padding:16px;overflow-x:auto;color:#c4b5fd;line-height:1.7;margin:12px 0}
+.w{max-width:980px;margin:0 auto;padding:40px 20px 100px}
+.hero{text-align:center;margin-bottom:52px;animation:fu .8s}
+.hero-b{display:inline-block;background:var(--purpled);border:1px solid rgba(139,92,246,.3);border-radius:100px;padding:6px 18px;font-size:12px;color:#a78bfa;font-weight:500;letter-spacing:.5px;margin-bottom:16px}
+.hero h1{font-size:clamp(22px,5vw,36px);font-weight:900;line-height:1.3;background:linear-gradient(135deg,#e2e8f0,#a78bfa,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:12px}
+.hero p{color:var(--t2);font-size:15px;max-width:640px;margin:0 auto}
+.nav{display:flex;gap:3px;background:var(--s);border:1px solid var(--bd);border-radius:14px;padding:5px;margin-bottom:36px;position:sticky;top:12px;z-index:100;backdrop-filter:blur(12px)}
+.nb{flex:1;padding:10px 4px;border:none;border-radius:10px;background:transparent;color:var(--t2);font-family:'Noto Sans TC',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:.25s;text-align:center}
+.nb:hover{background:var(--s2);color:var(--t)}.nb.on{background:var(--s2);color:#fff;box-shadow:0 0 20px var(--purpleg);border:1px solid rgba(139,92,246,.3)}
+.nb small{display:block;font-size:9px;color:var(--t3);margin-top:2px}.nb.on small{color:rgba(139,92,246,.7)}
+.ch{display:none;animation:fu .5s}.ch.on{display:block}
+@keyframes fu{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.c{background:var(--s);border:1px solid var(--bd);border-radius:14px;padding:28px;margin-bottom:20px;position:relative;overflow:hidden}
+.c::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--purple),transparent);opacity:.4}
+.c h2{font-size:20px;font-weight:800;margin-bottom:16px;line-height:1.4}.c h3{font-size:16px;font-weight:700;margin:20px 0 10px;color:#fff}
+.c p{font-size:14px;color:var(--t2);margin-bottom:12px}.c p:last-child{margin-bottom:0}
+.ac{color:var(--purple);font-weight:600}.ag{color:var(--green);font-weight:600}.ao{color:var(--orange);font-weight:600}.ab{color:var(--blue);font-weight:600}.ar{color:var(--red);font-weight:600}.ap{color:var(--pink);font-weight:600}
+.an{background:linear-gradient(135deg,rgba(139,92,246,.06),rgba(6,182,212,.04));border:1px solid rgba(139,92,246,.2);border-radius:var(--r);padding:20px;margin:16px 0;font-size:14px;color:var(--t2)}
+.an-t{font-weight:700;color:var(--purple);font-size:13px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.vs{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0}.vs-col{background:var(--s2);border-radius:var(--r);padding:18px;border:1px solid var(--bd)}.vs-col h4{font-size:13px;font-weight:700;margin-bottom:10px}.vs-col p{font-size:13px;color:var(--t2);margin-bottom:6px}.vs-ok{border-color:rgba(34,197,94,.25)}.vs-fail{border-color:rgba(239,68,68,.25)}
+@media(max-width:600px){.vs{grid-template-columns:1fr}.nav{flex-wrap:wrap}}
+/* Expandable rule */
+.rule{border-radius:var(--r);padding:18px 20px;cursor:pointer;transition:all .3s;border:1px solid transparent;margin-bottom:6px}
+.rule:hover{transform:translateX(4px)}.rule.open{border-color:rgba(139,92,246,.25)}.rule.open .rule-d{max-height:2000px;padding-top:14px;opacity:1}.rule.open .rchev{transform:rotate(90deg)}
+.rule-h{display:flex;align-items:center;gap:12px;user-select:none}
+.rule-num{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;flex-shrink:0}
+.rule-title{flex:1;font-weight:600;font-size:14px}.rule-badge{font-size:10px;font-weight:600;padding:3px 10px;border-radius:100px;flex-shrink:0}
+.rchev{color:var(--t3);font-size:12px;transition:transform .3s;flex-shrink:0}
+.rule-d{max-height:0;overflow:hidden;opacity:0;transition:all .5s ease;font-size:14px;color:var(--t2);line-height:1.7}
+.r-orange{background:rgba(245,158,11,.04)}.r-orange .rule-num{background:var(--oranged);color:var(--orange)}.r-orange .rule-badge{background:var(--oranged);color:var(--orange)}
+.r-blue{background:rgba(59,130,246,.04)}.r-blue .rule-num{background:var(--blued);color:var(--blue)}.r-blue .rule-badge{background:var(--blued);color:var(--blue)}
+.r-red{background:rgba(239,68,68,.04)}.r-red .rule-num{background:var(--redd);color:var(--red)}.r-red .rule-badge{background:var(--redd);color:var(--red)}
+.r-cyan{background:rgba(6,182,212,.04)}.r-cyan .rule-num{background:var(--cyand);color:var(--cyan)}.r-cyan .rule-badge{background:var(--cyand);color:var(--cyan)}
+.r-green{background:rgba(34,197,94,.04)}.r-green .rule-num{background:var(--greend);color:var(--green)}.r-green .rule-badge{background:var(--greend);color:var(--green)}
+.r-purple{background:rgba(139,92,246,.04)}.r-purple .rule-num{background:var(--purpled);color:var(--purple)}.r-purple .rule-badge{background:var(--purpled);color:var(--purple)}
+.r-pink{background:rgba(236,72,153,.04)}.r-pink .rule-num{background:var(--pinkd);color:var(--pink)}.r-pink .rule-badge{background:var(--pinkd);color:var(--pink)}
+/* Stepper */
+.step-controls{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.sb{padding:8px 16px;border-radius:100px;border:1px solid var(--bd);background:var(--s);color:var(--t2);font-family:'Noto Sans TC',sans-serif;font-size:13px;cursor:pointer;transition:.25s}
+.sb:hover{border-color:rgba(139,92,246,.4);color:var(--t)}.sb.on{border-color:var(--purple);color:#fff;background:var(--purpled)}
+.sc{display:none;animation:fu .4s}.sc.on{display:block}
+.sn{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px}
+.sd{font-size:14px;color:var(--t2);margin-top:12px;padding:12px 16px;background:rgba(255,255,255,.02);border-left:3px solid var(--purple);border-radius:0 var(--r) var(--r) 0;line-height:1.7}
+/* Flow */
+.flow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:14px 0;padding:14px;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r)}
+.fb{padding:8px 12px;border-radius:8px;font-size:11px;font-weight:600;text-align:center;min-width:60px;transition:.3s;line-height:1.4}
+.fa{color:var(--t3);font-size:14px;flex-shrink:0}
+/* Table */
+.stbl-wrap{overflow-x:auto;border-radius:14px;border:1px solid var(--bd);margin:20px 0}
+.stbl{width:100%;min-width:700px;border-collapse:collapse;font-size:13px}
+.stbl thead th{background:var(--s);padding:12px;text-align:left;font-weight:700;font-size:12px;border-bottom:1px solid var(--bd);color:var(--t)}
+.stbl tbody td{padding:10px 12px;border-bottom:1px solid rgba(26,33,54,.6);color:var(--t2);vertical-align:top;line-height:1.6;background:var(--bg)}
+.stbl tbody tr:hover td{background:var(--s)}.stbl tbody td:first-child{font-weight:600;color:var(--t);white-space:nowrap}
+.pill{display:inline-block;padding:2px 10px;border-radius:100px;font-size:11px;font-weight:600}
+.pill-o{background:var(--oranged);color:var(--orange)}.pill-b{background:var(--blued);color:var(--blue)}.pill-r{background:var(--redd);color:var(--red)}.pill-c{background:var(--cyand);color:var(--cyan)}.pill-g{background:var(--greend);color:var(--green)}.pill-p{background:var(--purpled);color:var(--purple)}.pill-pk{background:var(--pinkd);color:var(--pink)}
+.foot{margin-top:40px;padding:20px 24px;background:var(--s);border:1px solid var(--bd);border-radius:var(--r);font-size:13px;color:var(--t2);line-height:1.8}
+.foot a{color:#a78bfa;text-decoration:none;border-bottom:1px dashed rgba(167,139,250,.4)}.foot a:hover{border-bottom-style:solid}
+</style>
+</head>
+<body>
+<div class="w">
+
+<div class="hero">
+  <div class="hero-b">🎯 第一性原理解析</div>
+  <h1>Datadog Span Sampling<br>完全理解指南</h1>
+  <p>用一個電商下單的真實 trace 範例，走過 Ingestion → Retention 的所有 sampling 規則</p>
+</div>
+
+<div class="nav">
+  <button class="nb on" onclick="go(0)">Ch.1<small>Trace 範例</small></button>
+  <button class="nb" onclick="go(1)">Ch.2<small>Head-based</small></button>
+  <button class="nb" onclick="go(2)">Ch.3<small>Agent 層</small></button>
+  <button class="nb" onclick="go(3)">Ch.4<small>Remote Config</small></button>
+  <button class="nb" onclick="go(4)">Ch.5<small>Retention</small></button>
+  <button class="nb" onclick="go(5)">Ch.6<small>總覽</small></button>
+</div>
+
+<!-- ====== Ch.1 Trace 範例 ====== -->
+<div class="ch on" id="c0">
+<div class="c">
+  <h2>🛒 先搞懂：一個 Trace 長什麼樣子？</h2>
+  <p>用一個電商網站的「使用者下單」請求來看。使用者點了「結帳」按鈕，觸發了以下的呼叫鏈：</p>
+<pre>
+Trace（一次完整的下單請求）
+│
+├─ Span 1: GET /checkout           ← <span style="color:#f59e0b">root span（= head）</span>  [web-frontend]    200ms
+│   ├─ Span 2: POST /api/order     ← 子 span             [order-service]    180ms
+│   │   ├─ Span 3: SELECT * FROM products   ← DB query    [postgres]          15ms
+│   │   ├─ Span 4: POST /payment/charge     ← 外部呼叫    [payment-service]   80ms
+│   │   │   └─ Span 5: Stripe API call      ← 第三方      [stripe]            60ms
+│   │   └─ Span 6: INSERT INTO orders       ← DB write    [postgres]          10ms
+│   └─ Span 7: SendEmail           ← 非同步              [notification-svc]   5ms
+</pre>
+  <p>這個 trace 有 <span class="ac">7 個 span</span>，橫跨 <span class="ab">5 個 service</span>。Sampling 的決定會影響這 7 個 span 是全部保留、全部丟棄、還是只保留其中幾個。</p>
+</div>
+
+<div class="c">
+  <h2>🛒 Sampling 的兩個階段</h2>
+  <div class="vs">
+    <div class="vs-col" style="border-color:rgba(139,92,246,.25)">
+      <h4 style="color:var(--purple)">階段一：Ingestion（攝取）</h4>
+      <p>Span 要不要送進 Datadog？</p>
+      <p style="margin-top:8px">在 <span class="ac">Tracer + Agent</span> 端決定</p>
+      <p>5 種規則：Head-based、User-defined、Error、Rare、Single Span</p>
+    </div>
+    <div class="vs-col" style="border-color:rgba(34,197,94,.25)">
+      <h4 style="color:var(--green)">階段二：Retention（保留）</h4>
+      <p>已經進來的 span 要保留多久？</p>
+      <p style="margin-top:8px">在 <span class="ag">Datadog Backend</span> 端決定</p>
+      <p>2 種規則：Intelligent Retention、Custom Filters</p>
+    </div>
+  </div>
+  <p>接下來的章節會用上面的電商範例，逐一走過每個規則。</p>
+</div>
+</div>
+
+<!-- ====== Ch.2 Head-based Sampling ====== -->
+<div class="ch" id="c1">
+<div class="c">
+  <h2>🎲 Head-based Sampling（預設）</h2>
+  <p>「Head」指的是 trace 的<span class="ao">第一個 span（root span）</span>。Sampling 的決定在這個「頭」產生的瞬間就做了——要嘛整個 trace 保留，要嘛整個 trace 丟掉。</p>
+
+  <div class="vs">
+    <div class="vs-col vs-ok">
+      <h4 style="color:var(--orange)">Head-based（Datadog 預設）</h4>
+      <p>在 trace 的<strong>第一個 span</strong> 產生時就決定</p>
+      <p>決定傳遞到所有下游 service</p>
+      <p>同一個 trace 的 span 要嘛全留、要嘛全丟</p>
+      <p style="color:var(--green);margin-top:8px">✅ 輕量、即時、不需暫存</p>
+    </div>
+    <div class="vs-col vs-fail">
+      <h4 style="color:var(--t2)">Tail-based（參考對比）</h4>
+      <p>等 trace 的<strong>所有 span</strong> 都收集完才決定</p>
+      <p>可以根據完整 trace 資訊做判斷</p>
+      <p>例如「整個 trace 有 error 才保留」</p>
+      <p style="color:var(--red);margin-top:8px">❌ 需暫存所有 span，資源消耗大</p>
+    </div>
+  </div>
+</div>
+
+<div class="c">
+  <h2>🎲 Agent 和 Tracer 的分工</h2>
+  <p>Head-based sampling 不是單一元件的決定，而是 Agent 和 Tracer 的協作：</p>
+
+  <div class="step-controls">
+    <button class="sb on" onclick="goS('h',0)">Step 1</button>
+    <button class="sb" onclick="goS('h',1)">Step 2</button>
+    <button class="sb" onclick="goS('h',2)">Step 3</button>
+    <button class="sb" onclick="goS('h',3)">Step 4</button>
+  </div>
+
+  <div class="sc on" id="h0">
+    <div class="sn">Step 1 — Agent 計算 sampling rate</div>
+    <div class="flow">
+      <div class="fb" style="background:var(--blued);color:var(--blue);border:1px solid rgba(59,130,246,.25)">Agent 觀察流量</div>
+      <div class="fa">→</div>
+      <div class="fb" style="background:var(--oranged);color:var(--orange);border:1px solid rgba(245,158,11,.25)">web-frontend<br>500 req/s → rate 2%</div>
+      <div class="fa">→</div>
+      <div class="fb" style="background:var(--greend);color:var(--green);border:1px solid rgba(34,197,94,.25)">admin-service<br>1 req/s → rate 100%</div>
+    </div>
+    <div class="sd">Agent 根據每個 service 的流量算出比例。目標：整體控制在每秒 10 個 trace（<code>DD_APM_TARGET_TPS=10</code>）。高流量降低、低流量保持 100%。</div>
+  </div>
+
+  <div class="sc" id="h1">
+    <div class="sn">Step 2 — Agent 把 rate 傳給 Tracer</div>
+    <div class="flow">
+      <div class="fb" style="background:var(--blued);color:var(--blue);border:1px solid rgba(59,130,246,.25)">Agent<br>「web-frontend<br>你用 2%」</div>
+      <div class="fa">→</div>
+      <div class="fb" style="background:var(--purpled);color:var(--purple);border:1px solid rgba(139,92,246,.25)">Tracer<br>收到 rate: 2%</div>
+    </div>
+    <div class="sd">Tracer 定期向 Agent 拿最新的 sampling rate。Agent 像教練告訴選手跑多快，但實際跑的是 Tracer。</div>
+  </div>
+
+  <div class="sc" id="h2">
+    <div class="sn">Step 3 — Tracer 在 root span 產生時做決定</div>
+    <div class="flow">
+      <div class="fb" style="background:var(--purpled);color:var(--purple);border:1px solid rgba(139,92,246,.25)">Tracer 擲骰子<br>2% 機率</div>
+      <div class="fa">→</div>
+      <div class="fb" style="background:var(--greend);color:var(--green);border:1px solid rgba(34,197,94,.25)">中了！留下<br><code style="font-size:10px">sampling-priority: 1</code></div>
+      <div class="fa">→</div>
+      <div class="fb" style="background:var(--oranged);color:var(--orange);border:1px solid rgba(245,158,11,.25)">HTTP header 傳遞<br>→ 所有下游 service</div>
+    </div>
+    <div class="sd">使用者發起 <code>GET /checkout</code>，<code>web-frontend</code> 的 Tracer 擲骰子。中了 → 在 HTTP header（<code>x-datadog-sampling-priority: 1</code>）標記「留」。下游的 <code>order-service</code>、<code>payment-service</code>、<code>postgres</code> 看到 header 就知道這個 trace 要保留，不會重新擲骰子。</div>
+  </div>
+
+  <div class="sc" id="h3">
+    <div class="sn">Step 4 — Agent 轉發到 Intake</div>
+    <div class="flow">
+      <div class="fb" style="background:var(--purpled);color:var(--purple);border:1px solid rgba(139,92,246,.25)">Tracer 送出<br>7 個 span</div>
+      <div class="fa">→</div>
+      <div class="fb" style="background:var(--blued);color:var(--blue);border:1px solid rgba(59,130,246,.25)">Agent<br>照送到 Intake</div>
+      <div class="fa">→</div>
+      <div class="fb" style="background:var(--greend);color:var(--green);border:1px solid rgba(34,197,94,.25)">Intake 收到 ✓</div>
+    </div>
+    <div class="sd">Tracer 決定「留」的 span，Agent 原封不動轉發到 Datadog Intake。Agent 在這裡的角色是搬運工，不會再做二次篩選。</div>
+  </div>
+</div>
+
+<div class="c">
+  <h2>🎲 User-defined Sampling Rules（Tracer 層級）</h2>
+  <p>覆蓋 Agent 的自動 rate，針對特定 service 或 resource 設定自己的比例：</p>
+<pre>
+DD_TRACE_SAMPLING_RULES='[
+  {"service": "payment-service", "sample_rate": 1.0},
+  {"service": "health-check",   "sample_rate": 0.01},
+  {"name": "GET /api/v1/users", "sample_rate": 0.5}
+]'
+</pre>
+  <div class="an">
+    <div class="an-t">🛒 電商場景</div>
+    <p><code>payment-service</code> 處理金流，每一筆交易都不能漏 → 100%。<code>health-check</code> 被 load balancer 每秒打幾百次，沒必要全留 → 1%。Ingestion reason 標記為 <code>rule</code>。</p>
+  </div>
+</div>
+</div>
+
+<!-- ====== Ch.3 Agent 層 Sampling ====== -->
+<div class="ch" id="c2">
+<div class="c">
+  <h2>🛡️ 被 Head-based 丟掉的 trace，還有三道安全網</h2>
+  <p>Head-based sampling 擲骰子沒中的 trace 不一定就消失了。Agent 還有三個額外的 sampler 會撈回重要的 span：</p>
+</div>
+
+<div class="rule r-red" onclick="tog(this)">
+  <div class="rule-h"><div class="rule-num">3</div><div class="rule-title">Error Sampler</div><div class="rule-badge">Agent 層</div><div class="rchev">▸</div></div>
+  <div class="rule-d">
+    <p>對沒被 head-based sampling 抓到的 error trace，Agent 額外保留。</p>
+<pre>
+# datadog.yaml
+apm_config:
+  error_traces_per_second: 10   # 預設每秒 10 個
+# 或 DD_APM_ERROR_TPS=10
+</pre>
+    <div class="an"><div class="an-t">🛒 電商場景</div><p>上面的下單請求裡，<code>Span 4: POST /payment/charge</code> 回傳了 500 error（Stripe 扣款失敗）。但這個 trace 剛好沒被 head-based 的 2% 選中。Error sampler 會額外把它撈回來，因為 error trace 對 debug 很重要。</p><p>Ingestion reason：<code>error</code>。設成 <code>0</code> = 停用，設成很大的數字 = 保留所有 error trace。</p></div>
+  </div>
+</div>
+
+<div class="rule r-cyan" onclick="tog(this)">
+  <div class="rule-h"><div class="rule-num">4</div><div class="rule-title">Rare Sampler</div><div class="rule-badge">Agent 層</div><div class="rchev">▸</div></div>
+  <div class="rule-d">
+    <p>對低流量的 service/resource/operation 組合，Agent 額外取樣。</p>
+<pre>
+# datadog.yaml
+apm_config:
+  enable_rare_sampler: true     # 預設開啟
+# 或 DD_APM_ENABLE_RARE_SAMPLER=true
+</pre>
+    <div class="an"><div class="an-t">🛒 電商場景</div><p>你的系統裡有一個 <code>POST /admin/reset-cache</code> endpoint，一天只被呼叫 3 次。Head-based sampling 每秒取 10 個 trace，但這個 endpoint 一天只有 3 個 trace，很可能全部被 drop。Rare sampler 確保這種低流量組合至少保留一些樣本。</p><p>Ingestion reason：<code>rare</code>。</p></div>
+  </div>
+</div>
+
+<div class="rule r-green" onclick="tog(this)">
+  <div class="rule-h"><div class="rule-num">5</div><div class="rule-title">Single Span Sampling</div><div class="rule-badge">Span 層級</div><div class="rchev">▸</div></div>
+  <div class="rule-d">
+    <p>即使整個 trace 被 drop，仍保留特定的單一 span。</p>
+<pre>
+DD_SPAN_SAMPLING_RULES='[
+  {"service": "payment-service", "sample_rate": 1.0, "max_per_second": 100}
+]'
+</pre>
+    <div class="an"><div class="an-t">🛒 電商場景</div><p>你建了一個 span-based metric 監控 <code>payment-service</code> 每分鐘的交易金額（用 <code>@transaction_amount</code> 做 SUM）。Head-based 只取 2%，metric 會不準。Single span sampling 確保每一個 <code>payment-service</code> 的 span 都被保留（每秒最多 100 個），即使完整 trace 被 drop 了。</p><p>注意：這些 span 沒有完整 trace context，Trace Explorer 裡看不到完整 flame graph。Ingestion reason：<code>single_span</code>。</p></div>
+  </div>
+</div>
+</div>
+
+<!-- ====== Ch.4 Remote Configuration ====== -->
+<div class="ch" id="c3">
+<div class="c">
+  <h2>🌐 Remote Configuration 是什麼？</h2>
+  <p>讓你<span class="ac">從 Datadog UI 直接修改 sampling rate</span>，不需要改程式碼、不需要改環境變數、不需要重新部署應用程式、不需要重啟 Agent。</p>
+</div>
+
+<div class="c">
+  <h2>🌐 它控制的是誰？</h2>
+  <p>Remote Configuration 可以控制兩個層級，指令都透過 Agent 中繼傳遞：</p>
+
+  <div class="step-controls">
+    <button class="sb on" onclick="goS('rc',0)">Agent 層</button>
+    <button class="sb" onclick="goS('rc',1)">Tracer 層</button>
+    <button class="sb" onclick="goS('rc',2)">優先順序</button>
+    <button class="sb" onclick="goS('rc',3)">原理</button>
+  </div>
+
+  <div class="sc on" id="rc0">
+    <div class="sn">控制 Agent 層（不需重啟 Agent）</div>
+    <p>可以遠端修改的 Agent 設定：</p>
+    <p>- <code>DD_APM_TARGET_TPS</code>（head-based sampling 的每秒目標 trace 數）</p>
+    <p>- <code>DD_APM_ERROR_TPS</code>（error sampler 的每秒上限）</p>
+    <p>- <code>DD_APM_ENABLE_RARE_SAMPLER</code>（rare sampler 開關）</p>
+    <div class="an"><div class="an-t">🛒 場景</div><p>月底快超過 ingestion 預算。從 UI 把 <code>DD_APM_TARGET_TPS</code> 從 10 降到 5，幾十秒內生效，不用碰伺服器。</p></div>
+  </div>
+
+  <div class="sc" id="rc1">
+    <div class="sn">控制 Tracer 層（不需重新部署應用程式）</div>
+    <p>可以遠端修改的 Tracer 設定：</p>
+    <p>- Per-service sampling rate（例如 <code>payment-service</code> 100%）</p>
+    <p>- Per-resource sampling rate（例如 <code>GET /checkout</code> 50%、<code>GET /health</code> 1%）</p>
+    <p>- Adaptive sampling（設定月度 ingestion 預算，Datadog 自動調整 rate）</p>
+    <div class="an"><div class="an-t">🛒 場景</div><p>部署了新版本，想暫時 100% 取樣看有沒有 bug。從 UI 設 <code>payment-service</code> 100%，觀察 1 小時，沒問題後改回 10%。全程不需要碰伺服器。</p></div>
+  </div>
+
+  <div class="sc" id="rc2">
+    <div class="sn">優先順序</div>
+    <div class="flow">
+      <div class="fb" style="background:var(--purpled);color:var(--purple);border:1px solid rgba(139,92,246,.25)">Remote Config<br><span style="font-size:10px">最高優先</span></div>
+      <div class="fa">&gt;</div>
+      <div class="fb" style="background:var(--oranged);color:var(--orange);border:1px solid rgba(245,158,11,.25)">環境變數<br><span style="font-size:10px">DD_APM_TARGET_TPS</span></div>
+      <div class="fa">&gt;</div>
+      <div class="fb" style="background:var(--blued);color:var(--blue);border:1px solid rgba(59,130,246,.25)">datadog.yaml<br><span style="font-size:10px">設定檔</span></div>
+    </div>
+    <div class="sd">即使本機設了 <code>DD_APM_TARGET_TPS=10</code>，從 UI 改成 <code>20</code> 之後，20 會生效。Remote Config 永遠贏。</div>
+  </div>
+
+  <div class="sc" id="rc3">
+    <div class="sn">原理：為什麼不需要重啟？</div>
+    <p>Agent 本來就會定期跟 Datadog Backend 通訊（送 metrics、traces、logs）。Remote Configuration 利用這條已經存在的連線，<span class="ac">反過來讓 Backend 把設定指令「推」回給 Agent</span>。</p>
+
+    <h3>正常資料流 vs Remote Config</h3>
+    <div class="flow">
+      <div class="fb" style="background:var(--blued);color:var(--blue);border:1px solid rgba(59,130,246,.25)">Agent</div>
+      <div class="fa">→</div>
+      <div class="fb" style="background:var(--purpled);color:var(--purple);border:1px solid rgba(139,92,246,.25)">Datadog Backend</div>
+      <div style="font-size:11px;color:var(--t3);padding:0 6px">正常：送 telemetry</div>
+    </div>
+    <div class="flow">
+      <div class="fb" style="background:var(--blued);color:var(--blue);border:1px solid rgba(59,130,246,.25)">Agent</div>
+      <div class="fa">←</div>
+      <div class="fb" style="background:var(--purpled);color:var(--purple);border:1px solid rgba(139,92,246,.25)">Datadog Backend</div>
+      <div style="font-size:11px;color:var(--green);padding:0 6px">Remote Config：收設定指令</div>
+    </div>
+
+    <h3>具體運作流程</h3>
+    <p>1. <span class="ab">Agent 定期 polling</span> — Agent 每隔幾秒向 Datadog Backend 的 Remote Configuration endpoint 發請求：「有沒有新的設定給我？」</p>
+    <p>2. <span class="ac">你在 UI 改了設定</span> — 例如把 <code>payment-service</code> 的 sampling rate 從 10% 改成 100%。這個變更存在 Datadog Backend。</p>
+    <p>3. <span class="ag">Agent 下一次 polling 拿到新設定</span> — Backend 回覆：「有，<code>payment-service</code> 的 rate 改成 100% 了。」</p>
+    <p>4. <span class="ao">Agent 套用並傳遞</span> — 如果是 Agent 層的設定（如 <code>TARGET_TPS</code>），Agent 直接套用。如果是 Tracer 層的設定（如 per-service rate），Agent 在下一次 Tracer 來要 sampling rate 時，把新的 rate 傳給 Tracer。</p>
+
+    <h3>為什麼不需要重啟？</h3>
+    <p>因為 sampling rate 在 Agent 和 Tracer 裡就是<span class="ac">記憶體裡的一個可變變數</span>，隨時可以被覆寫。不像 JVM 的 ClassLoader 一次性載入就鎖死。</p>
+
+    <div class="vs">
+      <div class="vs-col vs-fail">
+        <h4 style="color:var(--red)">❌ JVM + jar（之前講的）</h4>
+        <p>Class 被 ClassLoader 載入到記憶體後，<strong>不再讀磁碟</strong></p>
+        <p>換了 jar → JVM 不知道 → 必須重啟</p>
+        <p style="font-size:12px;color:var(--t3);margin-top:8px">像出車前拿到的紙條，要換路線得回車行</p>
+      </div>
+      <div class="vs-col vs-ok">
+        <h4 style="color:var(--green)">✅ Sampling rate</h4>
+        <p>Rate 是記憶體裡的一個數字，<strong>隨時可以改</strong></p>
+        <p>Agent polling 拿到新值 → 直接覆寫 → 即時生效</p>
+        <p style="font-size:12px;color:var(--t3);margin-top:8px">像無線電，老闆隨時可以喊你改路線</p>
+      </div>
+    </div>
+
+    <div class="an">
+      <div class="an-t">🚕 計程車比喻</div>
+      <p><strong><code>datadog.yaml</code></strong> = 出車前老闆給你的紙條：「今天跑新宿路線」。出車後紙條鎖在抽屜裡，要換路線得回車行（= 重啟 Agent）。</p>
+      <p style="margin-top:8px"><strong>Remote Configuration</strong> = 老闆用無線電喊你：「改跑澀谷路線」。你正在開車就能馬上轉向（= 不用重啟）。</p>
+      <p style="margin-top:8px">無線電（polling 連線）本來就一直開著，因為你本來就要用它回報位置（送 telemetry）。Remote Configuration 只是反過來也用這條線傳指令。</p>
+    </div>
+  </div>
+</div>
+
+<div class="c">
+  <h2>🌐 前提條件</h2>
+  <p>- Agent 版本 7.41.1 以上</p>
+  <p>- Agent 啟用 Remote Configuration（<code>DD_REMOTE_CONFIGURATION_ENABLED=true</code>）</p>
+  <p>- Datadog 帳號有 <code>APM Remote Configuration Write</code> 權限</p>
+  <p>- Tracer library 版本符合要求（各語言不同）</p>
+</div>
+</div>
+
+<!-- ====== Ch.5 Retention ====== -->
+<div class="ch" id="c4">
+<div class="c">
+  <h2>📦 階段二：Retention（已經進來的 span 保留多久？）</h2>
+  <p>Ingestion 決定 span 要不要送進 Datadog。Retention 決定送進來的 span 保留多久、哪些可以在 Trace Explorer 裡被搜尋到。</p>
+</div>
+
+<div class="rule r-purple" onclick="tog(this)">
+  <div class="rule-h"><div class="rule-num">6</div><div class="rule-title">Intelligent Retention Filter</div><div class="rule-badge">自動 · 免費</div><div class="rchev">▸</div></div>
+  <div class="rule-d">
+    <p>Datadog 自動保留兩類資料，不需要任何設定：</p>
+    <p><span class="ac">Diversity sampling</span>：每 15 分鐘，對每個 env + service + operation + resource 組合，至少保留 1 個 trace。保留 30 天。</p>
+    <p><span class="ac">1% flat sampling</span>：對所有 ingested span 均勻取 1%。保留 30 天。</p>
+    <div class="an"><div class="an-t">🛒 電商場景</div><p><code>GET /checkout</code> 每天 50 萬次，<code>POST /admin/reset-cache</code> 每天 3 次。Diversity sampling 確保兩者都有樣本可看。不計入 indexed span 費用。</p></div>
+  </div>
+</div>
+
+<div class="rule r-pink" onclick="tog(this)">
+  <div class="rule-h"><div class="rule-num">7</div><div class="rule-title">Custom Retention Filters</div><div class="rule-badge">使用者自定義</div><div class="rchev">▸</div></div>
+  <div class="rule-d">
+    <p>在 Datadog UI 的 Retention Filters 頁面建立，用 tag/attribute query 指定保留哪些 span，保留 15 天。</p>
+    <div class="stbl-wrap">
+      <table class="stbl">
+        <thead><tr><th>Filter 名稱</th><th>Query</th><th>電商場景</th></tr></thead>
+        <tbody>
+          <tr><td>高金額交易</td><td><code>@transaction_amount:>100</code></td><td>金額超過 100 的交易全部留下做 audit</td></tr>
+          <tr><td>Prod 錯誤</td><td><code>env:prod status:error</code></td><td>所有 production error 都要能事後查</td></tr>
+          <tr><td>慢結帳</td><td><code>resource_name:"GET /checkout" @duration:>2s</code></td><td>結帳超過 2 秒的要能 debug</td></tr>
+          <tr><td>VIP 客戶</td><td><code>@customer_id:VIP-001</code></td><td>VIP 客戶的每一筆請求都要追蹤</td></tr>
+          <tr><td>Stripe 失敗</td><td><code>service:payment-service @http.status_code:5*</code></td><td>金流失敗全部保留</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="margin-top:12px">分兩種模式：</p>
+    <p>- <span class="ap">Span-level</span>：只保留符合 query 的那些 span</p>
+    <p>- <span class="ap">Trace-level</span>：只要 trace 裡有任何 span 符合，整個 trace 都保留（可看完整 flame graph）</p>
+  </div>
+</div>
+</div>
+
+<!-- ====== Ch.6 總覽 ====== -->
+<div class="ch" id="c5">
+<div class="c">
+  <h2>🗺️ 完整流程圖</h2>
+<pre style="font-size:11px;line-height:2">
+使用者發起 GET /checkout
+  │
+  ├─ <span style="color:#f59e0b">[2] 有 User-defined Rule？</span> → 用設定的 rate
+  │     沒有 → <span style="color:#f59e0b">[1] 用 Agent 自動算的 Head-based rate</span>
+  │
+  ├─ 決定：<span style="color:#22c55e">保留整個 trace</span> ──→ 所有 7 個 span 送到 Agent
+  │                              │
+  │                              ├─ Agent 轉發到 Intake
+  │                              │     ↓
+  │                              ├─ <span style="color:#8b5cf6">[6] Intelligent Retention（自動，免費）</span>
+  │                              └─ <span style="color:#ec4899">[7] Custom Retention Filters</span>
+  │
+  └─ 決定：<span style="color:#ef4444">丟掉整個 trace</span> ──→ 但 Agent 還會檢查：
+                                   │
+                                   ├─ <span style="color:#ef4444">[3] 有 error span？→ Error Sampler 撈回來</span>
+                                   ├─ <span style="color:#06b6d4">[4] 是低流量組合？→ Rare Sampler 撈回來</span>
+                                   └─ <span style="color:#22c55e">[5] 符合 Single Span Rule？→ 保留單一 span</span>
+</pre>
+</div>
+
+<div class="c">
+  <h2>📊 7 個規則完整對照表</h2>
+  <div class="stbl-wrap">
+    <table class="stbl">
+      <thead><tr><th>#</th><th>規則</th><th>階段</th><th>決定者</th><th>設定方式</th><th>Ingestion Reason</th></tr></thead>
+      <tbody>
+        <tr><td><span class="pill pill-o">1</span></td><td>Head-based</td><td>Ingestion</td><td>Tracer（rate 由 Agent 算）</td><td><code>DD_APM_TARGET_TPS</code></td><td><code>auto</code></td></tr>
+        <tr><td><span class="pill pill-b">2</span></td><td>User-defined Rules</td><td>Ingestion</td><td>Tracer</td><td><code>DD_TRACE_SAMPLING_RULES</code></td><td><code>rule</code></td></tr>
+        <tr><td><span class="pill pill-r">3</span></td><td>Error Sampler</td><td>Ingestion</td><td>Agent</td><td><code>DD_APM_ERROR_TPS</code></td><td><code>error</code></td></tr>
+        <tr><td><span class="pill pill-c">4</span></td><td>Rare Sampler</td><td>Ingestion</td><td>Agent</td><td><code>DD_APM_ENABLE_RARE_SAMPLER</code></td><td><code>rare</code></td></tr>
+        <tr><td><span class="pill pill-g">5</span></td><td>Single Span</td><td>Ingestion</td><td>Tracer</td><td><code>DD_SPAN_SAMPLING_RULES</code></td><td><code>single_span</code></td></tr>
+        <tr><td><span class="pill pill-p">6</span></td><td>Intelligent Retention</td><td>Retention</td><td>Datadog Backend</td><td>自動（無需設定）</td><td>—</td></tr>
+        <tr><td><span class="pill pill-pk">7</span></td><td>Custom Filters</td><td>Retention</td><td>使用者（UI 設定）</td><td>Retention Filters 頁面</td><td>—</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="c">
+  <h2>🔑 一句話總結</h2>
+  <div class="an">
+    <div class="an-t">🎯 核心概念</div>
+    <p><span class="ac">Agent 算 rate、Tracer 做決定、Agent 轉發</span>。Head-based sampling 在 root span 產生的瞬間就決定整個 trace 的命運。被 drop 的 trace 還有 Error / Rare / Single Span 三道安全網。進了 Datadog 之後，Intelligent Retention 自動保留多樣性樣本，Custom Filters 保留你關心的特定 span。</p>
+    <p style="margin-top:8px">Remote Configuration 讓你從 UI 直接改 Agent 和 Tracer 兩個層級的設定，不需要碰伺服器，優先順序最高。</p>
+  </div>
+</div>
+
+<div class="foot">
+  📖 參考文件：
+  <a href="https://docs.datadoghq.com/tracing/trace_pipeline/ingestion_mechanisms/" target="_blank">Ingestion Mechanisms</a> ·
+  <a href="https://docs.datadoghq.com/tracing/trace_pipeline/ingestion_controls/" target="_blank">Ingestion Controls</a> ·
+  <a href="https://docs.datadoghq.com/tracing/trace_pipeline/trace_retention/" target="_blank">Trace Retention</a> ·
+  <a href="https://docs.datadoghq.com/tracing/guide/ingestion_sampling_use_cases/" target="_blank">Sampling Use Cases</a> ·
+  <a href="https://docs.datadoghq.com/tracing/guide/resource_based_sampling/" target="_blank">Resource-based Sampling</a>
+</div>
+</div>
+
+</div>
+
+<script>
+function go(n){document.querySelectorAll('.nb').forEach((b,i)=>b.classList.toggle('on',i===n));document.querySelectorAll('.ch').forEach((c,i)=>c.classList.toggle('on',i===n))}
+function goS(prefix,n){const ch=document.getElementById(prefix+'0').parentElement;ch.querySelectorAll('.sb').forEach((b,i)=>b.classList.toggle('on',i===n));for(let i=0;i<10;i++){const el=document.getElementById(prefix+i);if(el)el.classList.toggle('on',i===n)}}
+function tog(el){el.classList.toggle('open')}
+</script>
+</body>
+</html>
