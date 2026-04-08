@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第一性原理：Datadog APM Tagging 完全理解</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#080b12;--s:#0f1320;--s2:#151a2a;--bd:#1a2136;
+  --t:#dce4f0;--t2:#8a99b2;--t3:#4a5b72;
+  --purple:#8b5cf6;--purpled:rgba(139,92,246,.12);--purpleg:rgba(139,92,246,.25);
+  --green:#22c55e;--greend:rgba(34,197,94,.1);
+  --orange:#f59e0b;--oranged:rgba(245,158,11,.1);
+  --blue:#3b82f6;--blued:rgba(59,130,246,.1);
+  --cyan:#06b6d4;--cyand:rgba(6,182,212,.1);
+  --red:#ef4444;--redd:rgba(239,68,68,.08);
+  --pink:#ec4899;--pinkd:rgba(236,72,153,.1);
+  --r:10px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--t);line-height:1.8;overflow-x:hidden}
+code{font-family:'IBM Plex Mono',monospace;font-size:12px;background:rgba(255,255,255,.06);padding:2px 8px;border-radius:5px;color:#c4b5fd}
+.w{max-width:980px;margin:0 auto;padding:40px 20px 100px}
+
+/* Hero */
+.hero{text-align:center;margin-bottom:52px;animation:fu .8s}
+.hero-b{display:inline-block;background:var(--purpled);border:1px solid rgba(139,92,246,.3);border-radius:100px;padding:6px 18px;font-size:12px;color:#a78bfa;font-weight:500;letter-spacing:.5px;margin-bottom:16px}
+.hero h1{font-size:clamp(24px,5vw,38px);font-weight:900;line-height:1.3;background:linear-gradient(135deg,#e2e8f0,#a78bfa,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:12px}
+.hero p{color:var(--t2);font-size:15px;max-width:620px;margin:0 auto}
+
+/* Nav */
+.nav{display:flex;gap:4px;background:var(--s);border:1px solid var(--bd);border-radius:14px;padding:5px;margin-bottom:36px;position:sticky;top:12px;z-index:100;backdrop-filter:blur(12px)}
+.nb{flex:1;padding:12px 8px;border:none;border-radius:10px;background:transparent;color:var(--t2);font-family:'Noto Sans TC',sans-serif;font-size:14px;font-weight:500;cursor:pointer;transition:.25s;text-align:center}
+.nb:hover{background:var(--s2);color:var(--t)}
+.nb.on{background:var(--s2);color:#fff;box-shadow:0 0 20px var(--purpleg);border:1px solid rgba(139,92,246,.3)}
+.nb small{display:block;font-size:10px;color:var(--t3);margin-top:2px}.nb.on small{color:rgba(139,92,246,.7)}
+.ch{display:none;animation:fu .5s}.ch.on{display:block}
+@keyframes fu{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* Card */
+.c{background:var(--s);border:1px solid var(--bd);border-radius:14px;padding:28px;margin-bottom:20px;position:relative;overflow:hidden}
+.c::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--purple),transparent);opacity:.4}
+.c h2{font-size:20px;font-weight:800;margin-bottom:16px;line-height:1.4}
+.c h3{font-size:16px;font-weight:700;margin:20px 0 10px;color:#fff}
+.c p{font-size:14px;color:var(--t2);margin-bottom:12px}.c p:last-child{margin-bottom:0}
+.ac{color:var(--purple);font-weight:600}
+.ag{color:var(--green);font-weight:600}
+.ao{color:var(--orange);font-weight:600}
+.ab{color:var(--blue);font-weight:600}
+.ar{color:var(--red);font-weight:600}
+.ap{color:var(--pink);font-weight:600}
+
+/* Analogy */
+.an{background:linear-gradient(135deg,rgba(139,92,246,.06),rgba(6,182,212,.04));border:1px solid rgba(139,92,246,.2);border-radius:var(--r);padding:20px;margin:16px 0;font-size:14px;color:var(--t2)}
+.an-t{font-weight:700;color:var(--purple);font-size:13px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+
+/* Layer tower — the main interactive element */
+.tower{display:flex;flex-direction:column;gap:0;margin:20px 0}
+.layer{border-radius:var(--r);padding:18px 20px;cursor:pointer;transition:all .3s;position:relative;border:1px solid transparent}
+.layer:hover{transform:translateX(4px)}
+.layer.open{border-color:rgba(139,92,246,.3)}
+.layer.open .layer-detail{max-height:500px;padding-top:14px;opacity:1}
+.layer.open .lchev{transform:rotate(90deg)}
+
+.layer-head{display:flex;align-items:center;gap:12px;user-select:none}
+.lnum{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0}
+.ltitle{flex:1;font-weight:600;font-size:15px}
+.lbadge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:100px;flex-shrink:0}
+.lchev{color:var(--t3);font-size:12px;transition:transform .3s;flex-shrink:0}
+
+.layer-detail{max-height:0;overflow:hidden;opacity:0;transition:all .4s ease;font-size:14px;color:var(--t2);line-height:1.7}
+
+/* Layer colors */
+.l1{background:rgba(245,158,11,.04)}.l1:hover,.l1.open{background:rgba(245,158,11,.07)}
+.l1 .lnum{background:var(--oranged);color:var(--orange)}.l1 .lbadge{background:var(--oranged);color:var(--orange)}
+.l2{background:rgba(6,182,212,.04)}.l2:hover,.l2.open{background:rgba(6,182,212,.07)}
+.l2 .lnum{background:var(--cyand);color:var(--cyan)}.l2 .lbadge{background:var(--cyand);color:var(--cyan)}
+.l3{background:rgba(139,92,246,.04)}.l3:hover,.l3.open{background:rgba(139,92,246,.07)}
+.l3 .lnum{background:var(--purpled);color:var(--purple)}.l3 .lbadge{background:var(--purpled);color:var(--purple)}
+.l4{background:rgba(34,197,94,.04)}.l4:hover,.l4.open{background:rgba(34,197,94,.07)}
+.l4 .lnum{background:var(--greend);color:var(--green)}.l4 .lbadge{background:var(--greend);color:var(--green)}
+.l5{background:rgba(236,72,153,.04)}.l5:hover,.l5.open{background:rgba(236,72,153,.07)}
+.l5 .lnum{background:var(--pinkd);color:var(--pink)}.l5 .lbadge{background:var(--pinkd);color:var(--pink)}
+
+.layer+.layer{margin-top:4px}
+
+/* Detail inner */
+.d-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.d-box{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:14px}
+.d-box h4{font-size:12px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.d-box p{font-size:13px;color:var(--t2);margin:0;line-height:1.6}
+@media(max-width:600px){.d-grid{grid-template-columns:1fr}}
+
+/* Nesting visual */
+.nest{margin:20px 0;font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--t2);line-height:2.2;padding:20px;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r)}
+.nest .n0{color:var(--orange)}
+.nest .n1{color:var(--cyan);padding-left:24px}
+.nest .n2{color:var(--purple);padding-left:48px}
+.nest .n3{color:var(--t2);padding-left:72px}
+.nest .n4{color:var(--green);padding-left:96px}
+
+/* Connector lines */
+.connector{text-align:center;color:var(--t3);font-size:11px;padding:2px 0;letter-spacing:2px}
+
+/* Summary table */
+.stbl-wrap{overflow-x:auto;border-radius:14px;border:1px solid var(--bd);margin:20px 0}
+.stbl{width:100%;min-width:680px;border-collapse:collapse;font-size:13px}
+.stbl thead th{background:var(--s);padding:14px 14px;text-align:left;font-weight:700;font-size:12px;border-bottom:1px solid var(--bd);color:var(--t);letter-spacing:.3px}
+.stbl tbody td{padding:12px 14px;border-bottom:1px solid rgba(26,33,54,.6);color:var(--t2);vertical-align:top;line-height:1.6;background:var(--bg)}
+.stbl tbody tr:hover td{background:var(--s)}
+.stbl tbody td:first-child{font-weight:600;color:var(--t);white-space:nowrap}
+
+/* Pill */
+.pill{display:inline-block;padding:2px 10px;border-radius:100px;font-size:11px;font-weight:600}
+.pill-o{background:var(--oranged);color:var(--orange)}
+.pill-c{background:var(--cyand);color:var(--cyan)}
+.pill-p{background:var(--purpled);color:var(--purple)}
+.pill-g{background:var(--greend);color:var(--green)}
+.pill-pk{background:var(--pinkd);color:var(--pink)}
+
+/* Footer */
+.foot{margin-top:40px;padding:20px 24px;background:var(--s);border:1px solid var(--bd);border-radius:var(--r);font-size:13px;color:var(--t2);line-height:1.8}
+.foot a{color:#a78bfa;text-decoration:none;border-bottom:1px dashed rgba(167,139,250,.4)}.foot a:hover{border-bottom-style:solid}
+</style>
+</head>
+<body>
+<div class="w">
+
+<div class="hero">
+  <div class="hero-b">🏷️ 第一性原理解析</div>
+  <h1>Datadog APM Tagging<br>Tag 是什麼？加在哪？怎麼加？</h1>
+  <p>客戶問了兩個問題：①怎麼加 tag ②加在什麼上面。其實這是同一個問題的兩面。</p>
+</div>
+
+<div class="nav">
+  <button class="nb on" onclick="go(0)">前提<small>Tag 到底是什麼</small></button>
+  <button class="nb" onclick="go(1)">Q②  加在哪<small>5 層 Telemetry</small></button>
+  <button class="nb" onclick="go(2)">Q① 怎麼加<small>每層的設定方法</small></button>
+  <button class="nb" onclick="go(3)">總覽<small>完整對照表</small></button>
+</div>
+
+<!-- ================================================================ -->
+<!-- CH0: 前提 — Tag 到底是什麼                                        -->
+<!-- ================================================================ -->
+<div class="ch on" id="c0">
+
+<div class="c">
+  <h2>🏷️ 最根本的問題：Tag 到底是什麼？</h2>
+  <p>在 Datadog 裡，Tag 就是一個 <code>key:value</code> 的標籤。例如 <code>env:production</code>、<code>service:payment-api</code>、<code>region:ap-northeast-1</code>。</p>
+  <p>它的作用是讓你能 <span class="ac">filter（篩選）、aggregate（聚合）、scope（限定範圍）</span> 你的監控資料。</p>
+
+  <div class="an">
+    <div class="an-t">🏪 便利商店比喻</div>
+    <p>Tag 就像商品上的標籤：「飲料」「冷藏」「促銷中」「7-11限定」。</p>
+    <p>你可以用這些標籤快速找到東西（filter）、統計各類別銷量（aggregate）、只看冷藏區（scope）。</p>
+    <p>但重點是：<span class="ac">標籤貼在「商品」上，不是貼在「貨架」上</span>。同理，Tag 貼在「telemetry 資料」上，不是貼在「伺服器」上。</p>
+  </div>
+</div>
+
+<div class="c">
+  <h2>🏷️ 客戶的困惑點</h2>
+  <p>客戶問：「対象となるリソースは何か（フロントのコード、サーバー、など）」</p>
+  <p>這個問法暗示客戶以為 tag 是貼在「伺服器」或「前端代碼」這種<span class="ar">物理/邏輯元件</span>上的。</p>
+  <p>但實際上，tag 附著在 <span class="ac">telemetry 資料的層級</span>上。APM 的資料是分層的：</p>
+
+  <div class="nest">
+    <div class="n0">🟧 Host（主機：EC2 / VM / 物理伺服器）</div>
+    <div class="n1">🔷 Container / Pod（容器 / K8s Pod）</div>
+    <div class="n2">🟪 Service（服務：payment-api, user-service...）</div>
+    <div class="n3">　 Trace（一次完整的請求旅程）</div>
+    <div class="n4">🟩 Span（單個處理：HTTP call / DB query / 函式呼叫）</div>
+  </div>
+
+  <p><span class="ac">每一層都可以有 tag</span>，而且上層的 tag 會自動繼承到下層。這就是為什麼不能簡單說「tag 加在伺服器上」——它可以加在 5 個不同的層級上，效果各不相同。</p>
+</div>
+
+</div>
+
+<!-- ================================================================ -->
+<!-- CH1: Q② 加在哪 — 5 層 Telemetry                                  -->
+<!-- ================================================================ -->
+<div class="ch" id="c1">
+
+<div class="c">
+  <h2>📍 Q②：Tag 附著在哪一層？</h2>
+  <p>點擊每一層展開詳細說明。從最外層（Host）到最內層（Span），tag 的粒度越來越細。</p>
+  <p style="font-size:13px;color:var(--t3)">上層的 tag 會向下繼承：Host tag → 所有 Container → 所有 Service → 所有 Span</p>
+</div>
+
+<div class="tower">
+
+  <!-- Layer 1: Host -->
+  <div class="layer l1" onclick="tog(this)">
+    <div class="layer-head">
+      <div class="lnum">1</div>
+      <div class="ltitle">Host（主機）</div>
+      <div class="lbadge">最廣範圍</div>
+      <div class="lchev">▸</div>
+    </div>
+    <div class="layer-detail">
+      <p>VM、EC2 instance、物理伺服器等。Datadog Agent 跑在這一層。</p>
+      <p>Host tag 會<span class="ao">自動繼承到該主機上所有的 metrics、traces、logs</span>。是影響範圍最廣的 tag。</p>
+      <div class="d-grid">
+        <div class="d-box"><h4>Tag 範例</h4><p><code>region:ap-northeast-1</code><br><code>role:web</code><br><code>env:prod</code><br><code>instance-type:m5.xlarge</code></p></div>
+        <div class="d-box"><h4>繼承行為</h4><p>Host 上所有 container 產生的所有 span 都會自動帶上這些 tag。你不需要在每個服務裡重複設定。</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="connector">│ 繼承 ↓</div>
+
+  <!-- Layer 2: Container -->
+  <div class="layer l2" onclick="tog(this)">
+    <div class="layer-head">
+      <div class="lnum">2</div>
+      <div class="ltitle">Container / Pod / Serverless 函式</div>
+      <div class="lbadge">容器粒度</div>
+      <div class="lchev">▸</div>
+    </div>
+    <div class="layer-detail">
+      <p>K8s Pod、Docker container、ECS Task、Lambda function 等。</p>
+      <p>從 Pod label、Docker label、ECS task definition 等<span class="ab">自動抽取</span>的 tag，會附著在該容器產生的 trace span 上。</p>
+      <div class="d-grid">
+        <div class="d-box"><h4>Tag 範例</h4><p><code>kube_namespace:production</code><br><code>kube_deployment:payment-api</code><br><code>app:checkout</code><br><code>team:backend</code></p></div>
+        <div class="d-box"><h4>Unified Service Tagging</h4><p>K8s 環境下，Pod label<br><code>tags.datadoghq.com/env</code><br><code>tags.datadoghq.com/service</code><br><code>tags.datadoghq.com/version</code><br>會被 Admission Controller 自動轉換成環境變數。</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="connector">│ 繼承 ↓</div>
+
+  <!-- Layer 3: Service -->
+  <div class="layer l3" onclick="tog(this)">
+    <div class="layer-head">
+      <div class="lnum">3</div>
+      <div class="ltitle">Service（APM 服務）</div>
+      <div class="lbadge">⭐ Datadog 推薦起點</div>
+      <div class="lchev">▸</div>
+    </div>
+    <div class="layer-detail">
+      <p>一個「服務」= 一個應用程式或微服務（payment-api、user-service、order-batch 等）。</p>
+      <p><code>env</code>、<code>service</code>、<code>version</code> 這三個是 Datadog 的<span class="ac">標準 tag（Unified Service Tagging）</span>，是 APM 裡最重要的 tag。它們把 metrics、traces、logs 串連在一起。</p>
+      <div class="d-grid">
+        <div class="d-box"><h4>三大標準 Tag</h4><p><code>env:production</code> — 環境<br><code>service:payment-api</code> — 服務名<br><code>version:2.1.0</code> — 版本號</p></div>
+        <div class="d-box"><h4>為什麼最重要？</h4><p>這三個 tag 是 APM Service Map、Service Page、Trace Metrics 的基本軸。沒有它們，APM 的大部分功能無法正確運作。</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="connector">│ 繼承 ↓</div>
+
+  <!-- Layer 4: Span -->
+  <div class="layer l4" onclick="tog(this)">
+    <div class="layer-head">
+      <div class="lnum">4</div>
+      <div class="ltitle">Span（處理單元）</div>
+      <div class="lbadge">最細粒度</div>
+      <div class="lchev">▸</div>
+    </div>
+    <div class="layer-detail">
+      <p>一個 Span = 一次 HTTP request、一次 DB query、一次函式呼叫等。是 APM 裡最小的資料單位。</p>
+      <p>開發者可以在程式碼裡用 Tracer API <span class="ag">手動加 tag</span>，附著在特定的 span 上。這是最靈活但也需要改程式碼的方式。</p>
+      <div class="d-grid">
+        <div class="d-box"><h4>Tag 範例</h4><p><code>customer_id:12345</code><br><code>feature_flag:new-checkout</code><br><code>error.type:TimeoutException</code><br><code>http.url:/api/v1/payment</code></p></div>
+        <div class="d-box"><h4>用途</h4><p>在 Trace Explorer 裡 filter、建立自訂的 trace metrics、設定精確的 monitor alert。只影響加了 tag 的那個 span。</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="connector">── 以下非 APM ──</div>
+
+  <!-- Layer 5: RUM -->
+  <div class="layer l5" onclick="tog(this)">
+    <div class="layer-head">
+      <div class="lnum">5</div>
+      <div class="ltitle">Frontend（RUM — 非 APM）</div>
+      <div class="lbadge">另一個產品</div>
+      <div class="lchev">▸</div>
+    </div>
+    <div class="layer-detail">
+      <p>前端（ブラウザ / モバイル）的監控不是 APM，而是 <span class="ap">RUM（Real User Monitoring）</span>。</p>
+      <p>但透過在 RUM SDK 初始化時設定 <code>env</code>、<code>service</code>、<code>version</code>，可以與 APM trace 相互關聯和篩選。</p>
+      <div class="d-grid">
+        <div class="d-box"><h4>設定方式不同</h4><p>RUM 的 tag 透過 SDK 初始化參數設定，不是 Agent 或 Tracer API。方式與 APM 完全不同。</p></div>
+        <div class="d-box"><h4>與 APM 的關聯</h4><p>設定相同的 <code>env</code> / <code>version</code> 後，可以在 RUM 的 session 裡直接跳轉到對應的 APM trace，反向也可以。</p></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</div>
+
+<!-- ================================================================ -->
+<!-- CH2: Q① 怎麼加 — 每層的設定方法                                    -->
+<!-- ================================================================ -->
+<div class="ch" id="c2">
+
+<div class="c">
+  <h2>⚙️ Q①：每一層怎麼設定 Tag？</h2>
+  <p>知道了 tag 附著在哪一層之後，「怎麼加」就自然對應上了。點擊展開每層的具體設定方式。</p>
+</div>
+
+<div class="tower">
+
+  <div class="layer l1" onclick="tog(this)">
+    <div class="layer-head">
+      <div class="lnum">1</div>
+      <div class="ltitle">Host Tag 的設定方法</div>
+      <div class="lbadge">Agent 設定</div>
+      <div class="lchev">▸</div>
+    </div>
+    <div class="layer-detail">
+      <p>在 Datadog Agent 的設定檔或環境變數中設定：</p>
+      <div class="d-grid">
+        <div class="d-box"><h4>方法 A：設定檔</h4><p><code>datadog.yaml</code> 裡的 <code>tags:</code> 項目<br><br>tags:<br>  - region:ap-northeast-1<br>  - role:web</p></div>
+        <div class="d-box"><h4>方法 B：環境變數</h4><p><code>DD_TAGS="region:ap-northeast-1,role:web"</code><br><br>容器環境（Docker / K8s）推薦用這個方式。</p></div>
+      </div>
+      <p style="margin-top:12px">此外，AWS / GCP / Azure 等雲端整合的 tag 會自動繼承，不需要手動設定。</p>
+    </div>
+  </div>
+
+  <div class="layer l2" onclick="tog(this)">
+    <div class="layer-head">
+      <div class="lnum">2</div>
+      <div class="ltitle">Container / Pod Tag 的設定方法</div>
+      <div class="lbadge">K8s Label / ECS Task Def</div>
+      <div class="lchev">▸</div>
+    </div>
+    <div class="layer-detail">
+      <p>依環境而異：</p>
+      <div class="d-grid">
+        <div class="d-box"><h4>Kubernetes</h4><p>在 Deployment / Pod 的 metadata 裡加 label：<br><br><code>tags.datadoghq.com/env: production</code><br><code>tags.datadoghq.com/service: payment-api</code><br><code>tags.datadoghq.com/version: 2.1.0</code><br><br>Datadog Admission Controller 會自動轉換成 <code>DD_ENV</code> 等環境變數。</p></div>
+        <div class="d-box"><h4>ECS / Docker</h4><p>在 ECS Task Definition 裡設定環境變數：<br><br><code>DD_ENV=production</code><br><code>DD_SERVICE=payment-api</code><br><code>DD_VERSION=2.1.0</code><br><br>Docker 環境也可以用 container label。</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="layer l3" onclick="tog(this)">
+    <div class="layer-head">
+      <div class="lnum">3</div>
+      <div class="ltitle">Service Tag 的設定方法</div>
+      <div class="lbadge">⭐ 環境變數（推薦）</div>
+      <div class="lchev">▸</div>
+    </div>
+    <div class="layer-detail">
+      <p>Datadog 最推薦的做法：<span class="ac">Unified Service Tagging</span></p>
+      <div class="d-grid">
+        <div class="d-box"><h4>環境變數（推薦）</h4><p>在服務啟動時設定三個環境變數：<br><br><code>DD_ENV=production</code><br><code>DD_SERVICE=payment-api</code><br><code>DD_VERSION=2.1.0</code><br><br>Tracer 會自動讀取並附加到所有 trace 上。</p></div>
+        <div class="d-box"><h4>非容器環境</h4><p>直接在執行命令中設定：<br><br><code>DD_ENV=prod DD_SERVICE=my-svc DD_VERSION=1.0 /bin/my-service</code><br><br>或寫在 <code>systemd</code> 的 service 設定檔裡。</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="layer l4" onclick="tog(this)">
+    <div class="layer-head">
+      <div class="lnum">4</div>
+      <div class="ltitle">Span Tag 的設定方法</div>
+      <div class="lbadge">程式碼 Tracer API</div>
+      <div class="lchev">▸</div>
+    </div>
+    <div class="layer-detail">
+      <p>在應用程式碼裡，用各語言的 Datadog Tracer API：</p>
+      <div class="d-grid">
+        <div class="d-box"><h4>Go</h4><p><code>span.SetTag("customer_id", "12345")</code></p></div>
+        <div class="d-box"><h4>Python</h4><p><code>span.set_tag("customer_id", "12345")</code></p></div>
+        <div class="d-box"><h4>Java</h4><p><code>span.setTag("customer_id", "12345")</code></p></div>
+        <div class="d-box"><h4>Ruby / Node / etc.</h4><p>各語言都有類似的 <code>set_tag</code> 或 <code>setAttribute</code> API。</p></div>
+      </div>
+      <p style="margin-top:12px">這是唯一需要改程式碼的方式，但也是粒度最細的——可以對每個 span 個別加不同的 tag。</p>
+    </div>
+  </div>
+
+  <div class="layer l5" onclick="tog(this)">
+    <div class="layer-head">
+      <div class="lnum">5</div>
+      <div class="ltitle">Frontend（RUM）的設定方法</div>
+      <div class="lbadge">RUM SDK 初始化</div>
+      <div class="lchev">▸</div>
+    </div>
+    <div class="layer-detail">
+      <p>前端不用 APM Tracer，用 RUM SDK：</p>
+      <div class="d-grid">
+        <div class="d-box"><h4>SDK 初始化</h4><p><code>datadogRum.init({</code><br><code>  service: 'web-app',</code><br><code>  env: 'production',</code><br><code>  version: '3.0.0',</code><br><code>  ...</code><br><code>})</code></p></div>
+        <div class="d-box"><h4>注意</h4><p>這不是 APM 的 tag，而是 RUM 的 tag。但設定相同的 <code>env</code> / <code>service</code> / <code>version</code> 可以讓 RUM 與 APM 資料互相關聯。</p></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</div>
+
+<!-- ================================================================ -->
+<!-- CH3: 總覽 — 完整對照表                                            -->
+<!-- ================================================================ -->
+<div class="ch" id="c3">
+
+<div class="c">
+  <h2>📊 完整對照：5 層 × Tag 來源 × 設定方法 × 範圍</h2>
+</div>
+
+<div class="stbl-wrap">
+  <table class="stbl">
+    <thead><tr>
+      <th>層級</th>
+      <th>Tag 附著在</th>
+      <th>設定方法</th>
+      <th>影響範圍</th>
+      <th>例</th>
+    </tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="pill pill-o">1 Host</span></td>
+        <td>主機（VM / EC2）</td>
+        <td><code>DD_TAGS</code> / <code>datadog.yaml</code> / 雲端整合自動</td>
+        <td>該 host 上所有 telemetry</td>
+        <td><code>region:ap-northeast-1</code></td>
+      </tr>
+      <tr>
+        <td><span class="pill pill-c">2 Container</span></td>
+        <td>Pod / Container / Task</td>
+        <td>K8s label / ECS task def / Docker label</td>
+        <td>該容器的 trace span</td>
+        <td><code>kube_namespace:prod</code></td>
+      </tr>
+      <tr>
+        <td><span class="pill pill-p">3 Service</span></td>
+        <td>APM 服務</td>
+        <td><code>DD_ENV</code> / <code>DD_SERVICE</code> / <code>DD_VERSION</code></td>
+        <td>該服務的 trace + trace metrics</td>
+        <td><code>service:payment-api</code></td>
+      </tr>
+      <tr>
+        <td><span class="pill pill-g">4 Span</span></td>
+        <td>單個處理單元</td>
+        <td>程式碼 <code>span.set_tag()</code></td>
+        <td>只影響該 span</td>
+        <td><code>customer_id:12345</code></td>
+      </tr>
+      <tr>
+        <td><span class="pill pill-pk">5 RUM</span></td>
+        <td>前端 session / event</td>
+        <td>RUM SDK 初始化 <code>init()</code></td>
+        <td>RUM 資料（非 APM）</td>
+        <td><code>version:3.0.0</code></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="c">
+  <h2>🔑 給客戶的回答 — 一句話版</h2>
+  <div class="an">
+    <div class="an-t">Q① 怎麼加 Tag？</div>
+    <p>依層級不同：Host 用 Agent 設定、Container 用 K8s label、Service 用環境變數（<code>DD_ENV</code> 等，推薦起點）、Span 用程式碼 <code>set_tag()</code>、Frontend 用 RUM SDK。</p>
+  </div>
+  <div class="an">
+    <div class="an-t">Q② 加在什麼上面？</div>
+    <p>不是「伺服器」或「前端代碼」這種分法。Tag 附著在 <span class="ac">5 層 telemetry 資料</span>上：Host → Container → Service → Span → (RUM)。上層 tag 會自動繼承到下層。</p>
+  </div>
+</div>
+
+<div class="foot">
+  📖 參考文件：
+  <a href="https://docs.datadoghq.com/getting_started/tagging/" target="_blank">Getting Started with Tags</a> ·
+  <a href="https://docs.datadoghq.com/getting_started/tagging/unified_service_tagging/" target="_blank">Unified Service Tagging</a> ·
+  <a href="https://docs.datadoghq.com/getting_started/tagging/assigning_tags/" target="_blank">Assigning Tags</a> ·
+  <a href="https://docs.datadoghq.com/tracing/trace_collection/custom_instrumentation/" target="_blank">Custom Instrumentation</a> ·
+  <a href="https://docs.datadoghq.com/tracing/guide/setting_primary_tags_to_scope/" target="_blank">Primary Tags</a>
+</div>
+
+</div>
+
+</div>
+
+<script>
+function go(n){
+  document.querySelectorAll('.nb').forEach((b,i)=>b.classList.toggle('on',i===n));
+  document.querySelectorAll('.ch').forEach((c,i)=>c.classList.toggle('on',i===n));
+}
+function tog(el){el.classList.toggle('open')}
+</script>
+</body>
+</html>

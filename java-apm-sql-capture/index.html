@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Datadog Java Tracer — SQL 擷取流程</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      background: #0f1117;
+      color: #e0e0e0;
+      min-height: 100vh;
+    }
+
+    header {
+      background: linear-gradient(135deg, #632ca6, #3d1d8a);
+      padding: 28px 40px;
+    }
+    header h1 { font-size: 1.6rem; font-weight: 700; color: #fff; }
+    header p { margin-top: 6px; color: #cbb8f5; font-size: 0.9rem; }
+
+    .tabs {
+      display: flex;
+      background: #1a1d27;
+      border-bottom: 2px solid #2a2d3e;
+      padding: 0 40px;
+      gap: 4px;
+    }
+    .tab-btn {
+      padding: 14px 22px;
+      border: none;
+      background: transparent;
+      color: #888;
+      cursor: pointer;
+      font-size: 0.9rem;
+      border-bottom: 3px solid transparent;
+      transition: all 0.2s;
+      margin-bottom: -2px;
+    }
+    .tab-btn:hover { color: #ccc; }
+    .tab-btn.active { color: #a78bfa; border-bottom-color: #a78bfa; font-weight: 600; }
+
+    .tab-content { display: none; padding: 36px 40px; max-width: 1100px; margin: 0 auto; }
+    .tab-content.active { display: block; }
+
+    h2 { font-size: 1.25rem; color: #c4b5fd; margin-bottom: 18px; }
+    h3 { font-size: 1rem; color: #a78bfa; margin: 24px 0 10px; }
+
+    .card {
+      background: #1a1d27;
+      border: 1px solid #2a2d3e;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+    }
+    .card p { line-height: 1.7; font-size: 0.9rem; color: #ccc; }
+
+    /* flow */
+    .flow {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      position: relative;
+    }
+    .flow-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 20px;
+      cursor: pointer;
+    }
+    .flow-line {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .flow-circle {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: #2a2d3e;
+      border: 2px solid #4c3b8a;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.9rem; color: #a78bfa;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .flow-step.active .flow-circle,
+    .flow-step:hover .flow-circle {
+      background: #4c3b8a;
+      border-color: #a78bfa;
+      color: #fff;
+    }
+    .flow-connector {
+      width: 2px;
+      height: 32px;
+      background: #2a2d3e;
+    }
+    .flow-body {
+      padding: 6px 0 28px;
+      flex: 1;
+    }
+    .flow-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #ddd;
+      margin-bottom: 4px;
+    }
+    .flow-subtitle {
+      font-size: 0.8rem;
+      color: #777;
+    }
+    .flow-detail {
+      display: none;
+      margin-top: 14px;
+      background: #12141d;
+      border: 1px solid #2a2d3e;
+      border-radius: 8px;
+      padding: 16px 18px;
+    }
+    .flow-step.active .flow-detail { display: block; }
+
+    /* code block */
+    pre {
+      background: #0d0f18;
+      border: 1px solid #2a2d3e;
+      border-radius: 6px;
+      padding: 14px 16px;
+      overflow-x: auto;
+      font-size: 0.78rem;
+      line-height: 1.6;
+      margin: 10px 0;
+    }
+    code { font-family: "JetBrains Mono", "Fira Code", monospace; }
+    .file-tag {
+      display: inline-block;
+      background: #1e2030;
+      border: 1px solid #3a3d55;
+      border-radius: 4px;
+      padding: 3px 8px;
+      font-size: 0.72rem;
+      color: #7c7faa;
+      margin-bottom: 8px;
+      font-family: monospace;
+    }
+    .hl { color: #f59e0b; }
+    .cm { color: #6b7280; font-style: italic; }
+    .kw { color: #c084fc; }
+    .st { color: #86efac; }
+    .fn { color: #60a5fa; }
+    .num { color: #fb923c; }
+
+    /* demo section */
+    .demo-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 700px) { .demo-grid { grid-template-columns: 1fr; } }
+
+    .demo-card {
+      background: #12141d;
+      border: 1px solid #2a2d3e;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .demo-card-header {
+      background: #1e2030;
+      padding: 10px 14px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #a78bfa;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 99px;
+      font-size: 0.68rem;
+      font-weight: 600;
+    }
+    .badge-blue { background: #1e3a5f; color: #60a5fa; }
+    .badge-green { background: #14532d; color: #86efac; }
+    .badge-orange { background: #431407; color: #fb923c; }
+    .badge-gray { background: #1f2937; color: #9ca3af; }
+
+    .demo-card pre { margin: 0; border: none; border-radius: 0; background: #0d0f18; }
+
+    /* normalizer interactive */
+    .normalizer-box {
+      background: #12141d;
+      border: 1px solid #2a2d3e;
+      border-radius: 10px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+    .normalizer-box label {
+      font-size: 0.82rem;
+      color: #888;
+      display: block;
+      margin-bottom: 6px;
+    }
+    .sql-input {
+      width: 100%;
+      background: #0d0f18;
+      border: 1px solid #3a3d55;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-family: monospace;
+      font-size: 0.85rem;
+      color: #e0e0e0;
+      outline: none;
+    }
+    .sql-input:focus { border-color: #7c3aed; }
+    .btn-row { display: flex; gap: 10px; margin: 12px 0; flex-wrap: wrap; }
+    .btn {
+      padding: 8px 16px;
+      border-radius: 6px;
+      border: none;
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-weight: 600;
+      transition: opacity 0.15s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn-primary { background: #7c3aed; color: #fff; }
+    .btn-secondary { background: #2a2d3e; color: #ccc; }
+    .result-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+    .result-box {
+      flex: 1;
+      min-width: 200px;
+      background: #0d0f18;
+      border: 1px solid #2a2d3e;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-family: monospace;
+      font-size: 0.85rem;
+    }
+    .result-box .label { font-size: 0.72rem; color: #666; margin-bottom: 4px; }
+    .result-box .value { color: #86efac; }
+    .arrow-icon { color: #a78bfa; font-size: 1.2rem; }
+
+    .rule-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-top: 12px;
+    }
+    @media (max-width: 700px) { .rule-grid { grid-template-columns: 1fr; } }
+    .rule-item {
+      background: #12141d;
+      border: 1px solid #2a2d3e;
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .rule-item .rule-title { font-size: 0.78rem; color: #a78bfa; margin-bottom: 8px; font-weight: 600; }
+    .rule-item .rule-before { color: #f87171; font-family: monospace; font-size: 0.82rem; }
+    .rule-item .rule-after { color: #86efac; font-family: monospace; font-size: 0.82rem; margin-top: 4px; }
+    .rule-item .arrow { color: #777; font-size: 0.75rem; margin: 3px 0; }
+
+    .note {
+      background: #1a2035;
+      border-left: 3px solid #3b82f6;
+      border-radius: 0 6px 6px 0;
+      padding: 12px 16px;
+      font-size: 0.83rem;
+      color: #93c5fd;
+      margin: 16px 0;
+      line-height: 1.6;
+    }
+    .warn {
+      background: #1c1510;
+      border-left: 3px solid #f59e0b;
+      border-radius: 0 6px 6px 0;
+      padding: 12px 16px;
+      font-size: 0.83rem;
+      color: #fcd34d;
+      margin: 16px 0;
+      line-height: 1.6;
+    }
+
+    /* summary table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+    th {
+      background: #1e2030;
+      color: #a78bfa;
+      text-align: left;
+      padding: 10px 14px;
+      font-weight: 600;
+    }
+    td {
+      padding: 10px 14px;
+      border-bottom: 1px solid #1e2030;
+      color: #ccc;
+      vertical-align: top;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #161825; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Datadog Java Tracer — SQL 擷取流程解析</h1>
+  <p>說明 APM Trace 中的 SQL 查詢是從哪裡取得的，以及正規化的完整過程</p>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('overview')">① 概覽</button>
+  <button class="tab-btn" onclick="switchTab('flow')">② 擷取流程</button>
+  <button class="tab-btn" onclick="switchTab('normalizer')">③ 正規化模擬器</button>
+  <button class="tab-btn" onclick="switchTab('examples')">④ 實際範例</button>
+  <button class="tab-btn" onclick="switchTab('summary')">⑤ 總結</button>
+</div>
+
+<!-- ① 概覽 -->
+<div id="tab-overview" class="tab-content active">
+  <h2>SQL 是從哪裡取得的？</h2>
+  <div class="card">
+    <p>Datadog Java Tracer 取得的 SQL <strong style="color:#a78bfa">並非來自資料庫端（Oracle、MySQL 等）的 log</strong>，而是在應用程式透過 JDBC 送出 SQL 的當下，由 tracer 在 JDBC 層進行攔截（hook）所取得。</p>
+  </div>
+
+  <div style="display:flex; gap:16px; flex-wrap:wrap; margin-bottom:20px;">
+    <div class="card" style="flex:1; min-width:220px; border-color:#4c3b8a;">
+      <div style="font-size:1.4rem; margin-bottom:8px;">🚫</div>
+      <h3 style="margin-top:0; color:#f87171;">不是從這裡取得</h3>
+      <p>Oracle / MySQL 的 SQL log、slow query log、audit log</p>
+    </div>
+    <div class="card" style="flex:1; min-width:220px; border-color:#166534;">
+      <div style="font-size:1.4rem; margin-bottom:8px;">✅</div>
+      <h3 style="margin-top:0; color:#86efac;">而是從這裡取得</h3>
+      <p>應用程式呼叫 <code style="color:#a78bfa">Connection.prepareStatement(sql)</code> 時，tracer 攔截並取得 SQL 字串</p>
+    </div>
+  </div>
+
+  <h2>核心架構示意</h2>
+  <pre><code><span class="cm">/* 呼叫鏈示意 */</span>
+
+<span class="st">應用程式</span>
+  └─ Connection.prepareStatement(<span class="hl">"SELECT * FROM orders WHERE id = ?"</span>)
+       │
+       ├─ <span class="cm">【Datadog Tracer 攔截點】</span>
+       │   ByteBuddy hook → 取出 SQL 字串 → SQLNormalizer.normalize()
+       │   → 存入 span 的 resource name
+       │
+       └─ <span class="st">Oracle / MySQL</span>（收到的是帶 ? 的 prepared statement）
+            └─ 執行 SQL，但 Datadog 不讀取 DB 端的 log</code></pre>
+
+  <div class="note">
+    💡 因為攔截點在 JDBC 層，所以不論使用哪種資料庫（Oracle、MySQL、PostgreSQL 等），行為都一致。
+  </div>
+</div>
+
+<!-- ② 擷取流程 -->
+<div id="tab-flow" class="tab-content">
+  <h2>SQL 擷取的完整流程（點擊各步驟查看詳細）</h2>
+
+  <div class="flow">
+
+    <!-- Step 1 -->
+    <div class="flow-step active" onclick="toggleStep(this)">
+      <div class="flow-line">
+        <div class="flow-circle">1</div>
+        <div class="flow-connector"></div>
+      </div>
+      <div class="flow-body">
+        <div class="flow-title">應用程式呼叫 prepareStatement()</div>
+        <div class="flow-subtitle">JDBC API — 應用程式側</div>
+        <div class="flow-detail">
+          <p style="font-size:0.85rem; color:#ccc; margin-bottom:10px;">應用程式透過 JDBC 建立 PreparedStatement，SQL 字串在此時傳入。</p>
+          <div class="file-tag">應用程式側（客戶程式碼）</div>
+          <pre><code><span class="cm">// 應用程式的典型寫法</span>
+<span class="kw">String</span> sql = <span class="st">"SELECT member_code, tsr_code FROM rismon WHERE id = ?"</span>;
+PreparedStatement ps = connection.<span class="fn">prepareStatement</span>(sql);
+ps.<span class="fn">setInt</span>(<span class="num">1</span>, <span class="num">12345</span>);  <span class="cm">// ← bound parameter（Datadog は取得しない）</span>
+ps.<span class="fn">executeQuery</span>();</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="flow-step" onclick="toggleStep(this)">
+      <div class="flow-line">
+        <div class="flow-circle">2</div>
+        <div class="flow-connector"></div>
+      </div>
+      <div class="flow-body">
+        <div class="flow-title">ByteBuddy hook 攔截</div>
+        <div class="flow-subtitle">AbstractConnectionInstrumentation.java</div>
+        <div class="flow-detail">
+          <p style="font-size:0.85rem; color:#ccc; margin-bottom:10px;">Datadog tracer 透過 ByteBuddy，在 JVM 啟動時對所有實作 <code>Connection</code> 介面的類別進行 bytecode 注入，攔截 <code>prepare*</code> 開頭的方法。</p>
+          <div class="file-tag">dd-java-agent/instrumentation/jdbc/src/main/java/datadog/trace/instrumentation/jdbc/AbstractConnectionInstrumentation.java</div>
+          <pre><code><span class="cm">// 定義攔截哪些方法</span>
+transformer.<span class="fn">applyAdvice</span>(
+    <span class="fn">nameStartsWith</span>(<span class="st">"prepare"</span>)              <span class="cm">// prepareStatement / prepareCall</span>
+        .<span class="fn">and</span>(<span class="fn">takesArgument</span>(<span class="num">0</span>, String.<span class="kw">class</span>))  <span class="cm">// 第一引數為 SQL 字串</span>
+        .<span class="fn">and</span>(<span class="fn">returns</span>(<span class="fn">hasInterface</span>(<span class="fn">named</span>(<span class="st">"java.sql.PreparedStatement"</span>)))),
+    ConnectionPrepareAdvice.<span class="kw">class</span>.getName());
+
+<span class="cm">// 方法結束時執行（OnMethodExit）</span>
+<span class="kw">@Advice.OnMethodExit</span>(suppress = Throwable.<span class="kw">class</span>)
+<span class="kw">public static void</span> <span class="fn">addDBInfo</span>(
+    <span class="kw">@Advice.Argument</span>(<span class="num">0</span>) <span class="kw">final</span> String sql,         <span class="cm">// ← SQL 字串在此取得</span>
+    <span class="kw">@Advice.Return</span> <span class="kw">final</span> PreparedStatement statement) {
+  DBQueryInfo info = DBQueryInfo.<span class="fn">ofPreparedStatement</span>(sql); <span class="cm">// 正規化</span>
+  contextStore.<span class="fn">put</span>(statement, info);                       <span class="cm">// Statement 物件關聯</span>
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="flow-step" onclick="toggleStep(this)">
+      <div class="flow-line">
+        <div class="flow-circle">3</div>
+        <div class="flow-connector"></div>
+      </div>
+      <div class="flow-body">
+        <div class="flow-title">SQLNormalizer 正規化</div>
+        <div class="flow-subtitle">SQLNormalizer.java / DBQueryInfo.java</div>
+        <div class="flow-detail">
+          <p style="font-size:0.85rem; color:#ccc; margin-bottom:10px;">取得的 SQL 字串會通過 <code>SQLNormalizer.normalize()</code> 進行正規化，將 literal 值替換成 <code>?</code>，避免敏感資料進入 trace。</p>
+          <div class="file-tag">dd-java-agent/agent-bootstrap/.../jdbc/DBQueryInfo.java</div>
+          <pre><code><span class="cm">// PreparedStatement → キャッシュあり</span>
+<span class="kw">public static</span> DBQueryInfo <span class="fn">ofPreparedStatement</span>(String sql) {
+    <span class="kw">return</span> CACHED_PREPARED_STATEMENTS.<span class="fn">computeIfAbsent</span>(sql, NORMALIZE);
+}
+
+<span class="cm">// 通常の Statement → キャッシュなし（毎回正規化）</span>
+<span class="kw">public static</span> DBQueryInfo <span class="fn">ofStatement</span>(String sql) {
+    <span class="kw">return</span> NORMALIZE.<span class="fn">apply</span>(sql);
+}
+
+<span class="cm">// 両方とも最終的にここを通る</span>
+<span class="kw">public</span> <span class="fn">DBQueryInfo</span>(String sql) {
+    <span class="kw">this</span>.sql = SQLNormalizer.<span class="fn">normalize</span>(sql); <span class="cm">// ← 正規化の本体</span>
+}</code></pre>
+          <div class="file-tag">internal-api/.../normalize/SQLNormalizer.java</div>
+          <pre><code><span class="cm">// 正規化の判定ロジック（3種類の literal を ? に置換）</span>
+<span class="kw">if</span> (<span class="fn">isQuoted</span>(utf8, sequenceStart, sequenceEnd)        <span class="cm">// 'string' → ?</span>
+    || <span class="fn">isNumericLiteralPrefix</span>(utf8, sequenceStart)    <span class="cm">// 123, -1.5 → ?</span>
+    || <span class="fn">isHexLiteralPrefix</span>(utf8, sequenceStart, sequenceEnd)) { <span class="cm">// x'FF' → ?</span>
+  utf8[sequenceStart] = <span class="st">'?'</span>;
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="flow-step" onclick="toggleStep(this)">
+      <div class="flow-line">
+        <div class="flow-circle">4</div>
+        <div class="flow-connector"></div>
+      </div>
+      <div class="flow-body">
+        <div class="flow-title">Span の resource name に設定</div>
+        <div class="flow-subtitle">JDBCDecorator.java</div>
+        <div class="flow-detail">
+          <p style="font-size:0.85rem; color:#ccc; margin-bottom:10px;">正規化済みの SQL が span の resource name として設定され、Datadog APM UI に表示される。</p>
+          <div class="file-tag">dd-java-agent/instrumentation/jdbc/src/main/java/datadog/trace/instrumentation/jdbc/JDBCDecorator.java</div>
+          <pre><code><span class="kw">private</span> AgentSpan <span class="fn">withQueryInfo</span>(AgentSpan span, DBQueryInfo info, ...) {
+  <span class="kw">if</span> (null != info) {
+    span.<span class="fn">setResourceName</span>(info.<span class="fn">getSql</span>());      <span class="cm">// ← 正規化済み SQL を span に設定</span>
+    span.<span class="fn">setTag</span>(DB_OPERATION, info.<span class="fn">getOperation</span>());
+  }
+  <span class="kw">return</span> span.<span class="fn">setTag</span>(Tags.COMPONENT, component);
+}</code></pre>
+          <p style="font-size:0.83rem; color:#ccc; margin-top:10px;">APM UI の Span List に表示される SQL はこの resource name です。</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 5 -->
+    <div class="flow-step" onclick="toggleStep(this)">
+      <div class="flow-line">
+        <div class="flow-circle">5</div>
+        <div class="flow-connector" style="height:0;"></div>
+      </div>
+      <div class="flow-body">
+        <div class="flow-title">Trace Agent 側でさらに難読化</div>
+        <div class="flow-subtitle">datadog-agent（サーバー側）</div>
+        <div class="flow-detail">
+          <p style="font-size:0.85rem; color:#ccc; margin-bottom:10px;">tracer 側の正規化は「ベストエフォート」。最終的な難読化は Datadog Agent（trace-agent）が行う。</p>
+          <div class="file-tag">internal-api/.../normalize/SQLNormalizer.java — Javadoc</div>
+          <pre><code><span class="cm">/**
+ * This is not an obfuscator, and the strings produced by this class
+ * must be passed through obfuscation in the trace agent.
+ *
+ * （この class は obfuscator ではなく、ここで生成された文字列は
+ *   trace agent 側でさらに難読化処理が必要）
+ */</span></code></pre>
+          <div class="note">Tracer（アプリ側）と Trace Agent（サイドカー）の二段階で処理されることで、機密データの保護を強化している。</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ③ 正規化模擬器 -->
+<div id="tab-normalizer" class="tab-content">
+  <h2>SQL 正規化模擬器</h2>
+  <p style="color:#888; font-size:0.85rem; margin-bottom:20px;">輸入 SQL 查詢，模擬 SQLNormalizer 的處理結果。</p>
+
+  <div class="normalizer-box">
+    <label>輸入 SQL（點擊下方預設範例快速填入）</label>
+    <input class="sql-input" id="sqlInput" type="text"
+      value="SELECT * FROM orders WHERE customer_id = 42 AND status = 'active'" />
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="runNormalize()">執行正規化</button>
+      <button class="btn btn-secondary" onclick="setExample(0)">範例 1：帶數字</button>
+      <button class="btn btn-secondary" onclick="setExample(1)">範例 2：帶字串</button>
+      <button class="btn btn-secondary" onclick="setExample(2)">範例 3：帶 IN 清單</button>
+      <button class="btn btn-secondary" onclick="setExample(3)">範例 4：已有 ?</button>
+    </div>
+    <div class="result-row">
+      <div class="result-box">
+        <div class="label">輸入（原始 SQL）</div>
+        <div class="value" id="resultBefore">—</div>
+      </div>
+      <div class="arrow-icon">→</div>
+      <div class="result-box">
+        <div class="label">輸出（正規化後）</div>
+        <div class="value" id="resultAfter">—</div>
+      </div>
+    </div>
+    <div id="resultNote" style="margin-top:12px; font-size:0.82rem; color:#888;"></div>
+  </div>
+
+  <h3>正規化規則一覽</h3>
+  <div class="rule-grid">
+    <div class="rule-item">
+      <div class="rule-title">字串 Literal</div>
+      <div class="rule-before">'active'</div>
+      <div class="arrow">↓</div>
+      <div class="rule-after">?</div>
+      <div style="font-size:0.72rem; color:#666; margin-top:6px;">單引號包住的值</div>
+    </div>
+    <div class="rule-item">
+      <div class="rule-title">數字 Literal</div>
+      <div class="rule-before">42, -1, 3.14</div>
+      <div class="arrow">↓</div>
+      <div class="rule-after">?</div>
+      <div style="font-size:0.72rem; color:#666; margin-top:6px;">數字、負號、小數點開頭</div>
+    </div>
+    <div class="rule-item">
+      <div class="rule-title">Hex Literal</div>
+      <div class="rule-before">x'FF0A'</div>
+      <div class="arrow">↓</div>
+      <div class="rule-after">?</div>
+      <div style="font-size:0.72rem; color:#666; margin-top:6px;">x' 形式の Hex 值</div>
+    </div>
+  </div>
+
+  <div class="warn" style="margin-top:20px;">
+    ⚠️ <strong>Bound Parameter は絶対に取得されない</strong><br>
+    <code>setString(1, "secret")</code>、<code>setInt(1, 99)</code> などで渡した値は、
+    正規化どころか tracer に渡ることすらない。JDBC の内部メカニズムでバインドされるため、
+    SQL 文字列自体には含まれない。
+  </div>
+</div>
+
+<!-- ④ 實際範例 -->
+<div id="tab-examples" class="tab-content">
+  <h2>實際案例對照</h2>
+
+  <h3>案例 A：PreparedStatement（最常見）</h3>
+  <div class="demo-grid">
+    <div class="demo-card">
+      <div class="demo-card-header">
+        <span class="badge badge-blue">應用程式程式碼</span>
+      </div>
+      <pre><code><span class="cm">// 應用程式傳入的 SQL</span>
+String sql = <span class="st">"SELECT MEMBER_CODE, TSR_CODE,"</span>
+           + <span class="st">" SETTLINGDAY, AMOUNT_UNIT"</span>
+           + <span class="st">" FROM rismon"</span>
+           + <span class="st">" WHERE id = ? AND status = ?"</span>;
+PreparedStatement ps = conn.<span class="fn">prepareStatement</span>(sql);
+ps.<span class="fn">setInt</span>(<span class="num">1</span>, <span class="num">12345</span>);      <span class="cm">// 不被 tracer 取得</span>
+ps.<span class="fn">setString</span>(<span class="num">2</span>, <span class="st">"active"</span>); <span class="cm">// 不被 tracer 取得</span></code></pre>
+    </div>
+    <div class="demo-card">
+      <div class="demo-card-header">
+        <span class="badge badge-green">APM Trace 顯示的 SQL</span>
+      </div>
+      <pre><code><span class="cm">// ? 維持不變（原本就是 placeholder）</span>
+SELECT MEMBER_CODE, TSR_CODE,
+  SETTLINGDAY, AMOUNT_UNIT
+FROM rismon
+WHERE id = <span class="hl">?</span> AND status = <span class="hl">?</span></code></pre>
+    </div>
+  </div>
+
+  <h3>案例 B：一般 Statement（含 literal 值）</h3>
+  <div class="demo-grid">
+    <div class="demo-card">
+      <div class="demo-card-header">
+        <span class="badge badge-blue">應用程式程式碼</span>
+      </div>
+      <pre><code><span class="cm">// 直接把值嵌入 SQL（不推薦，但 tracer 仍支援）</span>
+String sql = <span class="st">"SELECT * FROM orders"</span>
+           + <span class="st">" WHERE year = 2024"</span>
+           + <span class="st">" AND status = 'PAID'"</span>;
+Statement stmt = conn.<span class="fn">createStatement</span>();
+stmt.<span class="fn">execute</span>(sql);</code></pre>
+    </div>
+    <div class="demo-card">
+      <div class="demo-card-header">
+        <span class="badge badge-green">APM Trace 顯示的 SQL</span>
+      </div>
+      <pre><code><span class="cm">// SQLNormalizer が literal を ? に置換</span>
+SELECT * FROM orders
+WHERE year = <span class="hl">?</span>        <span class="cm">← 2024 が置換された</span>
+AND status = <span class="hl">?</span>       <span class="cm">← 'PAID' が置換された</span></code></pre>
+    </div>
+  </div>
+
+  <h3>案例 C：IN 子句（多個值）</h3>
+  <div class="demo-grid">
+    <div class="demo-card">
+      <div class="demo-card-header">
+        <span class="badge badge-blue">應用程式程式碼</span>
+      </div>
+      <pre><code>String sql = <span class="st">"SELECT id FROM products"</span>
+           + <span class="st">" WHERE category IN (1, 2, 3)"</span>;
+stmt.<span class="fn">execute</span>(sql);</code></pre>
+    </div>
+    <div class="demo-card">
+      <div class="demo-card-header">
+        <span class="badge badge-green">APM Trace 顯示的 SQL</span>
+      </div>
+      <pre><code><span class="cm">// 各數字がそれぞれ ? に置換される</span>
+SELECT id FROM products
+WHERE category IN (<span class="hl">?</span>, <span class="hl">?</span>, <span class="hl">?</span>)</code></pre>
+    </div>
+  </div>
+
+  <h3>案例 D：截圖中的 SQL（客戶案例）</h3>
+  <div class="demo-grid">
+    <div class="demo-card">
+      <div class="demo-card-header">
+        <span class="badge badge-orange">截圖中顯示的 SQL</span>
+      </div>
+      <pre><code>select MEMBER_CODE, TSR_CODE,
+  SETTLINGDAY, AMOUNT_UNIT,
+  USE_NOTES, R...</code></pre>
+    </div>
+    <div class="demo-card">
+      <div class="demo-card-header">
+        <span class="badge badge-gray">說明</span>
+      </div>
+      <pre><code><span class="cm">// 此 SQL 不含 literal 值，
+// 推測原始 SQL 就是以 ? 作為 placeholder
+// 的 PreparedStatement，
+// 所以 normalizer 處理後無變化。
+
+// 取得時機：
+// conn.prepareStatement(
+//   "select MEMBER_CODE, TSR_CODE, ..."
+// )
+// ← 這一行被 ByteBuddy 攔截</span></code></pre>
+    </div>
+  </div>
+</div>
+
+<!-- ⑤ 總結 -->
+<div id="tab-summary" class="tab-content">
+  <h2>總結</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>項目</th>
+        <th>內容</th>
+        <th>Source</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>SQL 取得來源</td>
+        <td>應用程式呼叫 JDBC 時的 SQL 字串，<strong>不是</strong> DB 端 log</td>
+        <td>AbstractConnectionInstrumentation.java</td>
+      </tr>
+      <tr>
+        <td>攔截時機</td>
+        <td><code>Connection.prepareStatement()</code> 呼叫時（方法結束後）</td>
+        <td>@Advice.OnMethodExit</td>
+      </tr>
+      <tr>
+        <td>攔截方法</td>
+        <td>ByteBuddy による bytecode 注入</td>
+        <td>AbstractConnectionInstrumentation.java</td>
+      </tr>
+      <tr>
+        <td>正規化處理</td>
+        <td>字串 / 數字 / Hex literal → <code>?</code> に置換</td>
+        <td>SQLNormalizer.java</td>
+      </tr>
+      <tr>
+        <td>PreparedStatement の Cache</td>
+        <td>同一 SQL 的正規化結果會被 cache，避免重複處理</td>
+        <td>DBQueryInfo.java（CACHED_PREPARED_STATEMENTS）</td>
+      </tr>
+      <tr>
+        <td>Bound Parameter</td>
+        <td><strong>絶対に取得されない</strong>（setString 等の値は span に含まれない）</td>
+        <td>設計上の仕様</td>
+      </tr>
+      <tr>
+        <td>二段階難読化</td>
+        <td>Tracer 側（正規化）+ Trace Agent 側（難読化）</td>
+        <td>SQLNormalizer.java Javadoc</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="note" style="margin-top:24px;">
+    📌 <strong>客戶の認識は正しい</strong><br>
+    「DB のログからではなく、アプリが JDBC に渡した SQL を、フックした場所で拾っている」という認識は正確です。
+    加えて、tracer は SQL の構造（正規化済み）のみを取得し、実際のパラメータ値は一切取得しません。
+  </div>
+</div>
+
+<script>
+  function switchTab(name) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    event.target.classList.add('active');
+  }
+
+  function toggleStep(el) {
+    const isActive = el.classList.contains('active');
+    document.querySelectorAll('.flow-step').forEach(s => s.classList.remove('active'));
+    if (!isActive) el.classList.add('active');
+  }
+
+  const examples = [
+    "SELECT * FROM orders WHERE customer_id = 42 AND status = 'active'",
+    "SELECT name, email FROM users WHERE username = 'john_doe' AND login_count = 10",
+    "SELECT id FROM products WHERE category_id IN (1, 2, 3) AND price = 9.99",
+    "SELECT member_code, tsr_code FROM rismon WHERE id = ? AND status = ?"
+  ];
+
+  function setExample(i) {
+    document.getElementById('sqlInput').value = examples[i];
+    runNormalize();
+  }
+
+  function normalizeSql(sql) {
+    // JavaScript simulation of SQLNormalizer logic
+    // Handles: 'string literals', numeric literals, hex literals
+    let result = sql;
+
+    // Replace string literals: 'value' → ?
+    result = result.replace(/'([^'\\]|\\.)*'/g, '?');
+
+    // Replace hex literals: x'...' → ? (already handled above since it ends with ')
+
+    // Replace numeric literals (standalone numbers, decimals, negative)
+    // Use word boundary-like logic: preceded by space, (, comma, =, <, >
+    result = result.replace(/(?<=[\s,(=<>!]|^)-?\.?\d[\d.]*/g, '?');
+    // Also handle numbers at start
+    result = result.replace(/(?<=[,(\s=<>!])-?\d+(\.\d+)?/g, '?');
+    result = result.replace(/\b\d+(\.\d+)?\b/g, '?');
+
+    return result;
+  }
+
+  function runNormalize() {
+    const input = document.getElementById('sqlInput').value.trim();
+    if (!input) return;
+    const output = normalizeSql(input);
+    document.getElementById('resultBefore').textContent = input;
+    document.getElementById('resultAfter').textContent = output;
+    const changed = input !== output;
+    document.getElementById('resultNote').textContent = changed
+      ? '✅ literal 値が ? に置換されました。'
+      : '（literal 値なし、または既に ? のみ）— 変更なし';
+  }
+
+  // Run on load with default value
+  runNormalize();
+</script>
+
+</body>
+</html>

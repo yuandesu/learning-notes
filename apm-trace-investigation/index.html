@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第一性原理：APM Trace 消失事件調查</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#070a10;--s:#0e1219;--s2:#141a25;--bd:#1a2235;
+  --t:#dce4f0;--t2:#8a99b2;--t3:#4a5b72;
+  --red:#ef4444;--redd:rgba(239,68,68,.1);--redg:rgba(239,68,68,.25);
+  --green:#22c55e;--greend:rgba(34,197,94,.1);
+  --orange:#f59e0b;--oranged:rgba(245,158,11,.1);
+  --blue:#3b82f6;--blued:rgba(59,130,246,.1);
+  --cyan:#06b6d4;--cyand:rgba(6,182,212,.1);
+  --purple:#8b5cf6;--purpled:rgba(139,92,246,.12);--purpleg:rgba(139,92,246,.25);
+  --amber:#d97706;--amberd:rgba(217,119,6,.1);
+  --r:10px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--t);line-height:1.8;overflow-x:hidden}
+code{font-family:'IBM Plex Mono',monospace;font-size:12px;background:rgba(255,255,255,.06);padding:2px 8px;border-radius:5px;color:#c4b5fd}
+.w{max-width:980px;margin:0 auto;padding:40px 20px 100px}
+
+.hero{text-align:center;margin-bottom:52px;animation:fu .8s}
+.hero-b{display:inline-block;background:var(--redd);border:1px solid rgba(239,68,68,.3);border-radius:100px;padding:6px 18px;font-size:12px;color:var(--red);font-weight:500;letter-spacing:.5px;margin-bottom:16px}
+.hero h1{font-size:clamp(22px,5vw,36px);font-weight:900;line-height:1.3;background:linear-gradient(135deg,#e2e8f0,#f87171,#fbbf24);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:12px}
+.hero p{color:var(--t2);font-size:15px;max-width:640px;margin:0 auto}
+
+.nav{display:flex;gap:3px;background:var(--s);border:1px solid var(--bd);border-radius:14px;padding:5px;margin-bottom:36px;position:sticky;top:12px;z-index:100;backdrop-filter:blur(12px)}
+.nb{flex:1;padding:10px 6px;border:none;border-radius:10px;background:transparent;color:var(--t2);font-family:'Noto Sans TC',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:.25s;text-align:center}
+.nb:hover{background:var(--s2);color:var(--t)}
+.nb.on{background:var(--s2);color:#fff;box-shadow:0 0 20px var(--redg);border:1px solid rgba(239,68,68,.3)}
+.nb small{display:block;font-size:10px;color:var(--t3);margin-top:2px}.nb.on small{color:rgba(239,68,68,.6)}
+.ch{display:none;animation:fu .5s}.ch.on{display:block}
+@keyframes fu{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+.c{background:var(--s);border:1px solid var(--bd);border-radius:14px;padding:28px;margin-bottom:20px;position:relative;overflow:hidden}
+.c::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--red),transparent);opacity:.4}
+.c h2{font-size:20px;font-weight:800;margin-bottom:16px;line-height:1.4}
+.c h3{font-size:16px;font-weight:700;margin:20px 0 10px;color:#fff}
+.c p{font-size:14px;color:var(--t2);margin-bottom:12px}.c p:last-child{margin-bottom:0}
+.ac{color:var(--purple);font-weight:600}
+.ag{color:var(--green);font-weight:600}
+.ao{color:var(--orange);font-weight:600}
+.ab{color:var(--blue);font-weight:600}
+.ar{color:var(--red);font-weight:600}
+
+.an{background:linear-gradient(135deg,rgba(239,68,68,.05),rgba(245,158,11,.04));border:1px solid rgba(239,68,68,.2);border-radius:var(--r);padding:20px;margin:16px 0;font-size:14px;color:var(--t2)}
+.an-t{font-weight:700;color:var(--red);font-size:13px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+
+/* Flow boxes */
+.flow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:16px 0;padding:16px;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r)}
+.fb{padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;text-align:center;min-width:70px;transition:.3s}
+.fa{color:var(--t3);font-size:16px;flex-shrink:0}
+.fb-tr{background:var(--purpled);color:var(--purple);border:1px solid rgba(139,92,246,.25)}
+.fb-ag{background:var(--cyand);color:var(--cyan);border:1px solid rgba(6,182,212,.25)}
+.fb-in{background:var(--blued);color:var(--blue);border:1px solid rgba(59,130,246,.25)}
+.fb-be{background:var(--oranged);color:var(--orange);border:1px solid rgba(245,158,11,.25)}
+.fb-ui{background:var(--greend);color:var(--green);border:1px solid rgba(34,197,94,.25)}
+.fb-x{background:var(--redd);color:var(--red);border:1px solid rgba(239,68,68,.25);opacity:.5;text-decoration:line-through}
+.fb-ok{background:var(--greend);color:var(--green);border:1px solid rgba(34,197,94,.25)}
+.fb-fail{background:var(--redd);color:var(--red);border:1px solid rgba(239,68,68,.25)}
+.fb-log{background:var(--amberd);color:var(--amber);border:1px solid rgba(217,119,6,.25)}
+
+/* Side by side */
+.vs{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0}
+.vs-col{background:var(--s2);border-radius:var(--r);padding:18px;border:1px solid var(--bd)}
+.vs-col h4{font-size:13px;font-weight:700;margin-bottom:10px}
+.vs-col p{font-size:13px;color:var(--t2);margin-bottom:6px}
+.vs-ok{border-color:rgba(34,197,94,.25)}.vs-fail{border-color:rgba(239,68,68,.25)}
+@media(max-width:600px){.vs{grid-template-columns:1fr}}
+
+/* Stepper */
+.step-controls{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.sb{padding:8px 16px;border-radius:100px;border:1px solid var(--bd);background:var(--s);color:var(--t2);font-family:'Noto Sans TC',sans-serif;font-size:13px;cursor:pointer;transition:.25s}
+.sb:hover{border-color:rgba(239,68,68,.4);color:var(--t)}
+.sb.on{border-color:var(--red);color:#fff;background:var(--redd)}
+.sc{display:none;animation:fu .4s}.sc.on{display:block}
+.sn{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px}
+.sd{font-size:14px;color:var(--t2);margin-top:12px;padding:12px 16px;background:rgba(255,255,255,.02);border-left:3px solid var(--red);border-radius:0 var(--r) var(--r) 0;line-height:1.7}
+
+/* Hypothesis tower */
+.hyp{border-radius:var(--r);padding:16px 20px;cursor:pointer;transition:all .3s;border:1px solid transparent;margin-bottom:4px}
+.hyp:hover{transform:translateX(4px)}
+.hyp.open{border-color:rgba(239,68,68,.2)}.hyp.open .hyp-d{max-height:300px;padding-top:12px;opacity:1}.hyp.open .hchev{transform:rotate(90deg)}
+.hyp-h{display:flex;align-items:center;gap:12px;user-select:none}
+.hyp-icon{font-size:18px;flex-shrink:0}
+.hyp-title{flex:1;font-weight:600;font-size:14px}
+.hyp-v{font-size:11px;font-weight:600;padding:3px 10px;border-radius:100px;flex-shrink:0}
+.hv-out{background:var(--greend);color:var(--green)}
+.hv-un{background:var(--redd);color:var(--red)}
+.hchev{color:var(--t3);font-size:12px;transition:transform .3s;flex-shrink:0}
+.hyp-d{max-height:0;overflow:hidden;opacity:0;transition:all .4s ease;font-size:13px;color:var(--t2);line-height:1.7}
+.hyp-ruled{background:rgba(34,197,94,.03)}
+.hyp-unknown{background:rgba(239,68,68,.03)}
+
+/* Stats */
+.stat-row{display:flex;gap:12px;flex-wrap:wrap;margin:16px 0}
+.stat{flex:1;min-width:140px;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);padding:16px;text-align:center}
+.stat-val{font-size:28px;font-weight:900;line-height:1.2}
+.stat-label{font-size:12px;color:var(--t3);margin-top:4px}
+
+/* Timeline */
+.tl{position:relative;padding-left:28px;margin:16px 0}
+.tl::before{content:'';position:absolute;left:8px;top:0;bottom:0;width:2px;background:var(--bd)}
+.tl-item{position:relative;margin-bottom:16px;padding:12px 16px;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r);font-size:13px;color:var(--t2)}
+.tl-item::before{content:'';position:absolute;left:-24px;top:16px;width:10px;height:10px;border-radius:50%;border:2px solid var(--bd);background:var(--bg)}
+.tl-item.tl-bad::before{border-color:var(--red);background:var(--red)}
+.tl-item.tl-good::before{border-color:var(--green);background:var(--green)}
+.tl-time{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--t3);margin-bottom:4px}
+
+.foot{margin-top:40px;padding:20px 24px;background:var(--s);border:1px solid var(--bd);border-radius:var(--r);font-size:13px;color:var(--t2);line-height:1.8}
+
+/* Architecture diagram */
+.arch{margin:20px 0;padding:24px;background:var(--s2);border:1px solid var(--bd);border-radius:14px}
+.arch-title{font-size:12px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:18px}
+.arch-node{border:1px dashed rgba(245,158,11,.25);background:rgba(245,158,11,.03);border-radius:var(--r);padding:18px;margin-bottom:12px}
+.arch-node-label{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;margin-bottom:12px;padding:3px 10px;border-radius:6px;background:var(--oranged);color:var(--orange)}
+.arch-pods{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:600px){.arch-pods{grid-template-columns:1fr}}
+.arch-pod{border-radius:8px;padding:14px;position:relative}
+.arch-pod-label{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px;padding:2px 8px;border-radius:4px;display:inline-block}
+.arch-pod-app{border:1px solid rgba(139,92,246,.25);background:rgba(139,92,246,.05)}
+.arch-pod-app .arch-pod-label{background:var(--purpled);color:var(--purple)}
+.arch-pod-agent{border:1px solid rgba(6,182,212,.25);background:rgba(6,182,212,.05)}
+.arch-pod-agent .arch-pod-label{background:var(--cyand);color:var(--cyan)}
+.arch-inner{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.arch-box{padding:8px 12px;border-radius:6px;font-size:12px;font-weight:500;text-align:center}
+.arch-box-tracer{background:var(--purpled);color:var(--purple);border:1px solid rgba(139,92,246,.2)}
+.arch-box-app{background:rgba(255,255,255,.03);color:var(--t2);border:1px solid rgba(255,255,255,.06)}
+.arch-box-trace{background:var(--cyand);color:var(--cyan);border:1px solid rgba(6,182,212,.2)}
+.arch-box-log{background:var(--amberd);color:var(--amber);border:1px solid rgba(217,119,6,.2)}
+.arch-box-core{background:var(--blued);color:var(--blue);border:1px solid rgba(59,130,246,.2)}
+.arch-socket{display:flex;align-items:center;justify-content:center;gap:8px;margin:10px 0;padding:8px;font-size:11px;color:var(--t3);font-family:'IBM Plex Mono',monospace}
+.arch-socket-line{flex:1;height:1px;border-top:2px dashed rgba(139,92,246,.3)}
+.arch-socket-label{background:rgba(139,92,246,.1);color:var(--purple);padding:3px 10px;border-radius:100px;font-size:10px;font-weight:600;white-space:nowrap}
+.arch-out{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+.arch-out-item{flex:1;min-width:200px;display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);border-radius:8px;font-size:12px;color:var(--t2)}
+.arch-out-arrow{color:var(--t3);font-size:14px;flex-shrink:0}
+</style>
+</head>
+<body>
+<div class="w">
+
+<div class="hero">
+  <div class="hero-b">🔍 APM Trace 事件調查</div>
+  <h1>APM Trace 消失 23 小時<br>但 Log 完全正常——為什麼？</h1>
+  <p>用第一性原理拆解：從資料流的正常路徑開始，一步步還原事件、排除假設、定位根因</p>
+</div>
+
+<div class="nav">
+  <button class="nb on" onclick="go(0)">Ch.1<small>正常資料流</small></button>
+  <button class="nb" onclick="go(1)">Ch.2<small>兩條管線</small></button>
+  <button class="nb" onclick="go(2)">Ch.3<small>事件還原</small></button>
+  <button class="nb" onclick="go(3)">Ch.4<small>排除假設</small></button>
+  <button class="nb" onclick="go(4)">Ch.5<small>結論</small></button>
+</div>
+
+<!-- ====== Ch.1 正常資料流 ====== -->
+<div class="ch on" id="c0">
+<div class="c">
+  <h2>🧱 先搞懂：一個 APM trace 怎麼從程式碼到 UI？</h2>
+  <p>在理解「為什麼 trace 消失」之前，必須先知道正常情況下 trace 走過哪些環節。</p>
+
+  <div class="flow">
+    <div class="fb fb-tr">🟪 .NET Tracer<br><span style="font-size:10px">應用程式內</span></div>
+    <div class="fa">→</div>
+    <div class="fb fb-ag">🔷 trace-agent<br><span style="font-size:10px">K8s 節點上</span></div>
+    <div class="fa">→</div>
+    <div class="fb fb-in">🌐 Intake<br><span style="font-size:10px">trace.agent.datadoghq.com</span></div>
+    <div class="fa">→</div>
+    <div class="fb fb-be">⚙️ Backend<br><span style="font-size:10px">處理 + 儲存</span></div>
+    <div class="fa">→</div>
+    <div class="fb fb-ui">📊 UI<br><span style="font-size:10px">APM 畫面</span></div>
+  </div>
+
+  <p>每一步的角色：</p>
+  <p>1. <span class="ac">.NET Tracer</span>（v3.40.0）— 在應用程式 process 內運行，產生 span，透過 Unix socket 送給同節點的 Agent</p>
+  <p>2. <span class="ab">trace-agent</span>（Agent 7.58.2 的一部分）— 跑在 K8s 每個節點上（DaemonSet），接收 span 後轉發到 Datadog Intake</p>
+  <p>3. <span class="ab">Intake</span> — Datadog 後端的接收端點，接收 span 資料</p>
+  <p>4. <span class="ao">Backend</span> — 處理、索引、儲存</p>
+  <p>5. <span class="ag">UI</span> — 你在 Datadog console 看到的 APM 畫面</p>
+
+  <div class="an">
+    <div class="an-t">🔑 關鍵認知</div>
+    <p>如果 trace 在 UI 上看不到，問題可能出在<span class="ar">這 5 步的任何一步</span>。不能直接假設是 Datadog 後端壞了——可能 span 根本沒送出去。</p>
+  </div>
+</div>
+
+<div class="c">
+  <h2>🧱 K8s 節點上的實際架構</h2>
+  <p>上面的流程圖是簡化版。在客戶的 EKS 環境裡，實際的元件配置是這樣的：</p>
+
+  <div class="arch">
+    <div class="arch-title">EKS 節點（EC2 Instance）內部架構</div>
+
+    <div class="arch-node">
+      <div class="arch-node-label">🖥️ K8s Worker Node（EC2 Instance）</div>
+
+      <div class="arch-pods">
+        <!-- App Pod -->
+        <div class="arch-pod arch-pod-app">
+          <div class="arch-pod-label">App Pod（例：deploy-ppapp）</div>
+          <div class="arch-inner">
+            <div class="arch-box arch-box-app">📦 .NET 8 應用程式容器</div>
+            <div class="arch-box arch-box-tracer">🟪 .NET Tracer v3.40.0<br><span style="font-size:10px;opacity:.7">SSI 自動注入（dd-lib-dotnet-init）</span></div>
+          </div>
+          <div style="font-size:11px;color:var(--t3);margin-top:8px;text-align:center">Tracer 在 App 容器內運行<br>產生 span + 注入 trace_id 到 log</div>
+        </div>
+
+        <!-- Agent Pod -->
+        <div class="arch-pod arch-pod-agent">
+          <div class="arch-pod-label">Datadog Agent Pod（DaemonSet）</div>
+          <div class="arch-inner">
+            <div class="arch-box arch-box-trace">📡 trace-agent<br><span style="font-size:10px;opacity:.7">接收 span → 轉發到 Intake</span></div>
+            <div class="arch-box arch-box-log">📝 log-agent<br><span style="font-size:10px;opacity:.7">收集 log → 轉發到 Log Intake</span></div>
+            <div class="arch-box arch-box-core">🔷 core-agent<br><span style="font-size:10px;opacity:.7">metrics、health check 等</span></div>
+          </div>
+          <div style="font-size:11px;color:var(--t3);margin-top:8px;text-align:center">Agent 7.58.2 · datadog-operator + Helm<br>一個 binary，三個獨立 process</div>
+        </div>
+      </div>
+
+      <!-- Socket connection -->
+      <div class="arch-socket">
+        <span style="color:var(--purple)">App Pod</span>
+        <div class="arch-socket-line"></div>
+        <div class="arch-socket-label">unix:///var/run/datadog/apm.socket</div>
+        <div class="arch-socket-line"></div>
+        <span style="color:var(--cyan)">Agent Pod</span>
+      </div>
+      <div style="font-size:11px;color:var(--t3);text-align:center">App Pod 透過掛載的 Unix socket 將 span 送給同節點的 Agent Pod</div>
+    </div>
+
+    <!-- Outbound connections -->
+    <div class="arch-out">
+      <div class="arch-out-item">
+        <span style="color:var(--cyan);font-weight:600">trace-agent</span>
+        <div class="arch-out-arrow">→</div>
+        <code style="font-size:11px">trace.agent.datadoghq.com</code>
+        <span style="font-size:11px;color:var(--red);font-weight:600;margin-left:4px">← 這裡斷了</span>
+      </div>
+      <div class="arch-out-item">
+        <span style="color:var(--amber);font-weight:600">log-agent</span>
+        <div class="arch-out-arrow">→</div>
+        <code style="font-size:11px">agent-http-intake.logs.datadoghq.com</code>
+        <span style="font-size:11px;color:var(--green);font-weight:600;margin-left:4px">✓ 正常</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="an">
+    <div class="an-t">🔑 從架構圖看關鍵事實</div>
+    <p>1. <code>trace-agent</code> 和 <code>log-agent</code> 是同一個 Agent binary 裡的<span class="ar">不同 process</span>，走不同的 endpoint。一個壞了不影響另一個。</p>
+    <p>2. App Pod 跟 Agent Pod 透過 <span class="ac">Unix socket</span> 通訊（不是 TCP）。如果 Agent Pod 被驅逐或重啟，socket 會斷裂，span 就送不出去。</p>
+    <p>3. 每個 K8s 節點上只有 <span class="ao">一個 Agent Pod</span>（DaemonSet 排程）。如果這個節點的 Agent 壞了，該節點上<span class="ar">所有</span> App Pod 的 trace 都會受影響。</p>
+  </div>
+</div>
+
+<div class="c">
+  <h2>🧱 這個客戶的環境</h2>
+  <div class="stat-row">
+    <div class="stat"><div class="stat-val" style="color:var(--cyan)">EKS</div><div class="stat-label">K8s on AWS</div></div>
+    <div class="stat"><div class="stat-val" style="color:var(--purple)">.NET 8</div><div class="stat-label">Tracer v3.40.0</div></div>
+    <div class="stat"><div class="stat-val" style="color:var(--blue)">7.58.2</div><div class="stat-label">Agent 版本</div></div>
+    <div class="stat"><div class="stat-val" style="color:var(--orange)">SSI</div><div class="stat-label">自動注入</div></div>
+    <div class="stat"><div class="stat-val" style="color:var(--green)">100%</div><div class="stat-label">Sampling rate</div></div>
+  </div>
+  <p>Tracer 透過 <code>unix:///var/run/datadog/apm.socket</code>（Unix socket）跟 Agent 通訊，不是走 TCP 8126。這在 K8s 環境很常見。</p>
+  <p>受影響服務超過 20 個（ppapp、deploy-ppapp、deploy-coupon 等）。</p>
+</div>
+</div>
+
+<!-- ====== Ch.2 兩條管線 ====== -->
+<div class="ch" id="c1">
+<div class="c">
+  <h2>🔀 關鍵前提：Log 和 Trace 走的是完全不同的路</h2>
+  <p>這是理解整個事件的核心。客戶說「trace 消失但 log 正常」，這不矛盾——因為它們根本是兩條獨立的管線。</p>
+
+  <div class="vs">
+    <div class="vs-col vs-ok">
+      <h4 style="color:var(--amber)">📝 Log Pipeline</h4>
+      <p>App → Log Agent → <code>agent-http-intake.logs.datadoghq.com</code></p>
+      <p style="margin-top:8px">事件期間：<span class="ag">完全正常</span></p>
+      <p>客戶提供的 CSV 有 100,000 筆 log，每筆都有有效的 128-bit <code>@traceid</code></p>
+      <p style="margin-top:8px;font-size:12px;color:var(--t3)">這證明 .NET Tracer 在正常運行（有產生 trace context），Log Agent 也在正常送資料</p>
+    </div>
+    <div class="vs-col vs-fail">
+      <h4 style="color:var(--red)">📡 Trace Pipeline</h4>
+      <p>App → trace-agent → <code>trace.agent.datadoghq.com</code></p>
+      <p style="margin-top:8px">事件期間：<span class="ar">完全斷裂</span></p>
+      <p>Span 從每天 114,000 降到只有 142 個（集中在第一小時），之後 22 小時為零</p>
+      <p style="margin-top:8px;font-size:12px;color:var(--t3)">Span 從未到達 Intake——不是「到了但沒被索引」，而是根本沒送到</p>
+    </div>
+  </div>
+
+  <div class="an">
+    <div class="an-t">🍕 外送比喻</div>
+    <p>想像一家披薩店同時用兩家外送平台送餐：<span class="ao">UberEats（Log）</span>和 <span class="ar">Foodpanda（Trace）</span>。</p>
+    <p>某天 Foodpanda 的外送員罷工了，但 UberEats 照常送。客人在 Foodpanda 上看不到任何訂單，但 UberEats 的訂單全部正常送達。</p>
+    <p>這不代表「披薩店關門了」（Tracer 壞了）——披薩還是有在做（log 裡有 trace_id 證明）。問題出在 <span class="ar">Foodpanda 的外送員（trace-agent）停止取餐了</span>。</p>
+  </div>
+</div>
+
+<div class="c">
+  <h2>🔀 為什麼 Log 有 trace_id 不代表 Trace 有送出去？</h2>
+  <p>這是客戶最容易搞混的地方。</p>
+  <p><code>@traceid</code> 是 .NET Tracer 在應用程式記憶體裡產生的一個 ID。它會同時被注入到：</p>
+  <div class="flow">
+    <div class="fb fb-tr">.NET Tracer<br><span style="font-size:10px">產生 trace_id</span></div>
+    <div class="fa">→</div>
+    <div class="fb fb-log">注入到 Log<br><span style="font-size:10px">跟著 Log 管線走</span></div>
+  </div>
+  <div class="flow">
+    <div class="fb fb-tr">.NET Tracer<br><span style="font-size:10px">同一個 trace_id</span></div>
+    <div class="fa">→</div>
+    <div class="fb fb-x">送 Span 給 trace-agent<br><span style="font-size:10px">這一步斷了</span></div>
+  </div>
+  <p>所以 log 裡有 <code>trace_id</code> 只能證明 <span class="ag">Tracer 有產生 trace context</span>，不能證明 <span class="ar">span 有成功送到 trace-agent</span>。</p>
+</div>
+</div>
+
+<!-- ====== Ch.3 事件還原 ====== -->
+<div class="ch" id="c2">
+<div class="c">
+  <h2>⏱️ 事件時間線還原</h2>
+  <p>根據 TEE 分析和 flare 資料，逐步重建事件經過。</p>
+
+  <div class="step-controls">
+    <button class="sb on" onclick="goS(0)">Step 1</button>
+    <button class="sb" onclick="goS(1)">Step 2</button>
+    <button class="sb" onclick="goS(2)">Step 3</button>
+    <button class="sb" onclick="goS(3)">Step 4</button>
+    <button class="sb" onclick="goS(4)">Step 5</button>
+    <button class="sb" onclick="goS(5)">Step 6</button>
+  </div>
+
+  <!-- Step 1 -->
+  <div class="sc on" id="s0">
+    <div class="sn">Step 1 — 事件前：一切正常</div>
+    <div class="flow">
+      <div class="fb fb-tr">Tracer</div><div class="fa">→</div>
+      <div class="fb fb-ag">trace-agent</div><div class="fa">→</div>
+      <div class="fb fb-in">Intake</div><div class="fa">→</div>
+      <div class="fb fb-ui">UI ✓</div>
+    </div>
+    <div class="stat-row">
+      <div class="stat"><div class="stat-val" style="color:var(--green)">114K</div><div class="stat-label">spans/天 (deploy-ppapp)</div></div>
+      <div class="stat"><div class="stat-val" style="color:var(--green)">1M+</div><div class="stat-label">spans/天 (全 Org)</div></div>
+    </div>
+    <div class="sd">2026-04-02 18:00 UTC 之前，一切正常運作。deploy-ppapp 每天發送約 114K span，全 Org 超過 100 萬 span/天。</div>
+  </div>
+
+  <!-- Step 2 -->
+  <div class="sc" id="s1">
+    <div class="sn">Step 2 — 04/02 18:00 UTC：trace-agent 停止轉發</div>
+    <div class="flow">
+      <div class="fb fb-tr">Tracer</div><div class="fa">→</div>
+      <div class="fb fb-fail">trace-agent<br><span style="font-size:10px">停止轉發</span></div><div class="fa" style="color:var(--red)">✗</div>
+      <div class="fb fb-x">Intake</div><div class="fa" style="color:var(--red)">✗</div>
+      <div class="fb fb-x">UI</div>
+    </div>
+    <div class="sd">K8s 節點上的 trace-agent 停止將 span 轉發到 Datadog Intake。具體觸發原因不明（原始 agent log 已丟失），可能是節點擴縮、DaemonSet 更新、OOMKill 或 cluster 維護。</div>
+  </div>
+
+  <!-- Step 3 -->
+  <div class="sc" id="s2">
+    <div class="sn">Step 3 — 同時間：Log 管線完全正常</div>
+    <div class="flow">
+      <div class="fb fb-tr">Tracer<br><span style="font-size:10px">產生 trace_id ✓</span></div><div class="fa">→</div>
+      <div class="fb fb-log">Log Agent<br><span style="font-size:10px">正常運作 ✓</span></div><div class="fa">→</div>
+      <div class="fb fb-ok">Log Intake ✓</div>
+    </div>
+    <div class="stat-row">
+      <div class="stat"><div class="stat-val" style="color:var(--green)">100K</div><div class="stat-label">log 筆數（含 trace_id）</div></div>
+      <div class="stat"><div class="stat-val" style="color:var(--red)">142</div><div class="stat-label">span 總數（23 小時）</div></div>
+    </div>
+    <div class="sd">.NET Tracer 持續運行（log 裡有 trace_id 證明），Log Agent 也正常送資料。只有 trace pipeline 斷了。這排除了「Tracer 壞了」和「整個 Agent 掛了」的假設。</div>
+  </div>
+
+  <!-- Step 4 -->
+  <div class="sc" id="s3">
+    <div class="sn">Step 4 — 22 小時內：Span 完全為零</div>
+    <div class="stat-row">
+      <div class="stat"><div class="stat-val" style="color:var(--red)">99.9%</div><div class="stat-label">Span 攝取量下降</div></div>
+      <div class="stat"><div class="stat-val" style="color:var(--red)">0</div><div class="stat-label">第一小時後的 span 數</div></div>
+      <div class="stat"><div class="stat-val" style="color:var(--orange)">5</div><div class="stat-label">不同的 EC2 instance ID</div></div>
+    </div>
+    <div class="sd">TEE 確認：全 Org 的 span 攝取量下降 99.9%。deploy-ppapp 在第一個小時送了 142 個 span 後，接下來 22 小時完全是零。這段期間 TEE 觀察到 5 個不同的 EC2 instance ID，代表節點在活躍輪替中。</div>
+  </div>
+
+  <!-- Step 5 -->
+  <div class="sc" id="s4">
+    <div class="sn">Step 5 — 04/03 ~17:00 UTC：新節點上線，自行恢復</div>
+    <div class="flow">
+      <div class="fb fb-ok">新 EC2 節點<br><span style="font-size:10px">全新啟動</span></div><div class="fa">→</div>
+      <div class="fb fb-ok">新 trace-agent<br><span style="font-size:10px">正常運作</span></div><div class="fa">→</div>
+      <div class="fb fb-ok">Intake ✓</div><div class="fa">→</div>
+      <div class="fb fb-ok">UI ✓</div>
+    </div>
+    <div class="sd">當一個全新的 EC2 instance 上線（帶著全新的 Agent pod）後，trace 恢復正常。恢復時間與新節點啟動時間吻合。這強烈暗示問題出在舊節點上。</div>
+  </div>
+
+  <!-- Step 6 -->
+  <div class="sc" id="s5">
+    <div class="sn">Step 6 — 事件後：舊節點已回收，原始 log 消失</div>
+    <div class="tl">
+      <div class="tl-item tl-bad"><div class="tl-time">04/02 18:00 UTC</div>事件開始 — trace-agent 停止轉發（原始節點）</div>
+      <div class="tl-item tl-good"><div class="tl-time">04/03 ~17:00 UTC</div>事件結束 — 新節點上線後自行恢復</div>
+      <div class="tl-item"><div class="tl-time">04/04 01:41 UTC</div>最早存活的 flare 節點啟動（事件結束 +7.5 小時）</div>
+      <div class="tl-item"><div class="tl-time">04/04 18:01 UTC</div>第二個 flare 節點啟動（+24 小時）</div>
+      <div class="tl-item"><div class="tl-time">04/05 18:03 UTC</div>第三個 flare 節點啟動（+48 小時）</div>
+    </div>
+    <div class="sd">所有 flare 裡的節點都是事件結束後才啟動的全新節點。<span class="ar">事件當時的原始節點已被 K8s 回收，原始 agent log 不復存在</span>。這就是為什麼我們無法從 flare 確認具體觸發原因。</div>
+  </div>
+</div>
+</div>
+
+<!-- ====== Ch.4 排除假設 ====== -->
+<div class="ch" id="c3">
+<div class="c">
+  <h2>🔬 調查方法論：逐一排除假設</h2>
+  <p>點擊每個假設查看排除依據。綠色 = 已排除，紅色 = 未確認（根因候選）。</p>
+</div>
+
+<div class="hyp hyp-ruled" onclick="tog(this)">
+  <div class="hyp-h"><div class="hyp-icon">1</div><div class="hyp-title">Datadog 後端 pipeline 故障？</div><div class="hyp-v hv-out">已排除</div><div class="hchev">▸</div></div>
+  <div class="hyp-d"><p><strong>依據：</strong>TEE 確認 span 從未到達 Intake。這不是「到了但沒被處理」，而是「根本沒送到」。如果是後端問題，Intake 應該有收到 span 但無法處理，但實際上 Intake 端完全沒有收到資料。</p></div>
+</div>
+
+<div class="hyp hyp-ruled" onclick="tog(this)">
+  <div class="hyp-h"><div class="hyp-icon">2</div><div class="hyp-title">API key 無效？</div><div class="hyp-v hv-out">已排除</div><div class="hchev">▸</div></div>
+  <div class="hyp-d"><p><strong>依據：</strong>flare 裡的 <code>status.log</code> 確認 API key 有效。而且 Log pipeline 在同一時間用同一個 key 正常運作。</p></div>
+</div>
+
+<div class="hyp hyp-ruled" onclick="tog(this)">
+  <div class="hyp-h"><div class="hyp-icon">3</div><div class="hyp-title">APM 被停用？</div><div class="hyp-v hv-out">已排除</div><div class="hchev">▸</div></div>
+  <div class="hyp-d"><p><strong>依據：</strong><code>feature_apm_enabled: true</code>。在目前存活的所有節點上都確認啟用中。</p></div>
+</div>
+
+<div class="hyp hyp-ruled" onclick="tog(this)">
+  <div class="hyp-h"><div class="hyp-icon">4</div><div class="hyp-title">Sampling rate 設為 0%？</div><div class="hyp-v hv-out">已排除</div><div class="hchev">▸</div></div>
+  <div class="hyp-d"><p><strong>依據：</strong>設定確認為 100% sampling。而且 <code>ignore_resources</code> 只過濾了 <code>/health-status</code>，不影響正常 trace。</p></div>
+</div>
+
+<div class="hyp hyp-ruled" onclick="tog(this)">
+  <div class="hyp-h"><div class="hyp-icon">5</div><div class="hyp-title">Tracer 沒有被注入？</div><div class="hyp-v hv-out">已排除</div><div class="hchev">▸</div></div>
+  <div class="hyp-d"><p><strong>依據：</strong>Log 裡有 128-bit <code>@traceid</code>，證明 .NET Tracer（SSI 注入）在正常運行。目前 Agent 的 Receiver 也顯示有收到 trace。</p></div>
+</div>
+
+<div class="hyp hyp-ruled" onclick="tog(this)">
+  <div class="hyp-h"><div class="hyp-icon">6</div><div class="hyp-title">ignore_resources 過濾掉所有流量？</div><div class="hyp-v hv-out">已排除</div><div class="hchev">▸</div></div>
+  <div class="hyp-d"><p><strong>依據：</strong>只過濾了 <code>/health-status</code>。正常業務流量不受影響。</p></div>
+</div>
+
+<div class="hyp hyp-unknown" onclick="tog(this)">
+  <div class="hyp-h"><div class="hyp-icon">⚡</div><div class="hyp-title">K8s 節點上的 trace-agent 停止運作？</div><div class="hyp-v hv-un">根因（未確認觸發）</div><div class="hchev">▸</div></div>
+  <div class="hyp-d">
+    <p><strong>TEE 結論：</strong>trace-agent 停止轉發 span。這是唯一未被排除的假設。</p>
+    <p style="margin-top:8px"><strong>可能的觸發原因：</strong></p>
+    <p>- 節點擴縮事件導致 Agent pod 被驅逐</p>
+    <p>- DaemonSet 更新導致 Agent pod 重啟 + Unix socket 斷裂</p>
+    <p>- Agent 容器 OOMKill</p>
+    <p>- 手動 cluster 維護</p>
+    <p style="margin-top:8px"><span class="ar">具體哪一個觸發了問題無法確認</span>——因為原始節點已被回收，agent log 已丟失。</p>
+  </div>
+</div>
+</div>
+
+<!-- ====== Ch.5 結論 ====== -->
+<div class="ch" id="c4">
+<div class="c">
+  <h2>📋 結論</h2>
+
+  <div class="an">
+    <div class="an-t">🎯 根本原因</div>
+    <p>客戶 K8s 節點上的 <span class="ar">trace-agent 停止轉發 span</span>，持續約 23 小時。這是客戶端基礎設施的問題，不是 Datadog 後端的問題。</p>
+    <p style="margin-top:8px">Span 從未到達 Intake（跟「到了但沒被索引」不同）。當新的 EC2 節點上線後，帶著全新的 Agent pod，trace 自行恢復。</p>
+  </div>
+
+  <h3>為什麼 Log 正常但 Trace 斷了？</h3>
+  <div class="flow">
+    <div class="fb fb-log">Log Agent<br><span style="font-size:10px">獨立 process</span></div>
+    <div style="font-size:12px;color:var(--t3);padding:0 8px">≠</div>
+    <div class="fb fb-ag">trace-agent<br><span style="font-size:10px">獨立 process</span></div>
+  </div>
+  <p>它們是同一個 Datadog Agent binary 裡的<span class="ac">不同 process</span>，走不同的 pipeline、不同的 endpoint。一個壞了不影響另一個。</p>
+
+  <h3>為什麼無法確認具體觸發原因？</h3>
+  <p>事件當時的 K8s 節點已被回收（EKS auto-scaling），原始 agent log 不復存在。所有 flare 裡的節點都是事件結束後 7.5～48 小時才啟動的全新節點。</p>
+
+  <h3>需要問客戶的問題</h3>
+  <div class="tl">
+    <div class="tl-item"><div class="tl-time">問題 1</div>2026-04-03 03:00 JST 前後，K8s cluster 上是否有節點擴縮事件、DaemonSet 更新、或 cluster 維護？</div>
+    <div class="tl-item"><div class="tl-time">問題 2</div>K8s events 裡有沒有相關紀錄？（<code>kubectl get events -n datadog</code>）</div>
+    <div class="tl-item"><div class="tl-time">問題 3</div>Agent DaemonSet 的 resource limits/requests 設定是什麼？有沒有 OOMKill 紀錄？</div>
+    <div class="tl-item"><div class="tl-time">問題 4</div>當時是否正在進行 Helm 或 Datadog Operator 的升級？</div>
+  </div>
+</div>
+
+<div class="c">
+  <h2>🧭 本次調查的思路總結</h2>
+  <div class="flow">
+    <div class="fb fb-fail">UI 沒 trace</div>
+    <div class="fa">→</div>
+    <div class="fb" style="background:var(--purpled);color:var(--purple);border:1px solid rgba(139,92,246,.25)">哪一步斷了？</div>
+    <div class="fa">→</div>
+    <div class="fb fb-ok">Log 有 trace_id<br><span style="font-size:10px">→ Tracer OK</span></div>
+    <div class="fa">→</div>
+    <div class="fb fb-fail">Intake 沒收到<br><span style="font-size:10px">→ agent 側問題</span></div>
+    <div class="fa">→</div>
+    <div class="fb fb-fail">原始 log 丟失<br><span style="font-size:10px">→ 問客戶 K8s events</span></div>
+  </div>
+  <p>調查邏輯：先確認資料流在哪一步斷裂 → 用 Log pipeline 正常來排除 Tracer 和後端 → 確認是 agent 側 → 發現 flare 節點全是新的 → 原始證據已丟失 → 需要客戶提供 K8s 側的資訊來補齊最後一塊拼圖。</p>
+</div>
+</div>
+
+<div class="foot">
+  📁 <strong>相關檔案：</strong>handoff.md（交接文件）· investigation_report.html（互動式調查報告）· Agent flare ×3（事件後節點）· extract CSV（10 萬筆 log）
+</div>
+
+</div>
+
+<script>
+function go(n){document.querySelectorAll('.nb').forEach((b,i)=>b.classList.toggle('on',i===n));document.querySelectorAll('.ch').forEach((c,i)=>c.classList.toggle('on',i===n))}
+function goS(n){document.querySelectorAll('.sb').forEach((b,i)=>b.classList.toggle('on',i===n));document.querySelectorAll('.sc').forEach((c,i)=>c.classList.toggle('on',i===n))}
+function tog(el){el.classList.toggle('open')}
+</script>
+</body>
+</html>

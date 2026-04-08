@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forwarder vs Extension 概念地圖</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0c0d14;--s1:#131422;--s2:#1a1b2e;--s3:#222338;
+  --bdr:#2d2e48;--tx:#d8d8e8;--txd:#7578a0;--txdd:#4a4c6a;
+  --ac:#7b6cf0;--acl:#ada2ff;--grn:#2dd4bf;--org:#f7b955;--red:#ef6060;--blu:#60a5fa;--pnk:#f472b6;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh}
+.hdr{text-align:center;padding:28px 16px 8px}
+.hdr h1{font-size:22px;font-weight:900;background:linear-gradient(135deg,var(--org),var(--grn));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hdr p{font-size:12px;color:var(--txd);margin-top:4px}
+.prog{display:flex;align-items:center;gap:8px;max-width:400px;margin:16px auto;padding:0 20px}
+.prog-bar{flex:1;height:4px;background:var(--s2);border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--ac),var(--grn));border-radius:2px;transition:width .4s;width:0%}
+.prog-txt{font-size:11px;color:var(--txd);font-weight:600;white-space:nowrap}
+.tabs{position:sticky;top:0;z-index:200;background:rgba(12,13,20,.95);backdrop-filter:blur(10px);border-bottom:1px solid var(--bdr);display:flex;justify-content:center;gap:4px;padding:8px 12px}
+.tb{padding:8px 16px;border:1px solid var(--bdr);background:var(--s1);color:var(--txd);border-radius:8px;font:600 13px/1 inherit;cursor:pointer;transition:.2s}
+.tb.on{background:var(--ac);border-color:var(--ac);color:#fff}
+.tb:hover:not(.on){background:var(--s2);color:var(--tx)}
+.pn{display:none;max-width:840px;margin:0 auto;padding:20px 16px 100px}.pn.on{display:block}
+
+/* MAP */
+.mg{margin-bottom:20px}
+.mg-label{font-size:11px;font-weight:700;color:var(--txdd);text-transform:uppercase;letter-spacing:1.5px;padding:0 4px 8px;border-bottom:1px solid var(--bdr);margin-bottom:12px}
+.mg-label.aws{color:var(--org)}.mg-label.fwd{color:var(--blu)}.mg-label.ext{color:var(--grn)}.mg-label.vs{color:var(--pnk)}
+.nr{display:flex;align-items:center;gap:14px;padding:8px 10px;margin-bottom:4px;border-radius:10px;cursor:pointer;transition:.2s;border:1px solid transparent}
+.nr:hover{background:var(--s2);border-color:var(--bdr)}
+.nr.visited{opacity:.7}.nr.visited:hover{opacity:1}
+.nd{width:44px;height:44px;border-radius:50%;border:2.5px solid var(--bdr);background:var(--s1);display:flex;align-items:center;justify-content:center;font:700 15px/1 'JetBrains Mono',monospace;color:var(--txd);transition:.3s;flex-shrink:0;position:relative}
+.nr:hover .nd{border-color:var(--ac);color:var(--acl)}
+.nr.visited .nd{border-color:var(--grn);background:rgba(45,212,191,.08);color:var(--grn)}
+.nr.visited .nd::after{content:'✓';position:absolute;bottom:-2px;right:-2px;width:16px;height:16px;background:var(--grn);color:var(--bg);border-radius:50%;font-size:9px;display:flex;align-items:center;justify-content:center;font-weight:900}
+.nr-info{flex:1;min-width:0}
+.nr-title{font-size:14px;font-weight:700;color:var(--tx);transition:.2s}
+.nr:hover .nr-title{color:var(--acl)}.nr.visited .nr-title{color:var(--grn)}
+.nr-desc{font-size:12px;color:var(--txd);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nr-arrow{color:var(--txdd);font-size:18px;flex-shrink:0;transition:.2s}
+.nr:hover .nr-arrow{color:var(--acl);transform:translateX(3px)}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;backdrop-filter:blur(6px)}
+.modal-bg.open{display:block;animation:.2s fadeIn}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal-wrap{position:fixed;inset:0;z-index:301;display:none;align-items:flex-end;justify-content:center;pointer-events:none}
+.modal-wrap.open{display:flex;pointer-events:auto}
+@media(min-width:600px){.modal-wrap.open{align-items:center}}
+.modal{background:var(--s1);border:1px solid var(--bdr);border-radius:16px 16px 0 0;width:100%;max-width:620px;max-height:85vh;overflow-y:auto;padding:0;animation:.25s slideUp ease;pointer-events:auto}
+@media(min-width:600px){.modal{border-radius:16px;max-height:80vh}}
+@keyframes slideUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-bar{position:sticky;top:0;background:var(--s1);border-bottom:1px solid var(--bdr);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;z-index:2;border-radius:16px 16px 0 0}
+.modal-step{font-size:12px;color:var(--txd);font-weight:600}
+.modal-close{background:var(--s2);border:1px solid var(--bdr);color:var(--txd);padding:6px 12px;border-radius:6px;font:600 12px/1 inherit;cursor:pointer;transition:.2s}
+.modal-close:hover{border-color:var(--red);color:var(--red);background:rgba(239,96,96,.08)}
+.modal-body{padding:20px 20px 24px}
+.modal-body h3{font-size:17px;font-weight:800;color:var(--acl);margin-bottom:4px}
+.tg{display:inline-block;font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;margin-bottom:14px;letter-spacing:.3px}
+.tg-aws{background:rgba(247,185,85,.1);color:var(--org)}
+.tg-fwd{background:rgba(96,165,250,.1);color:var(--blu)}
+.tg-ext{background:rgba(45,212,191,.1);color:var(--grn)}
+.tg-vs{background:rgba(244,114,182,.1);color:var(--pnk)}
+.modal-body p{font-size:14px;margin-bottom:10px;line-height:1.7}
+.kw{display:inline;padding:1px 5px;background:rgba(123,108,240,.14);border-radius:3px;font:12px/1.4 'JetBrains Mono',monospace;color:var(--acl)}
+.bx{border-radius:8px;padding:11px 14px;margin:10px 0;font-size:13px;line-height:1.65}
+.bx-a{background:rgba(247,185,85,.06);border-left:3px solid var(--org);color:var(--org)}
+.bx-c{background:rgba(45,212,191,.06);border-left:3px solid var(--grn);color:var(--grn)}
+.bx-e{background:rgba(96,165,250,.06);border-left:3px solid var(--blu);color:var(--blu)}
+.bx b{display:block;margin-bottom:3px}
+.codeblk{background:#08080f;border:1px solid var(--bdr);border-radius:8px;padding:12px;font:11px/1.6 'JetBrains Mono',monospace;overflow-x:auto;margin:10px 0;white-space:pre;color:var(--txd)}
+.ck{color:var(--acl)}.cv{color:var(--grn)}.cs{color:var(--org)}.cb{color:var(--blu)}
+.qz{background:var(--s2);border-radius:8px;padding:12px;margin:14px 0}
+.qz-q{font-weight:700;font-size:13px;margin-bottom:8px}
+.qz-opts{display:flex;flex-direction:column;gap:4px}
+.qb{background:var(--s1);border:1px solid var(--bdr);border-radius:6px;padding:9px 12px;color:var(--tx);font:13px/1.4 inherit;cursor:pointer;text-align:left;transition:.2s}
+.qb:hover{border-color:var(--ac);background:rgba(123,108,240,.05)}
+.qb.ok{border-color:var(--grn);background:rgba(45,212,191,.08);color:var(--grn)}
+.qb.no{border-color:var(--red);background:rgba(239,96,96,.06);color:var(--red)}
+.qz-fb{margin-top:8px;font-size:12px;display:none;line-height:1.5}
+.flow{display:flex;flex-direction:column;align-items:center;gap:0;margin:14px 0}
+.fl-b{background:var(--s2);border:1px solid var(--bdr);border-radius:6px;padding:7px 16px;text-align:center;font-size:12px;font-weight:600;min-width:220px;max-width:300px}
+.fl-ar{color:var(--txd);font-size:14px}
+.fl-org{border-color:var(--org);color:var(--org);background:rgba(247,185,85,.06)}
+.fl-blu{border-color:var(--blu);color:var(--blu);background:rgba(96,165,250,.06)}
+.fl-grn{border-color:var(--grn);color:var(--grn);background:rgba(45,212,191,.06)}
+.fl-red{border-color:var(--red);color:var(--red);background:rgba(239,96,96,.06)}
+
+/* compare table */
+.ctbl{width:100%;border-collapse:collapse;font-size:12px;margin:12px 0}
+.ctbl th{background:var(--s2);padding:8px;text-align:left;font-weight:600;border-bottom:1px solid var(--bdr);color:var(--txd)}
+.ctbl td{padding:8px;border-bottom:1px solid var(--bdr);vertical-align:top}
+
+.modal-foot{padding:0 20px 20px;display:flex;gap:8px;justify-content:flex-end}
+.nbtn{padding:10px 20px;background:var(--ac);color:#fff;border:none;border-radius:8px;font:600 13px/1 inherit;cursor:pointer;transition:.2s}
+.nbtn:hover{background:var(--acl);color:var(--bg)}
+.nbtn-ghost{padding:10px 20px;background:none;color:var(--txd);border:1px solid var(--bdr);border-radius:8px;font:600 13px/1 inherit;cursor:pointer;transition:.2s}
+.nbtn-ghost:hover{border-color:var(--tx);color:var(--tx)}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <h1>Forwarder vs Lambda Extension</h1>
+  <p>從 AWS Lambda 基礎到兩種方案的完整理解</p>
+</div>
+<div class="prog"><div class="prog-bar"><div class="prog-fill" id="progFill"></div></div><div class="prog-txt" id="progTxt">0 / 9</div></div>
+<div class="tabs">
+  <button class="tb on" onclick="switchTab('map',this)">概念地圖</button>
+  <button class="tb" onclick="switchTab('arch',this)">架構對比</button>
+</div>
+
+<!-- TAB 1 -->
+<div class="pn on" id="p-map">
+  <div class="mg">
+    <div class="mg-label aws">AWS 基礎概念</div>
+    <div class="nr" id="r1" onclick="openModal(1)"><div class="nd">01</div><div class="nr-info"><div class="nr-title">AWS Lambda</div><div class="nr-desc">無伺服器運算，跑完就關</div></div><div class="nr-arrow">›</div></div>
+    <div class="nr" id="r2" onclick="openModal(2)"><div class="nd">02</div><div class="nr-info"><div class="nr-title">CloudWatch Logs</div><div class="nr-desc">Lambda log 的預設目的地</div></div><div class="nr-arrow">›</div></div>
+    <div class="nr" id="r3" onclick="openModal(3)"><div class="nd">03</div><div class="nr-info"><div class="nr-title">Lambda Layer & Extensions API</div><div class="nr-desc">掛載外掛的兩種機制</div></div><div class="nr-arrow">›</div></div>
+    <div class="nr" id="r4" onclick="openModal(4)"><div class="nd">04</div><div class="nr-info"><div class="nr-title">Subscription Filter</div><div class="nr-desc">CloudWatch 的自動觸發規則</div></div><div class="nr-arrow">›</div></div>
+  </div>
+  <div class="mg">
+    <div class="mg-label fwd">方案 A：Datadog Forwarder（間接路徑）</div>
+    <div class="nr" id="r5" onclick="openModal(5)"><div class="nd">05</div><div class="nr-info"><div class="nr-title">Forwarder 是什麼</div><div class="nr-desc">一個獨立的 Lambda 函數，中間人角色</div></div><div class="nr-arrow">›</div></div>
+    <div class="nr" id="r6" onclick="openModal(6)"><div class="nd">06</div><div class="nr-info"><div class="nr-title">Forwarder 資料流</div><div class="nr-desc">函數 → CloudWatch → Forwarder → Datadog</div></div><div class="nr-arrow">›</div></div>
+  </div>
+  <div class="mg">
+    <div class="mg-label ext">方案 B：Lambda Extension（直接路徑）</div>
+    <div class="nr" id="r7" onclick="openModal(7)"><div class="nd">07</div><div class="nr-info"><div class="nr-title">Extension 是什麼</div><div class="nr-desc">跑在你函數裡面的 Layer</div></div><div class="nr-arrow">›</div></div>
+    <div class="nr" id="r8" onclick="openModal(8)"><div class="nd">08</div><div class="nr-info"><div class="nr-title">Extension 資料流</div><div class="nr-desc">函數 → Extension → Datadog（跳過 CloudWatch）</div></div><div class="nr-arrow">›</div></div>
+  </div>
+  <div class="mg">
+    <div class="mg-label vs">結論</div>
+    <div class="nr" id="r9" onclick="openModal(9)"><div class="nd">🏆</div><div class="nr-info"><div class="nr-title">完整比較 & 什麼時候用哪個</div><div class="nr-desc">差異表 + 遷移建議</div></div><div class="nr-arrow">›</div></div>
+  </div>
+</div>
+
+<!-- TAB 2: ARCHITECTURE -->
+<div class="pn" id="p-arch">
+  <h3 style="font-size:16px;font-weight:700;color:var(--blu);margin-bottom:16px">方案 A：Forwarder（間接路徑）</h3>
+  <div class="flow">
+    <div class="fl-b">你的 Lambda 函數<br><span style="font-size:10px;color:var(--txd)">console.log() / print()</span></div>
+    <div class="fl-ar">↓ 自動寫入</div>
+    <div class="fl-b fl-org">CloudWatch Logs<br><span style="font-size:10px;color:var(--txd)">Log Group: /aws/lambda/你的函數</span></div>
+    <div class="fl-ar">↓ Subscription Filter 觸發</div>
+    <div class="fl-b fl-blu">Datadog Forwarder Lambda<br><span style="font-size:10px;color:var(--txd)">獨立的 Lambda 函數</span></div>
+    <div class="fl-ar">↓ HTTPS</div>
+    <div class="fl-b fl-grn">Datadog 後端</div>
+  </div>
+  <p style="font-size:13px;color:var(--txd);text-align:center;margin:8px 0">經過 CloudWatch → 有 CloudWatch 費用 → 每個 log group 要設 subscription filter</p>
+
+  <h3 style="font-size:16px;font-weight:700;color:var(--grn);margin:28px 0 16px">方案 B：Extension（直接路徑）</h3>
+  <div class="flow">
+    <div class="fl-b" style="border-color:var(--ac);background:rgba(123,108,240,.06)">你的 Lambda 函數<br>+ Datadog Extension（同一個執行環境）<br><span style="font-size:10px;color:var(--txd)">透過 Lambda Layer 安裝</span></div>
+    <div class="fl-ar">↓ HTTPS 直接送</div>
+    <div class="fl-b fl-grn">Datadog 後端</div>
+  </div>
+  <p style="font-size:13px;color:var(--txd);text-align:center;margin:8px 0">不經過 CloudWatch → 省 CloudWatch 費用 → 不用設 subscription filter</p>
+
+  <h3 style="font-size:16px;font-weight:700;color:var(--pnk);margin:28px 0 16px">差異總覽</h3>
+  <table class="ctbl">
+    <thead><tr><th>比較項目</th><th style="color:var(--blu)">Forwarder</th><th style="color:var(--grn)">Extension</th></tr></thead>
+    <tbody>
+      <tr><td>本質</td><td>獨立的 Lambda 函數</td><td>Lambda Layer</td></tr>
+      <tr><td>資料路徑</td><td>函數→CW→Forwarder→DD</td><td>函數→Extension→DD</td></tr>
+      <tr><td>經過 CloudWatch？</td><td style="color:var(--red)">是</td><td style="color:var(--grn)">否</td></tr>
+      <tr><td>設定</td><td>每個 log group 要設 filter</td><td>加一個 Layer</td></tr>
+      <tr><td>CloudWatch 費用</td><td style="color:var(--red)">有</td><td style="color:var(--grn)">省掉</td></tr>
+      <tr><td>Cold start 影響</td><td style="color:var(--grn)">無</td><td style="color:var(--org)">有一點</td></tr>
+      <tr><td>非 Lambda log</td><td style="color:var(--grn)">可以（S3, RDS 等）</td><td style="color:var(--red)">不行</td></tr>
+      <tr><td>新功能</td><td style="color:var(--red)">不再更新</td><td style="color:var(--grn)">持續更新</td></tr>
+    </tbody>
+  </table>
+  <div class="bx bx-a" style="margin-top:16px"><b>⚠️ 什麼時候還需要 Forwarder？</b>Extension 只處理 Lambda 的遙測。如果你要把非 Lambda 的 AWS 服務 log（S3 access log、RDS log、VPC Flow Log 等）送到 Datadog，還是需要 Forwarder 或 Kinesis Firehose。</div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modalBg" onclick="closeModal()"></div>
+<div class="modal-wrap" id="modalWrap" onclick="if(event.target===this)closeModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-bar"><div class="modal-step" id="modalStep"></div><button class="modal-close" onclick="closeModal()">關閉 ESC</button></div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-foot" id="modalFoot"></div>
+  </div>
+</div>
+
+<script>
+const N=9;
+const visited=new Set();
+let curModal=0;
+
+const data=[null,
+// 1 - Lambda
+{title:'01 — AWS Lambda',tag:'tg-aws',tagText:'AWS 基礎',body:`
+<p><span class="kw">AWS Lambda</span> = AWS 的無伺服器運算服務。你寫一個函數上傳，有人呼叫時 AWS 自動啟動環境來跑，跑完就關。</p>
+<div class="bx bx-a"><b>💡 比喻</b>Lambda 像 Uber：你叫車（呼叫函數）→ 車來了載你（執行）→ 到站下車（結束）→ 車開走了。你不用買車養車（不用管伺服器）。</div>
+<div class="bx bx-c"><b>🏢 實際案例</b>客戶用 Lambda 跑一個 API：使用者請求進來 → Lambda 啟動 → 處理請求、回傳結果 → Lambda 關閉。每次執行只花 200ms，每月 100 萬次呼叫。</div>
+<p>關鍵問題：Lambda 環境是<strong>短暫的</strong>，跑完可能消失。所以「怎麼把 logs / metrics / traces 送到 Datadog」需要特殊處理。</p>
+<div class="qz"><div class="qz-q">🧪 Lambda 跟 EC2 最大的差別是？</div><div class="qz-opts">
+<button class="qb" onclick="qz(this,0)">Lambda 比較便宜</button>
+<button class="qb" onclick="qz(this,1)">Lambda 不用管伺服器，跑完環境可能消失</button>
+<button class="qb" onclick="qz(this,0)">Lambda 只能跑 Python</button>
+</div><div class="qz-fb">Lambda 是無伺服器，執行環境短暫；EC2 是你自己管的虛擬機，一直開著。</div></div>`},
+
+// 2 - CloudWatch Logs
+{title:'02 — CloudWatch Logs',tag:'tg-aws',tagText:'AWS 基礎',body:`
+<p><span class="kw">CloudWatch Logs</span> = AWS 內建的日誌服務。Lambda 的所有輸出（console.log / print）會<strong>自動</strong>被送到這裡。</p>
+<p>每個 Lambda 函數有一個對應的 <span class="kw">Log Group</span>（例如 /aws/lambda/my-function），裡面按時間分成多個 <span class="kw">Log Stream</span>。</p>
+<div class="bx bx-a"><b>💡 比喻</b>CloudWatch Logs = AWS 的日記本。Lambda 跑的時候，所有輸出自動寫進這本日記。但 Datadog 看不到這本日記，需要有人把內容「抄過去」。</div>
+<div class="bx bx-c"><b>🏢 實際案例</b>客戶的 Lambda 函數每秒處理 100 個請求，每個請求 print 3 行 log → CloudWatch 每秒收到 300 行。CloudWatch 按寫入量和儲存量收費，這個成本會疊加。</div>
+<p>重點：CloudWatch Logs 是 <strong>AWS 的服務</strong>，不是 Datadog 的。Datadog 要拿到這些 log，需要一個「搬運工」。</p>`},
+
+// 3 - Layer & Extensions API
+{title:'03 — Lambda Layer & Extensions API',tag:'tg-aws',tagText:'AWS 基礎',body:`
+<p><span class="kw">Lambda Layer</span> = 把額外程式碼或工具「掛載」到 Lambda 函數上的機制，不用改你的函數程式碼。</p>
+<div class="bx bx-a"><b>💡 比喻</b>Layer = 手機的保護殼。手機（你的函數）不用改裝，套上殼（Layer）就有額外功能（防摔 / 監控）。</div>
+<p><span class="kw">Lambda Extensions API</span> = AWS 提供的 API，讓第三方工具可以在 Lambda 執行環境<strong>裡面</strong>跑一個額外的進程。</p>
+<div class="bx bx-e"><b>📝 重要</b>Extension 進程跟你的函數<strong>同時運行</strong>。函數跑的時候 Extension 收集資料，函數跑完後 Extension 用剩餘時間把資料送出去。</div>
+<div class="bx bx-c"><b>🏢 實際案例</b>客戶在 Lambda 上加了 Datadog Extension Layer。部署時只是在 CloudFormation 裡多加一行 Layer ARN，函數程式碼完全不用改。Extension 自動在背景收集 metrics/traces/logs。</div>
+<div class="qz"><div class="qz-q">🧪 Lambda Layer 需要修改你的函數程式碼嗎？</div><div class="qz-opts">
+<button class="qb" onclick="qz(this,1)">不需要，Layer 是獨立掛載的</button>
+<button class="qb" onclick="qz(this,0)">需要，要在程式碼裡 import Layer</button>
+</div><div class="qz-fb">Layer 是獨立掛載到執行環境的，你的函數程式碼不需要改。（但 tracer 等可能需要 import）</div></div>`},
+
+// 4 - Subscription Filter
+{title:'04 — Subscription Filter',tag:'tg-aws',tagText:'AWS 基礎',body:`
+<p><span class="kw">Subscription Filter</span> = CloudWatch Logs 的一個功能：「當這個 log group 有新 log 時，自動觸發某個 Lambda 函數」。</p>
+<div class="bx bx-a"><b>💡 比喻</b>像郵局的轉信服務：「凡是寄到我這個地址（log group）的信（log），都自動轉寄一份給張先生（Forwarder Lambda）。」</div>
+<div class="bx bx-c"><b>🏢 實際案例</b>客戶有 50 個 Lambda 函數 → 50 個 log group → 需要設 50 個 subscription filter，全都指向同一個 Forwarder Lambda。新增一個函數就要多設一個 filter，維護成本高。</div>
+<p>這就是 Forwarder 方案的痛點之一：<strong>每個 log group 都要設一個 subscription filter</strong>。</p>`},
+
+// 5 - Forwarder 是什麼
+{title:'05 — Datadog Forwarder',tag:'tg-fwd',tagText:'FORWARDER',body:`
+<p><span class="kw">Datadog Forwarder</span> = 一個<strong>獨立的 Lambda 函數</strong>，部署在你的 AWS 帳號裡，專門負責把 log 從 AWS 轉發到 Datadog。</p>
+<p>它不是跑在你的業務函數裡面，而是一個完全<strong>獨立</strong>的 Lambda。</p>
+<div class="bx bx-a"><b>💡 比喻</b>Forwarder = 快遞公司的轉運中心。你的包裹（log）先寄到轉運中心（CloudWatch），轉運中心再叫快遞員（Forwarder）送到目的地（Datadog）。</div>
+<p>部署方式：通常用 CloudFormation 一鍵部署，會自動建立 Forwarder Lambda + 相關的 IAM Role。</p>
+<div class="bx bx-e"><b>📝 額外功能</b>Forwarder 不只能轉發 Lambda log，還能轉發：S3 bucket log、SNS 事件、Kinesis stream、RDS log 等非 Lambda 來源的 AWS 服務 log。</div>
+<p style="color:var(--red);font-weight:600">⚠️ Datadog 官方建議遷移到 Extension。Forwarder 不會再支援新功能。</p>`},
+
+// 6 - Forwarder 資料流
+{title:'06 — Forwarder 資料流',tag:'tg-fwd',tagText:'FORWARDER',body:`
+<div class="flow">
+<div class="fl-b">你的 Lambda 函數<br><span style="font-size:10px;color:var(--txd)">print("hello") / console.log()</span></div>
+<div class="fl-ar">↓ 自動寫入</div>
+<div class="fl-b fl-org">CloudWatch Logs</div>
+<div class="fl-ar">↓ Subscription Filter 觸發</div>
+<div class="fl-b fl-blu">Datadog Forwarder Lambda</div>
+<div class="fl-ar">↓ HTTPS 送出</div>
+<div class="fl-b fl-grn">Datadog</div>
+</div>
+<p>每一步的成本和延遲：</p>
+<table class="ctbl"><thead><tr><th>步驟</th><th>成本</th><th>延遲</th></tr></thead><tbody>
+<tr><td>① 寫入 CloudWatch</td><td style="color:var(--red)">CloudWatch 寫入費用</td><td>~即時</td></tr>
+<tr><td>② Subscription Filter 觸發</td><td>免費</td><td>~數秒</td></tr>
+<tr><td>③ Forwarder 執行</td><td style="color:var(--red)">Forwarder Lambda 的計算費用</td><td>~即時</td></tr>
+<tr><td>④ 送到 Datadog</td><td>免費（含在 DD 訂閱內）</td><td>~即時</td></tr>
+</tbody></table>
+<div class="bx bx-c"><b>🏢 實際案例</b>客戶有 50 個 Lambda 函數，每月 CloudWatch 寫入費用 $200。加上 Forwarder Lambda 本身的執行費用 $30。每個函數都要設 subscription filter → 新增函數時常常忘記設，導致部分 log 沒送到 Datadog。</div>`},
+
+// 7 - Extension 是什麼
+{title:'07 — Datadog Lambda Extension',tag:'tg-ext',tagText:'EXTENSION',body:`
+<p><span class="kw">Datadog Lambda Extension</span> = 透過 Lambda Layer 安裝在你函數<strong>裡面</strong>的一個進程。跟你的函數在同一個執行環境裡同時跑。</p>
+<div class="bx bx-a"><b>💡 比喻</b>Extension = 你家裡裝的監視器。不需要經過任何中間人，直接在家裡（函數環境裡）錄影（收集遙測），然後直接上傳雲端（Datadog）。</div>
+<p>安裝方式：在 Lambda 設定裡加一個 Layer ARN，完成。不需要部署額外的 Lambda 函數。</p>
+<div class="bx bx-e"><b>📝 技術細節</b>Extension 利用 Lambda Extensions API，在函數執行期間非同步收集 metrics/traces/logs，在函數回傳結果<strong>之後</strong>利用 post-runtime 時間把資料送到 Datadog。所以不影響你的函數回應時間。</div>
+<div class="bx bx-c"><b>🏢 實際案例</b>客戶遷移到 Extension 後：不用管 subscription filter 了、CloudWatch Logs 費用省了 $200/月、新增 Lambda 函數只要加 Layer 就自動有監控。</div>
+<div class="qz"><div class="qz-q">🧪 Extension 跟 Forwarder 最大的架構差異是？</div><div class="qz-opts">
+<button class="qb" onclick="qz(this,0)">Extension 用的是不同的 API</button>
+<button class="qb" onclick="qz(this,1)">Extension 跑在你的函數裡面，Forwarder 是獨立的 Lambda</button>
+<button class="qb" onclick="qz(this,0)">Extension 只能送 log，Forwarder 可以送 metrics</button>
+</div><div class="qz-fb">核心差異：Extension 在你的函數環境裡面直接送資料；Forwarder 是另一個獨立的 Lambda 函數，資料要繞道 CloudWatch。</div></div>`},
+
+// 8 - Extension 資料流
+{title:'08 — Extension 資料流',tag:'tg-ext',tagText:'EXTENSION',body:`
+<div class="flow">
+<div class="fl-b" style="border-color:var(--ac);background:rgba(123,108,240,.06)">你的 Lambda 函數<br>+ Datadog Extension<br><span style="font-size:10px;color:var(--txd)">同一個執行環境，透過 Layer 安裝</span></div>
+<div class="fl-ar">↓ HTTPS 直接送</div>
+<div class="fl-b fl-grn">Datadog</div>
+</div>
+<p style="text-align:center;font-size:13px;color:var(--grn);font-weight:600;margin:8px 0">跳過 CloudWatch Logs → 省錢 + 簡單</p>
+<p>Extension 的生命週期：</p>
+<div class="codeblk"><span class="cs">INIT</span>  → Extension 初始化（cold start 開銷在這裡）
+<span class="cv">INVOKE</span> → 你的函數執行，Extension 同時收集資料
+<span class="cb">SHUTDOWN</span> → 函數回傳結果後，Extension 用剩餘時間 flush 資料到 Datadog</div>
+<p>注意：<span class="kw">aws.lambda.duration</span> 會包含 Extension flush 的時間，但這是在回傳結果<strong>之後</strong>才發生，不影響使用者體感延遲。真正的函數效能看 <span class="kw">aws.lambda.enhanced.runtime_duration</span>。</p>
+<div class="bx bx-c"><b>🏢 實際案例</b>客戶的函數 duration 從 200ms 變成 350ms（多了 150ms）。但 runtime_duration 還是 200ms。多出來的 150ms 是 Extension 在背景 flush 資料，使用者的 API 回應時間沒變。</div>`},
+
+// 9 - 比較
+{title:'🏆 完整比較 & 遷移建議',tag:'tg-vs',tagText:'結論',body:`
+<table class="ctbl"><thead><tr><th>比較</th><th style="color:var(--blu)">Forwarder</th><th style="color:var(--grn)">Extension</th></tr></thead><tbody>
+<tr><td>本質</td><td>獨立 Lambda 函數</td><td>Lambda Layer</td></tr>
+<tr><td>路徑</td><td>函數→CW→Forwarder→DD</td><td>函數→Extension→DD</td></tr>
+<tr><td>經過 CloudWatch？</td><td style="color:var(--red)">是</td><td style="color:var(--grn)">否</td></tr>
+<tr><td>設定複雜度</td><td>每個 log group 設 filter</td><td>加 Layer</td></tr>
+<tr><td>CW 費用</td><td style="color:var(--red)">有</td><td style="color:var(--grn)">省掉</td></tr>
+<tr><td>Cold start</td><td style="color:var(--grn)">無影響</td><td style="color:var(--org)">有一點</td></tr>
+<tr><td>非 Lambda log</td><td style="color:var(--grn)">可以</td><td style="color:var(--red)">不行</td></tr>
+<tr><td>新功能</td><td style="color:var(--red)">不再更新</td><td style="color:var(--grn)">持續更新</td></tr>
+</tbody></table>
+<div class="bx bx-c"><b>✅ 結論</b><strong>Lambda 的監控 → 用 Extension</strong>。Datadog 官方推薦，省錢、簡單、持續更新。<br><br><strong>非 Lambda 的 AWS 服務 log（S3、RDS、VPC Flow Log 等）→ 還是需要 Forwarder</strong>（或 Kinesis Firehose）。Extension 只管 Lambda。</div>
+<div class="bx bx-a"><b>⚠️ 遷移注意</b>從 Forwarder 遷移到 Extension 後，記得移除舊的 CloudWatch Logs subscription filter，否則同一份 log 會被送兩次。</div>
+<p style="margin-top:14px;color:var(--grn);font-weight:700">🎉 全部理解完成！切到「架構對比」tab 看完整的資料流圖。</p>`}
+];
+
+function openModal(n){
+  if(n<1||n>N)return;
+  curModal=n;
+  const d=data[n];
+  document.getElementById('modalStep').textContent='第 '+n+' / '+N+' 關';
+  document.getElementById('modalBody').innerHTML='<h3>'+d.title+'</h3><span class="tg '+d.tag+'">'+d.tagText+'</span>'+d.body;
+  let foot='';
+  if(n>1)foot+='<button class="nbtn-ghost" onclick="markAndGo('+(n-1)+')">‹ 上一關</button>';
+  if(n<N)foot+='<button class="nbtn" onclick="markAndGo('+(n+1)+')">下一關 ›</button>';
+  else foot+='<button class="nbtn" onclick="markDone();closeModal()">完成 ✓</button>';
+  document.getElementById('modalFoot').innerHTML=foot;
+  document.getElementById('modalBg').classList.add('open');
+  document.getElementById('modalWrap').classList.add('open');
+}
+function closeModal(){markDone();document.getElementById('modalBg').classList.remove('open');document.getElementById('modalWrap').classList.remove('open')}
+function markDone(){if(curModal>0)visited.add(curModal);updateUI()}
+function markAndGo(n){markDone();openModal(n)}
+function updateUI(){
+  for(let i=1;i<=N;i++){const r=document.getElementById('r'+i);if(visited.has(i))r.classList.add('visited');else r.classList.remove('visited')}
+  document.getElementById('progFill').style.width=Math.round(visited.size/N*100)+'%';
+  document.getElementById('progTxt').textContent=visited.size+' / '+N;
+}
+function qz(btn,ok){
+  const w=btn.closest('.qz'),bs=w.querySelectorAll('.qb'),fb=w.querySelector('.qz-fb');
+  bs.forEach(b=>{b.disabled=true;b.style.cursor='default';b.style.opacity='.45'});
+  btn.style.opacity='1';
+  if(ok){btn.classList.add('ok');fb.style.color='var(--grn)';fb.textContent='✅ '+fb.textContent}
+  else{btn.classList.add('no');bs.forEach(b=>{if(b.getAttribute('onclick')?.includes(',1)'))b.classList.add('ok'),b.style.opacity='1'});fb.style.color='var(--red)';fb.textContent='❌ '+fb.textContent}
+  fb.style.display='block';
+}
+function switchTab(id,el){
+  document.querySelectorAll('.pn').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tb').forEach(b=>b.classList.remove('on'));
+  document.getElementById('p-'+id).classList.add('on');el.classList.add('on');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+</script>
+</body>
+</html>

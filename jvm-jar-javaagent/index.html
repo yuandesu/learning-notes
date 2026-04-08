@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第一性原理：JVM、JAR 與 -javaagent 為什麼更新後要重啟？</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#070a10;--s:#0e1219;--s2:#141a25;--bd:#1a2235;
+  --t:#dce4f0;--t2:#8a99b2;--t3:#4a5b72;
+  --orange:#f59e0b;--oranged:rgba(245,158,11,.1);
+  --green:#22c55e;--greend:rgba(34,197,94,.1);
+  --blue:#3b82f6;--blued:rgba(59,130,246,.1);
+  --cyan:#06b6d4;--cyand:rgba(6,182,212,.1);
+  --purple:#8b5cf6;--purpled:rgba(139,92,246,.12);--purpleg:rgba(139,92,246,.25);
+  --red:#ef4444;--redd:rgba(239,68,68,.1);
+  --amber:#d97706;--amberd:rgba(217,119,6,.1);
+  --r:10px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--t);line-height:1.8;overflow-x:hidden}
+code{font-family:'IBM Plex Mono',monospace;font-size:12px;background:rgba(255,255,255,.06);padding:2px 8px;border-radius:5px;color:#c4b5fd}
+.w{max-width:960px;margin:0 auto;padding:40px 20px 100px}
+
+.hero{text-align:center;margin-bottom:52px;animation:fu .8s}
+.hero-b{display:inline-block;background:var(--purpled);border:1px solid rgba(139,92,246,.3);border-radius:100px;padding:6px 18px;font-size:12px;color:#a78bfa;font-weight:500;letter-spacing:.5px;margin-bottom:16px}
+.hero h1{font-size:clamp(22px,5vw,36px);font-weight:900;line-height:1.3;background:linear-gradient(135deg,#e2e8f0,#a78bfa,#f59e0b);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:12px}
+.hero p{color:var(--t2);font-size:15px;max-width:620px;margin:0 auto}
+
+.nav{display:flex;gap:4px;background:var(--s);border:1px solid var(--bd);border-radius:14px;padding:5px;margin-bottom:36px;position:sticky;top:12px;z-index:100;backdrop-filter:blur(12px)}
+.nb{flex:1;padding:10px 8px;border:none;border-radius:10px;background:transparent;color:var(--t2);font-family:'Noto Sans TC',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:.25s;text-align:center}
+.nb:hover{background:var(--s2);color:var(--t)}
+.nb.on{background:var(--s2);color:#fff;box-shadow:0 0 20px var(--purpleg);border:1px solid rgba(139,92,246,.3)}
+.nb small{display:block;font-size:10px;color:var(--t3);margin-top:2px}.nb.on small{color:rgba(139,92,246,.7)}
+.ch{display:none;animation:fu .5s}.ch.on{display:block}
+@keyframes fu{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+.c{background:var(--s);border:1px solid var(--bd);border-radius:14px;padding:28px;margin-bottom:20px;position:relative;overflow:hidden}
+.c::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--purple),transparent);opacity:.4}
+.c h2{font-size:20px;font-weight:800;margin-bottom:16px;line-height:1.4}
+.c h3{font-size:16px;font-weight:700;margin:20px 0 10px;color:#fff}
+.c p{font-size:14px;color:var(--t2);margin-bottom:12px}.c p:last-child{margin-bottom:0}
+.ac{color:var(--purple);font-weight:600}
+.ag{color:var(--green);font-weight:600}
+.ao{color:var(--orange);font-weight:600}
+.ab{color:var(--blue);font-weight:600}
+.ar{color:var(--red);font-weight:600}
+
+.an{background:linear-gradient(135deg,rgba(139,92,246,.06),rgba(6,182,212,.04));border:1px solid rgba(139,92,246,.2);border-radius:var(--r);padding:20px;margin:16px 0;font-size:14px;color:var(--t2)}
+.an-t{font-weight:700;color:var(--purple);font-size:13px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+
+/* Flow */
+.flow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:16px 0;padding:16px;background:var(--s2);border:1px solid var(--bd);border-radius:var(--r)}
+.fb{padding:10px 14px;border-radius:8px;font-size:12px;font-weight:600;text-align:center;min-width:70px;transition:.3s;line-height:1.5}
+.fa{color:var(--t3);font-size:16px;flex-shrink:0}
+.fb-jar{background:var(--oranged);color:var(--orange);border:1px solid rgba(245,158,11,.25)}
+.fb-jvm{background:var(--blued);color:var(--blue);border:1px solid rgba(59,130,246,.25)}
+.fb-mem{background:var(--purpled);color:var(--purple);border:1px solid rgba(139,92,246,.25)}
+.fb-cl{background:var(--cyand);color:var(--cyan);border:1px solid rgba(6,182,212,.25)}
+.fb-app{background:var(--greend);color:var(--green);border:1px solid rgba(34,197,94,.25)}
+.fb-agent{background:var(--amberd);color:var(--amber);border:1px solid rgba(217,119,6,.25)}
+.fb-disk{background:rgba(255,255,255,.04);color:var(--t2);border:1px solid rgba(255,255,255,.08)}
+.fb-ok{background:var(--greend);color:var(--green);border:1px solid rgba(34,197,94,.25)}
+.fb-fail{background:var(--redd);color:var(--red);border:1px solid rgba(239,68,68,.25)}
+.fb-x{background:var(--redd);color:var(--red);border:1px solid rgba(239,68,68,.25);opacity:.5;text-decoration:line-through}
+.fb-new{background:rgba(34,197,94,.08);color:var(--green);border:2px solid rgba(34,197,94,.4);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(34,197,94,.2)}50%{box-shadow:0 0 12px 4px rgba(34,197,94,.15)}}
+
+/* Side by side */
+.vs{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0}
+.vs-col{background:var(--s2);border-radius:var(--r);padding:18px;border:1px solid var(--bd)}
+.vs-col h4{font-size:13px;font-weight:700;margin-bottom:10px}
+.vs-col p{font-size:13px;color:var(--t2);margin-bottom:6px}
+.vs-ok{border-color:rgba(34,197,94,.25)}.vs-fail{border-color:rgba(239,68,68,.25)}
+@media(max-width:600px){.vs{grid-template-columns:1fr}}
+
+/* Stepper */
+.step-controls{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.sb{padding:8px 16px;border-radius:100px;border:1px solid var(--bd);background:var(--s);color:var(--t2);font-family:'Noto Sans TC',sans-serif;font-size:13px;cursor:pointer;transition:.25s}
+.sb:hover{border-color:rgba(139,92,246,.4);color:var(--t)}
+.sb.on{border-color:var(--purple);color:#fff;background:var(--purpled)}
+.sc{display:none;animation:fu .4s}.sc.on{display:block}
+.sn{font-size:11px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px}
+.sd{font-size:14px;color:var(--t2);margin-top:12px;padding:12px 16px;background:rgba(255,255,255,.02);border-left:3px solid var(--purple);border-radius:0 var(--r) var(--r) 0;line-height:1.7}
+
+/* Architecture */
+.arch{margin:20px 0;padding:24px;background:var(--s2);border:1px solid var(--bd);border-radius:14px}
+.arch-title{font-size:12px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:18px}
+.arch-zone{border-radius:var(--r);padding:18px;margin-bottom:10px}
+.arch-zone-disk{border:1px dashed rgba(255,255,255,.12);background:rgba(255,255,255,.02)}
+.arch-zone-jvm{border:1px solid rgba(59,130,246,.25);background:rgba(59,130,246,.03)}
+.arch-zone-label{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;margin-bottom:12px;padding:3px 10px;border-radius:6px}
+.azl-disk{background:rgba(255,255,255,.06);color:var(--t2)}
+.azl-jvm{background:var(--blued);color:var(--blue)}
+.arch-items{display:flex;gap:10px;flex-wrap:wrap}
+.arch-item{padding:10px 16px;border-radius:8px;font-size:12px;font-weight:600;text-align:center;flex:1;min-width:120px;line-height:1.5}
+.arch-arrow{display:flex;align-items:center;justify-content:center;gap:8px;padding:8px;font-size:12px;color:var(--t3)}
+.arch-arrow-line{flex:1;height:1px;border-top:2px dashed rgba(139,92,246,.25)}
+.arch-arrow-label{background:rgba(139,92,246,.1);color:var(--purple);padding:3px 10px;border-radius:100px;font-size:10px;font-weight:600;white-space:nowrap}
+
+/* Zip visual */
+.zip-visual{display:flex;align-items:stretch;gap:0;margin:16px 0;border-radius:var(--r);overflow:hidden;border:1px solid rgba(245,158,11,.25)}
+.zip-side{padding:14px 16px;font-size:12px;font-weight:600;display:flex;flex-direction:column;gap:4px;line-height:1.6}
+.zip-icon{background:var(--oranged);color:var(--orange);flex:0 0 60px;display:flex;align-items:center;justify-content:center;font-size:24px}
+.zip-content{background:rgba(245,158,11,.04);flex:1}
+.zip-content span{display:block;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--t3);padding:1px 0}
+
+/* Summary table */
+.stbl-wrap{overflow-x:auto;border-radius:14px;border:1px solid var(--bd);margin:20px 0}
+.stbl{width:100%;min-width:500px;border-collapse:collapse;font-size:13px}
+.stbl thead th{background:var(--s);padding:14px;text-align:left;font-weight:700;font-size:12px;border-bottom:1px solid var(--bd);color:var(--t)}
+.stbl tbody td{padding:12px 14px;border-bottom:1px solid rgba(26,33,54,.6);color:var(--t2);vertical-align:top;line-height:1.6;background:var(--bg)}
+.stbl tbody tr:hover td{background:var(--s)}
+.stbl tbody td:first-child{font-weight:600;color:var(--t)}
+
+.foot{margin-top:40px;padding:20px 24px;background:var(--s);border:1px solid var(--bd);border-radius:var(--r);font-size:13px;color:var(--t2);line-height:1.8}
+.foot a{color:#a78bfa;text-decoration:none;border-bottom:1px dashed rgba(167,139,250,.4)}.foot a:hover{border-bottom-style:solid}
+</style>
+</head>
+<body>
+<div class="w">
+
+<div class="hero">
+  <div class="hero-b">☕ 第一性原理解析</div>
+  <h1>JVM、JAR 與 -javaagent<br>為什麼更新 dd-java-agent 後要重啟？</h1>
+  <p>從 .jar 檔的本質開始，一步步理解 JVM 載入機制、javaagent hook、以及為什麼「換了檔案不會自動生效」</p>
+</div>
+
+<div class="nav">
+  <button class="nb on" onclick="go(0)">Ch.1<small>JAR 是什麼</small></button>
+  <button class="nb" onclick="go(1)">Ch.2<small>JVM 怎麼載入</small></button>
+  <button class="nb" onclick="go(2)">Ch.3<small>-javaagent</small></button>
+  <button class="nb" onclick="go(3)">Ch.4<small>為什麼要重啟</small></button>
+</div>
+
+<!-- ====== Ch.1 JAR 是什麼 ====== -->
+<div class="ch on" id="c0">
+<div class="c">
+  <h2>📦 最根本的問題：.jar 檔到底是什麼？</h2>
+  <p><code>.jar</code>（Java ARchive）其實就是一個 <span class="ao">ZIP 壓縮檔</span>，裡面裝的是編譯好的 Java class 檔案和一些設定檔。</p>
+
+  <div class="zip-visual">
+    <div class="zip-icon">📦</div>
+    <div class="zip-side zip-content">
+      <strong style="color:var(--orange)">dd-java-agent.jar（本質上是 .zip）</strong>
+      <span>├── META-INF/MANIFEST.MF（設定檔：入口點等）</span>
+      <span>├── datadog/trace/agent/TracerInstaller.class</span>
+      <span>├── datadog/trace/bootstrap/Agent.class</span>
+      <span>├── datadog/trace/instrumentation/...</span>
+      <span>└── 數千個 .class 檔（編譯好的 Java 程式碼）</span>
+    </div>
+  </div>
+
+  <div class="an">
+    <div class="an-t">🎒 背包比喻</div>
+    <p><code>.jar</code> 就像一個背包，裡面裝了很多便當盒（<code>.class</code> 檔案）。每個便當盒是一個編譯好的 Java 類別，JVM 需要的時候會從背包裡拿出來用。</p>
+    <p>重點是：<span class="ac">背包是打包好的，JVM 啟動時會把它「打開」並把內容放到工作桌上（記憶體）</span>。之後就算你偷偷換了背包，工作桌上的便當盒不會自動換。</p>
+  </div>
+</div>
+
+<div class="c">
+  <h2>📦 三個名字，同一個東西</h2>
+  <p>你可能在不同地方看到不同的名字，但它們都指的是同一個 jar 檔：</p>
+  <div class="stbl-wrap">
+    <table class="stbl">
+      <thead><tr><th>名稱</th><th>出現在哪裡</th><th>是什麼</th></tr></thead>
+      <tbody>
+        <tr><td><code>dd-java-agent.jar</code></td><td>實際部署的檔案名稱</td><td rowspan="3" style="vertical-align:middle">同一個 jar 檔。<br>Datadog 的 Java APM Tracer library。</td></tr>
+        <tr><td>Java Tracer</td><td>Datadog 文件、產品頁面</td></tr>
+        <tr><td>dd-trace-java</td><td>GitHub repo 名稱</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+</div>
+
+<!-- ====== Ch.2 JVM 怎麼載入程式碼 ====== -->
+<div class="ch" id="c1">
+<div class="c">
+  <h2>⚙️ JVM 啟動時做了什麼？</h2>
+  <p>當你執行 <code>java -jar myapp.jar</code> 時，JVM 會經歷以下步驟：</p>
+
+  <div class="step-controls">
+    <button class="sb on" onclick="goS(0)">Step 1</button>
+    <button class="sb" onclick="goS(1)">Step 2</button>
+    <button class="sb" onclick="goS(2)">Step 3</button>
+    <button class="sb" onclick="goS(3)">Step 4</button>
+  </div>
+
+  <div class="sc on" id="s0">
+    <div class="sn">Step 1 — JVM process 啟動</div>
+    <div class="flow">
+      <div class="fb fb-disk">💾 磁碟<br><span style="font-size:10px">myapp.jar 存在這裡</span></div>
+      <div class="fa">→</div>
+      <div class="fb fb-jvm">🔵 JVM 啟動<br><span style="font-size:10px">作業系統分配記憶體</span></div>
+    </div>
+    <div class="sd">作業系統啟動一個 JVM process，分配記憶體空間（Heap、Stack、Metaspace 等）。此時 JVM 的記憶體是空的。</div>
+  </div>
+
+  <div class="sc" id="s1">
+    <div class="sn">Step 2 — ClassLoader 從磁碟讀取 .class</div>
+    <div class="flow">
+      <div class="fb fb-disk">💾 磁碟<br><span style="font-size:10px">myapp.jar</span></div>
+      <div class="fa">→</div>
+      <div class="fb fb-cl">🔷 ClassLoader<br><span style="font-size:10px">讀取 .class 檔</span></div>
+      <div class="fa">→</div>
+      <div class="fb fb-mem">🟪 記憶體<br><span style="font-size:10px">載入 class 定義</span></div>
+    </div>
+    <div class="sd"><span class="ab">ClassLoader</span> 是 JVM 內部的元件，負責從 jar 檔裡讀取 <code>.class</code> 檔，解析 bytecode，然後<span class="ac">載入到記憶體</span>裡。這是唯一一次讀取磁碟上的 jar 檔。</div>
+  </div>
+
+  <div class="sc" id="s2">
+    <div class="sn">Step 3 — Class 被載入到記憶體（Metaspace）</div>
+    <div class="arch">
+      <div class="arch-title">JVM 記憶體結構</div>
+      <div class="arch-zone arch-zone-jvm">
+        <div class="arch-zone-label azl-jvm">🔵 JVM 記憶體空間</div>
+        <div class="arch-items">
+          <div class="arch-item fb-mem">Metaspace<br><span style="font-size:10px">class 定義存在這裡</span></div>
+          <div class="arch-item fb-app">Heap<br><span style="font-size:10px">物件實例</span></div>
+          <div class="arch-item fb-cl">Stack<br><span style="font-size:10px">方法呼叫</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="sd">Class 定義被存在 <span class="ac">Metaspace</span>（JVM 記憶體的一個區域）。一旦載入，<span class="ar">JVM 就不再回去讀磁碟上的 jar 檔了</span>。記憶體裡的 class 定義就是唯一的「真相來源」。</div>
+  </div>
+
+  <div class="sc" id="s3">
+    <div class="sn">Step 4 — 應用程式開始執行</div>
+    <div class="flow">
+      <div class="fb fb-mem">🟪 記憶體中的 class</div>
+      <div class="fa">→</div>
+      <div class="fb fb-app">✅ 應用程式執行<br><span style="font-size:10px">用的是記憶體裡的版本</span></div>
+    </div>
+    <div class="sd">從這一刻起，應用程式使用的是<span class="ac">記憶體裡的 class</span>，不是磁碟上的 jar。即使你把磁碟上的 jar 刪掉，正在跑的應用程式也不會受影響（直到重啟）。</div>
+  </div>
+</div>
+
+<div class="c">
+  <h2>⚙️ 跟 Python / Node.js 的關鍵差異</h2>
+  <div class="vs">
+    <div class="vs-col vs-fail">
+      <h4 style="color:var(--blue)">☕ Java（JVM）</h4>
+      <p><strong>編譯 + 一次性載入</strong></p>
+      <p>原始碼 → 編譯成 .class → 打包成 .jar → JVM 啟動時 ClassLoader 載入到記憶體 → <span class="ar">之後不再讀磁碟</span></p>
+      <p style="margin-top:8px;font-size:12px;color:var(--t3)">換了 jar → JVM 不知道 → 必須重啟</p>
+    </div>
+    <div class="vs-col vs-ok">
+      <h4 style="color:var(--green)">🐍 Python / Node.js</h4>
+      <p><strong>直譯 / 每次讀取</strong></p>
+      <p>原始碼 → 直譯器每次 <code>import</code> / <code>require</code> 時讀取檔案 → 部分支援 hot reload</p>
+      <p style="margin-top:8px;font-size:12px;color:var(--t3)">換了檔案 → 某些情境下不用重啟（但也有 cache）</p>
+    </div>
+  </div>
+  <p>這就是為什麼 Java 世界裡「更新 jar 後要重啟」是常識，而 Python 開發者可能覺得「換了檔案怎麼不會自動生效？」</p>
+</div>
+</div>
+
+<!-- ====== Ch.3 -javaagent ====== -->
+<div class="ch" id="c2">
+<div class="c">
+  <h2>🔌 -javaagent 是什麼？</h2>
+  <p>當你用這個指令啟動應用程式：</p>
+  <div class="flow">
+    <div class="fb fb-disk" style="min-width:auto;font-size:11px;font-family:'IBM Plex Mono',monospace">java <span style="color:var(--orange)">-javaagent:dd-java-agent.jar</span> -jar myapp.jar</div>
+  </div>
+  <p><code>-javaagent</code> 告訴 JVM：「在啟動應用程式之前，先載入這個特殊的 jar，讓它有機會修改其他 class 的 bytecode。」</p>
+
+  <div class="an">
+    <div class="an-t">🔧 安檢比喻</div>
+    <p>想像一棟大樓（你的應用程式）要開門營業。</p>
+    <p><code>-javaagent</code> 就像在大樓門口安排了一個<span class="ac">安檢員（dd-java-agent）</span>。他在每個員工（class）進門之前，會在他們的工牌上貼一個追蹤貼紙（instrumentation）。</p>
+    <p>這樣每個員工做了什麼事，都會被記錄下來（trace span）。而且員工自己不知道被貼了貼紙——這就是為什麼叫「自動計裝」。</p>
+  </div>
+</div>
+
+<div class="c">
+  <h2>🔌 dd-java-agent 的載入時序</h2>
+
+  <div class="step-controls">
+    <button class="sb on" onclick="goA(0)">Step 1</button>
+    <button class="sb" onclick="goA(1)">Step 2</button>
+    <button class="sb" onclick="goA(2)">Step 3</button>
+    <button class="sb" onclick="goA(3)">Step 4</button>
+  </div>
+
+  <div class="sc on" id="a0">
+    <div class="sn">Step 1 — JVM 先載入 dd-java-agent.jar</div>
+    <div class="flow">
+      <div class="fb fb-disk">💾 dd-java-agent.jar<br><span style="font-size:10px">磁碟上</span></div>
+      <div class="fa">→</div>
+      <div class="fb fb-cl">ClassLoader</div>
+      <div class="fa">→</div>
+      <div class="fb fb-agent">🔌 Agent class<br><span style="font-size:10px">載入到記憶體</span></div>
+    </div>
+    <div class="sd">JVM 啟動後，<span class="ao">在應用程式之前</span>，先讀取 <code>dd-java-agent.jar</code> 並載入到記憶體。這是 <code>-javaagent</code> 參數觸發的行為。</div>
+  </div>
+
+  <div class="sc" id="a1">
+    <div class="sn">Step 2 — 執行 premain() 方法</div>
+    <div class="flow">
+      <div class="fb fb-agent">🔌 dd-java-agent<br><span style="font-size:10px">已在記憶體中</span></div>
+      <div class="fa">→</div>
+      <div class="fb fb-mem">premain() 執行<br><span style="font-size:10px">註冊 ClassFileTransformer</span></div>
+    </div>
+    <div class="sd">JVM 呼叫 agent 的 <code>premain()</code> 方法。dd-java-agent 在這裡註冊一個 <span class="ac">ClassFileTransformer</span>——這是一個 hook，讓 agent 有機會在每個 class 被載入時修改它的 bytecode。</div>
+  </div>
+
+  <div class="sc" id="a2">
+    <div class="sn">Step 3 — 應用程式 class 被載入時，agent 自動改寫</div>
+    <div class="flow">
+      <div class="fb fb-disk">💾 myapp.jar</div>
+      <div class="fa">→</div>
+      <div class="fb fb-cl">ClassLoader<br><span style="font-size:10px">載入 class</span></div>
+      <div class="fa">→</div>
+      <div class="fb fb-agent">🔌 agent 攔截<br><span style="font-size:10px">注入 tracing 程式碼</span></div>
+      <div class="fa">→</div>
+      <div class="fb fb-mem">🟪 改寫後的 class<br><span style="font-size:10px">已含 tracing</span></div>
+    </div>
+    <div class="sd">當應用程式的 class（例如 Spring Controller、JDBC Driver）被 ClassLoader 載入時，dd-java-agent 的 Transformer 攔截並<span class="ac">在 bytecode 層級注入 tracing 程式碼</span>。原始程式碼完全不需要修改。</div>
+  </div>
+
+  <div class="sc" id="a3">
+    <div class="sn">Step 4 — 應用程式開始執行（已被計裝）</div>
+    <div class="flow">
+      <div class="fb fb-app">✅ 應用程式執行<br><span style="font-size:10px">每個 HTTP call、DB query</span></div>
+      <div class="fa">→</div>
+      <div class="fb fb-mem">tracing 程式碼<br><span style="font-size:10px">產生 span</span></div>
+      <div class="fa">→</div>
+      <div class="fb fb-ok">📡 送到 Datadog Agent<br><span style="font-size:10px">→ APM UI</span></div>
+    </div>
+    <div class="sd">應用程式正常執行，但每個被計裝的方法呼叫都會自動產生 span，送到同機器的 Datadog Agent，最終顯示在 APM UI 上。開發者不需要改任何程式碼。</div>
+  </div>
+</div>
+</div>
+
+<!-- ====== Ch.4 為什麼要重啟 ====== -->
+<div class="ch" id="c3">
+<div class="c">
+  <h2>🔄 為什麼換了 jar 必須重啟 JVM？</h2>
+  <p>把前面的知識串起來：</p>
+
+  <div class="arch">
+    <div class="arch-title">更新前：JVM 正在運行</div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap">
+      <!-- Disk -->
+      <div style="flex:1;min-width:200px">
+        <div class="arch-zone arch-zone-disk">
+          <div class="arch-zone-label azl-disk">💾 磁碟</div>
+          <div class="arch-items">
+            <div class="arch-item fb-jar">dd-java-agent.jar<br><span style="font-size:10px;opacity:.7">v1.0（舊版）</span></div>
+          </div>
+        </div>
+      </div>
+      <!-- JVM -->
+      <div style="flex:2;min-width:280px">
+        <div class="arch-zone arch-zone-jvm">
+          <div class="arch-zone-label azl-jvm">🔵 JVM 記憶體</div>
+          <div class="arch-items">
+            <div class="arch-item fb-agent">dd-java-agent<br><span style="font-size:10px;opacity:.7">v1.0 的 class（已載入）</span></div>
+            <div class="arch-item fb-app">myapp class<br><span style="font-size:10px;opacity:.7">已被 v1.0 計裝</span></div>
+          </div>
+          <div style="font-size:11px;color:var(--t3);margin-top:8px;text-align:center">啟動時讀了 jar → 之後不再看磁碟</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arch" style="border-color:rgba(239,68,68,.2)">
+    <div class="arch-title" style="color:var(--red)">❌ 你換了磁碟上的 jar，但沒重啟</div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px">
+        <div class="arch-zone arch-zone-disk">
+          <div class="arch-zone-label azl-disk">💾 磁碟</div>
+          <div class="arch-items">
+            <div class="arch-item fb-new">dd-java-agent.jar<br><span style="font-size:10px">v2.0（新版 ✓）</span></div>
+          </div>
+        </div>
+      </div>
+      <div style="flex:2;min-width:280px">
+        <div class="arch-zone arch-zone-jvm" style="border-color:rgba(239,68,68,.25)">
+          <div class="arch-zone-label azl-jvm">🔵 JVM 記憶體 <span style="color:var(--red);margin-left:8px">← 還是舊的！</span></div>
+          <div class="arch-items">
+            <div class="arch-item fb-fail">dd-java-agent<br><span style="font-size:10px">⚠️ 還是 v1.0 的 class</span></div>
+            <div class="arch-item fb-fail">myapp class<br><span style="font-size:10px">⚠️ 還是被 v1.0 計裝的</span></div>
+          </div>
+          <div style="font-size:11px;color:var(--red);margin-top:8px;text-align:center">JVM 不知道磁碟上的 jar 被換了</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="arch" style="border-color:rgba(34,197,94,.2)">
+    <div class="arch-title" style="color:var(--green)">✅ 重啟 JVM 後</div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap">
+      <div style="flex:1;min-width:200px">
+        <div class="arch-zone arch-zone-disk">
+          <div class="arch-zone-label azl-disk">💾 磁碟</div>
+          <div class="arch-items">
+            <div class="arch-item fb-new">dd-java-agent.jar<br><span style="font-size:10px">v2.0（新版）</span></div>
+          </div>
+        </div>
+      </div>
+      <div style="flex:2;min-width:280px">
+        <div class="arch-zone arch-zone-jvm" style="border-color:rgba(34,197,94,.25)">
+          <div class="arch-zone-label azl-jvm">🔵 新的 JVM 記憶體</div>
+          <div class="arch-items">
+            <div class="arch-item fb-ok">dd-java-agent<br><span style="font-size:10px">✅ v2.0 的 class</span></div>
+            <div class="arch-item fb-ok">myapp class<br><span style="font-size:10px">✅ 被 v2.0 計裝</span></div>
+          </div>
+          <div style="font-size:11px;color:var(--green);margin-top:8px;text-align:center">重新讀取磁碟上的新 jar → 載入新版 class</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="c">
+  <h2>🔄 一句話總結</h2>
+  <div class="an">
+    <div class="an-t">🎯 核心原理</div>
+    <p>JVM 的 ClassLoader 在<span class="ac">啟動時一次性</span>把 jar 裡的 class 載入到記憶體。之後 JVM 只用記憶體裡的版本，<span class="ar">不再回去讀磁碟上的 jar</span>。</p>
+    <p style="margin-top:8px">所以更新 <code>dd-java-agent.jar</code> 的正確流程是：</p>
+    <p style="margin-top:4px">1. 下載新版 jar → 2. 覆蓋舊檔案 → 3. <span class="ar">重啟 JVM（必須）</span></p>
+    <p style="margin-top:8px">不重啟 = 記憶體裡還是舊版 = 新版形同虛設。</p>
+  </div>
+
+  <div class="vs">
+    <div class="vs-col vs-ok">
+      <h4 style="color:var(--green)">✅ 更新後不會變的東西</h4>
+      <p><code>-javaagent:dd-java-agent.jar</code> 參數 — 不用改</p>
+      <p>其他 JVM 啟動參數 — 不用改</p>
+      <p>應用程式的設定 — 不受影響</p>
+    </div>
+    <div class="vs-col" style="border-color:rgba(245,158,11,.25)">
+      <h4 style="color:var(--orange)">⚠️ 建議的額外確認</h4>
+      <p>JVM 版本與新版 agent 的相容性</p>
+      <p>Release notes 裡的破壊的変更</p>
+      <p>更新前備份舊的 jar 檔</p>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="foot">
+  📖 參考文件：
+  <a href="https://docs.datadoghq.com/ja/tracing/trace_collection/dd_libraries/java/" target="_blank">Tracing Java Applications</a> ·
+  <a href="https://github.com/DataDog/dd-trace-java/releases" target="_blank">dd-trace-java Releases</a> ·
+  <a href="https://docs.oracle.com/javase/8/docs/api/java/lang/instrument/package-summary.html" target="_blank">java.lang.instrument（Oracle 文件）</a>
+</div>
+
+</div>
+
+<script>
+function go(n){document.querySelectorAll('.nb').forEach((b,i)=>b.classList.toggle('on',i===n));document.querySelectorAll('.ch').forEach((c,i)=>c.classList.toggle('on',i===n))}
+function goS(n){document.querySelectorAll('#c1 .sb').forEach((b,i)=>b.classList.toggle('on',i===n));['s0','s1','s2','s3'].forEach((id,i)=>document.getElementById(id).classList.toggle('on',i===n))}
+function goA(n){document.querySelectorAll('#c2 .sb').forEach((b,i)=>b.classList.toggle('on',i===n));['a0','a1','a2','a3'].forEach((id,i)=>document.getElementById(id).classList.toggle('on',i===n))}
+</script>
+</body>
+</html>

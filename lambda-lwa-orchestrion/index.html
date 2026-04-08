@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第一性原理：Lambda Web Adapter + Orchestrion 完全理解</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0c0f16; --surface: #12161f; --surface2: #181d28;
+  --border: #1f2737; --text: #dce4f0; --text2: #8a99b2; --text3: #4d5b72;
+  --green: #22c55e; --green-d: rgba(34,197,94,.12); --orange: #f59e0b; --orange-d: rgba(245,158,11,.12);
+  --red: #ef4444; --red-d: rgba(239,68,68,.1); --blue: #3b82f6; --blue-d: rgba(59,130,246,.12);
+  --purple: #8b5cf6; --purple-d: rgba(139,92,246,.12); --cyan: #06b6d4; --cyan-d: rgba(6,182,212,.1);
+  --r: 10px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--text);line-height:1.8;overflow-x:hidden}
+code,.mono{font-family:'IBM Plex Mono',monospace}
+.wrap{max-width:960px;margin:0 auto;padding:40px 20px 100px}
+
+/* ---- Chapter nav ---- */
+.ch-nav{display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:5px;margin-bottom:36px;position:sticky;top:12px;z-index:100;backdrop-filter:blur(12px)}
+.ch-btn{flex:1;padding:10px 6px;border:none;border-radius:10px;background:transparent;color:var(--text2);font-family:'Noto Sans TC',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:.25s;text-align:center}
+.ch-btn:hover{background:var(--surface2);color:var(--text)}
+.ch-btn.on{background:var(--surface2);color:#fff;box-shadow:0 0 20px rgba(139,92,246,.2);border:1px solid rgba(139,92,246,.3)}
+.ch-btn small{display:block;font-size:10px;color:var(--text3);margin-top:2px;font-weight:400}
+.ch-btn.on small{color:rgba(139,92,246,.7)}
+.chapter{display:none;animation:fadeIn .5s}
+.chapter.on{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* ---- Section card ---- */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px;margin-bottom:20px;position:relative;overflow:hidden}
+.card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--purple),transparent);opacity:.4}
+.card h2{font-size:20px;font-weight:800;margin-bottom:16px;line-height:1.4}
+.card h3{font-size:16px;font-weight:700;margin:20px 0 10px;color:#fff}
+.card p{font-size:14px;color:var(--text2);margin-bottom:12px}
+.card p:last-child{margin-bottom:0}
+.accent{color:var(--purple);font-weight:600}
+.acc-g{color:var(--green);font-weight:600}
+.acc-o{color:var(--orange);font-weight:600}
+.acc-r{color:var(--red);font-weight:600}
+.acc-b{color:var(--blue);font-weight:600}
+code{font-size:12px;background:rgba(255,255,255,.06);padding:2px 8px;border-radius:5px;color:#c4b5fd}
+
+/* ---- Analogy box ---- */
+.analogy{background:linear-gradient(135deg,rgba(139,92,246,.06),rgba(6,182,212,.04));border:1px solid rgba(139,92,246,.2);border-radius:var(--r);padding:20px;margin:16px 0;font-size:14px;color:var(--text2)}
+.analogy-title{font-weight:700;color:var(--purple);font-size:13px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+
+/* ---- Flow simulation ---- */
+.sim{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:24px;margin:20px 0}
+.sim-title{font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:16px}
+.sim-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.sim-box{padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;text-align:center;transition:.3s;min-width:80px}
+.sim-arrow{color:var(--text3);font-size:16px;flex-shrink:0}
+.b-user{background:var(--green-d);color:var(--green);border:1px solid rgba(34,197,94,.25)}
+.b-gw{background:var(--orange-d);color:var(--orange);border:1px solid rgba(245,158,11,.25)}
+.b-lambda{background:var(--blue-d);color:var(--blue);border:1px solid rgba(59,130,246,.25)}
+.b-lwa{background:var(--cyan-d);color:var(--cyan);border:1px solid rgba(6,182,212,.25)}
+.b-app{background:var(--purple-d);color:var(--purple);border:1px solid rgba(139,92,246,.25)}
+.b-dd{background:rgba(99,43,243,.1);color:#a78bfa;border:1px solid rgba(99,43,243,.25)}
+.b-ext{background:rgba(239,68,68,.08);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+.b-ok{background:var(--green-d);color:var(--green);border:1px solid rgba(34,197,94,.25)}
+.b-fail{background:var(--red-d);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+
+/* ---- Step-through simulator ---- */
+.stepper{margin:20px 0}
+.step-controls{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.step-btn{padding:8px 18px;border-radius:100px;border:1px solid var(--border);background:var(--surface);color:var(--text2);font-family:'Noto Sans TC',sans-serif;font-size:13px;cursor:pointer;transition:.25s}
+.step-btn:hover{border-color:rgba(139,92,246,.4);color:var(--text)}
+.step-btn.on{border-color:var(--purple);color:#fff;background:rgba(139,92,246,.12)}
+.step-display{min-height:220px}
+.step-card{display:none;animation:fadeIn .4s}
+.step-card.on{display:block}
+.step-card .sim-row{margin-bottom:8px}
+.step-num{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px}
+.step-desc{font-size:14px;color:var(--text2);margin-top:12px;padding:12px 16px;background:rgba(255,255,255,.02);border-left:3px solid var(--purple);border-radius:0 var(--r) var(--r) 0}
+
+/* ---- Env var box ---- */
+.env-box{display:inline-flex;align-items:center;gap:6px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:6px;padding:4px 12px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--orange);font-weight:500;margin:4px 2px}
+.env-box.env-del{text-decoration:line-through;opacity:.5;border-style:dashed}
+
+/* ---- Compare side-by-side ---- */
+.vs{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:16px 0}
+.vs-col{background:var(--surface2);border-radius:var(--r);padding:18px;border:1px solid var(--border)}
+.vs-col h4{font-size:13px;font-weight:700;margin-bottom:10px}
+.vs-col p{font-size:13px;color:var(--text2)}
+.vs-col.vs-fail{border-color:rgba(239,68,68,.25)}
+.vs-col.vs-ok{border-color:rgba(34,197,94,.25)}
+@media(max-width:600px){.vs{grid-template-columns:1fr}}
+
+/* ---- Header ---- */
+.hero{text-align:center;margin-bottom:48px;animation:fadeIn .8s}
+.hero-badge{display:inline-block;background:var(--purple-d);border:1px solid rgba(139,92,246,.3);border-radius:100px;padding:6px 18px;font-size:12px;color:#a78bfa;font-weight:500;letter-spacing:.5px;margin-bottom:16px}
+.hero h1{font-size:clamp(24px,5vw,36px);font-weight:900;line-height:1.3;background:linear-gradient(135deg,#e2e8f0,#a78bfa,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:12px}
+.hero p{color:var(--text2);font-size:15px;max-width:600px;margin:0 auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="hero">
+  <div class="hero-badge">🧱 第一性原理解析</div>
+  <h1>Lambda Web Adapter + Orchestrion<br>為什麼 Trace 送不出去？</h1>
+  <p>從最基礎的概念開始，一步步理解客戶的問題</p>
+</div>
+
+<div class="ch-nav">
+  <button class="ch-btn on" onclick="go(0)">Ch.1<small>Lambda 基礎</small></button>
+  <button class="ch-btn" onclick="go(1)">Ch.2<small>Web Adapter</small></button>
+  <button class="ch-btn" onclick="go(2)">Ch.3<small>Orchestrion</small></button>
+  <button class="ch-btn" onclick="go(3)">Ch.4<small>問題根因</small></button>
+  <button class="ch-btn" onclick="go(4)">Ch.5<small>解法</small></button>
+</div>
+
+<!-- ============================================================ -->
+<!-- CH.1 — Lambda 基礎                                           -->
+<!-- ============================================================ -->
+<div class="chapter on" id="ch0">
+
+<div class="card">
+  <h2>🧱 先搞懂：普通 Web Server 怎麼運作？</h2>
+  <p>你寫了一個 Go Web API。正常情況下，它是這樣跑的：</p>
+  <div class="sim">
+    <div class="sim-title">普通 Web Server 運作方式</div>
+    <div class="sim-row">
+      <div class="sim-box b-app">Go Web API<br><span class="mono" style="font-size:11px">:8080</span></div>
+      <div style="font-size:12px;color:var(--text3);padding:0 8px">← 持續監聽 HTTP 請求 →</div>
+      <div class="sim-box b-user">使用者</div>
+    </div>
+  </div>
+  <p>你的程式碼就是一個 <span class="accent">持續運行的 HTTP Server</span>，用 <code>net/http.ListenAndServe(":8080", ...)</code> 在那邊等請求進來。它「活著」直到你關掉它。</p>
+</div>
+
+<div class="card">
+  <h2>🧱 Lambda 的運作模式完全不同</h2>
+  <p>Lambda <span class="acc-r">不是 Web Server</span>。它是一個「事件處理函式」：</p>
+  <div class="sim">
+    <div class="sim-title">Lambda 運作方式</div>
+    <div class="sim-row">
+      <div class="sim-box b-user">使用者</div>
+      <div class="sim-arrow">→</div>
+      <div class="sim-box b-gw">API Gateway</div>
+      <div class="sim-arrow">→</div>
+      <div class="sim-box b-lambda">Lambda Runtime<br><span class="mono" style="font-size:11px">JSON event 進<br>JSON response 出</span></div>
+    </div>
+  </div>
+  <p>Lambda 函式接收的是 <span class="acc-o">JSON event</span>（不是 HTTP 請求），回傳的也是 JSON response。它<span class="acc-r">不監聽任何 port</span>，每次執行完就「凍結」（freeze），等下一個 event。</p>
+
+  <div class="analogy">
+    <div class="analogy-title">🍔 漢堡店比喻</div>
+    <p><span class="acc-g">普通 Web Server</span> = 一間持續營業的漢堡店，廚師一直站在那裡等客人點餐。</p>
+    <p><span class="acc-b">Lambda</span> = 一個外送廚師，每次收到一張訂單（JSON event），做完一個漢堡就「暫停」，等下一張訂單才「醒來」。他沒有自己的店面（沒有 port）。</p>
+  </div>
+</div>
+
+<div class="card">
+  <h2>🧱 Lambda 會自動設定一個關鍵環境變數</h2>
+  <p>每個 Lambda 函式啟動時，AWS 會自動注入：</p>
+  <div style="text-align:center;margin:16px 0">
+    <span class="env-box">LAMBDA_FUNCTION_NAME=my-function</span>
+  </div>
+  <p>這個環境變數是 Lambda 運行環境的「身分證」。很多工具（包含 Datadog tracer）會用它來判斷：<span class="acc-o">「我是不是跑在 Lambda 裡面？」</span></p>
+  <p>記住這個環境變數，它是後面所有問題的核心。</p>
+</div>
+
+</div>
+
+<!-- ============================================================ -->
+<!-- CH.2 — Lambda Web Adapter                                     -->
+<!-- ============================================================ -->
+<div class="chapter" id="ch1">
+
+<div class="card">
+  <h2>🔌 問題：我有一個現成的 Web API，不想改寫成 Lambda 格式</h2>
+  <p>你有一個用 Go 寫的 Web API，它用 <code>net/http</code> 監聽 <code>:8080</code>。你想把它跑在 Lambda 上（省成本、自動擴展），但你<span class="acc-r">不想把程式碼改成 Lambda handler 格式</span>。</p>
+  <p>這就是 <span class="accent">AWS Lambda Web Adapter（LWA）</span>的用途。</p>
+</div>
+
+<div class="card">
+  <h2>🔌 LWA 是什麼？一個「翻譯員」</h2>
+
+  <div class="analogy">
+    <div class="analogy-title">🌐 翻譯員比喻</div>
+    <p>你是一個只會說中文的廚師（Go Web API），但客人說的是日文（Lambda JSON event）。</p>
+    <p><span class="accent">LWA</span> 是一個翻譯員，坐在你旁邊：客人用日文點餐 → 翻譯成中文給你 → 你做好漢堡 → 翻譯員把你的中文回覆翻回日文給客人。</p>
+    <p>你完全不需要學日文（不需要改程式碼）。</p>
+  </div>
+
+  <h3>技術上怎麼做到的？</h3>
+  <div class="sim">
+    <div class="sim-title">LWA 在 Lambda 內部的運作</div>
+    <div class="sim-row">
+      <div class="sim-box b-gw">API Gateway<br><span class="mono" style="font-size:10px">JSON event</span></div>
+      <div class="sim-arrow">→</div>
+      <div class="sim-box b-lambda">Lambda<br>Runtime</div>
+      <div class="sim-arrow">→</div>
+      <div class="sim-box b-lwa">🔌 LWA<br><span class="mono" style="font-size:10px">JSON → HTTP</span></div>
+      <div class="sim-arrow">→</div>
+      <div class="sim-box b-app">Go Web API<br><span class="mono" style="font-size:10px">:8080</span></div>
+    </div>
+    <div class="sim-row" style="margin-top:4px">
+      <div class="sim-box b-app">Go Web API<br><span class="mono" style="font-size:10px">HTTP resp</span></div>
+      <div class="sim-arrow">→</div>
+      <div class="sim-box b-lwa">🔌 LWA<br><span class="mono" style="font-size:10px">HTTP → JSON</span></div>
+      <div class="sim-arrow">→</div>
+      <div class="sim-box b-lambda">Lambda<br>Runtime</div>
+      <div class="sim-arrow">→</div>
+      <div class="sim-box b-gw">API Gateway</div>
+    </div>
+  </div>
+  <p>LWA 是一個用 Rust 寫的輕量 process，以 <span class="acc-b">Lambda Extension</span> 形式運行。它在 Lambda 容器內：</p>
+  <p>1. 接收 Lambda Runtime 傳來的 JSON event<br>
+  2. 轉換成 HTTP 請求，送給你的 Go Web API（<code>localhost:8080</code>）<br>
+  3. 接收 HTTP response，轉換回 JSON 送回 Lambda Runtime</p>
+  <p>你的 Go Web API <span class="acc-o">完全不知道自己跑在 Lambda 上</span>。它以為自己還是在監聽 <code>:8080</code> 的普通 Server。</p>
+</div>
+
+<div class="card">
+  <h2>🔌 但是！環境變數還在</h2>
+  <p>雖然你的 App「以為」自己是普通 Web Server，但 Lambda 環境裡的那個環境變數依然存在：</p>
+  <div style="text-align:center;margin:16px 0">
+    <span class="env-box">LAMBDA_FUNCTION_NAME=my-function</span>
+    <span style="font-size:13px;color:var(--text3);margin-left:8px">← 還在！</span>
+  </div>
+  <p>這就是衝突的根源。App 以為自己不在 Lambda 上，但環境變數告訴所有工具「你在 Lambda 裡」。</p>
+</div>
+
+</div>
+
+<!-- ============================================================ -->
+<!-- CH.3 — Orchestrion                                            -->
+<!-- ============================================================ -->
+<div class="chapter" id="ch2">
+
+<div class="card">
+  <h2>🎻 問題：Go 沒辦法 runtime 自動注入 tracing</h2>
+
+  <div class="vs">
+    <div class="vs-col">
+      <h4>Java / Python / Node.js</h4>
+      <p>有 runtime（JVM / 直譯器），可以在程式「跑起來之後」偷偷注入 tracing 程式碼。</p>
+      <p style="margin-top:8px"><code>-javaagent:dd-java-agent.jar</code><br><code>ddtrace-run python app.py</code></p>
+      <p style="margin-top:8px;color:var(--green)">✅ 不需要改程式碼</p>
+    </div>
+    <div class="vs-col">
+      <h4>Go</h4>
+      <p>編譯成原生二進位檔（binary），跑起來就是機器碼，<span class="acc-r">沒有地方可以 hook</span>。</p>
+      <p style="margin-top:8px">傳統做法：手動在程式碼裡加<br><code>import "gopkg.in/DataDog/dd-trace-go.v1"</code></p>
+      <p style="margin-top:8px;color:var(--red)">❌ 必須改程式碼</p>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>🎻 Orchestrion 的解法：在編譯的時候動手腳</h2>
+
+  <div class="analogy">
+    <div class="analogy-title">📝 作文比喻</div>
+    <p>你寫了一篇作文（Go 原始碼），要交給老師批改（Go 編譯器）。</p>
+    <p><span class="accent">Orchestrion</span> 是一個「作文助理」，在你交出去之前，自動在適當的地方加上注釋和標記（tracing 程式碼），然後才交給老師。老師看到的是「已經加好標記的作文」。</p>
+    <p>你不需要自己加標記，助理幫你搞定。</p>
+  </div>
+
+  <div class="sim">
+    <div class="sim-title">Orchestrion 編譯流程</div>
+    <div class="sim-row">
+      <div class="sim-box b-app">你的 Go 原始碼<br><span class="mono" style="font-size:10px">main.go</span></div>
+      <div class="sim-arrow">→</div>
+      <div class="sim-box b-dd">🎻 Orchestrion<br><span class="mono" style="font-size:10px">AST 分析 + 注入<br>dd-trace-go</span></div>
+      <div class="sim-arrow">→</div>
+      <div class="sim-box b-lambda">Go 編譯器<br><span class="mono" style="font-size:10px">go build</span></div>
+      <div class="sim-arrow">→</div>
+      <div class="sim-box b-ok">已計裝的 Binary<br><span class="mono" style="font-size:10px">內含 tracing</span></div>
+    </div>
+  </div>
+
+  <p>Orchestrion 用 Go 工具鏈的 <code>-toolexec</code> 機制，在編譯時攔截原始碼，用 AST（抽象語法樹）分析，自動插入 <code>dd-trace-go</code> 的計裝程式碼。編譯出來的 binary 已經內建 tracing 功能。</p>
+  <p>結果：<span class="acc-g">你完全不需要改任何一行程式碼</span>，但產出的 binary 會自動產生 Datadog APM trace。</p>
+</div>
+
+<div class="card">
+  <h2>🎻 Orchestrion 注入的 dd-trace-go 會做什麼判斷？</h2>
+  <p>這是關鍵！<code>dd-trace-go</code>（Datadog 的 Go tracer library）啟動時，會檢查環境變數：</p>
+  <div style="text-align:center;margin:16px 0">
+    <span class="env-box">LAMBDA_FUNCTION_NAME</span>
+    <span style="font-size:13px;color:var(--text3);margin-left:8px">存在嗎？</span>
+  </div>
+  <div class="vs">
+    <div class="vs-col vs-ok">
+      <h4 style="color:var(--green)">不存在 → 普通模式</h4>
+      <p>Tracer 自己把 trace 透過 <code>localhost:8126</code> 送給 Datadog Agent，或直接送到 Datadog backend。</p>
+      <p style="margin-top:8px"><span class="acc-g">✅ Trace 正常送出</span></p>
+    </div>
+    <div class="vs-col vs-fail">
+      <h4 style="color:var(--orange)">存在 → Lambda 模式</h4>
+      <p>Tracer 切換行為：把 trace 交給 <span class="acc-o">Datadog Lambda Extension</span> 來處理，依賴 Extension 在 Lambda 生命週期結束時 flush。</p>
+      <p style="margin-top:8px"><span class="acc-o">⚠️ 需要 Extension 配合</span></p>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<!-- ============================================================ -->
+<!-- CH.4 — 問題根因                                               -->
+<!-- ============================================================ -->
+<div class="chapter" id="ch3">
+
+<div class="card">
+  <h2>💥 三個東西疊在一起，問題就來了</h2>
+  <p>現在把三個概念組合起來：</p>
+  <p>1. <span class="acc-b">Lambda</span> 自動設定 <code>LAMBDA_FUNCTION_NAME</code></p>
+  <p>2. <span class="accent">LWA</span> 讓 Go App「以為」自己是普通 Web Server</p>
+  <p>3. <span class="acc-g">Orchestrion</span> 自動注入的 <code>dd-trace-go</code> 看到 <code>LAMBDA_FUNCTION_NAME</code> → 切換 Lambda 模式</p>
+</div>
+
+<div class="card">
+  <h2>💥 逐步看問題發生的過程</h2>
+  <div class="stepper">
+    <div class="step-controls">
+      <button class="step-btn on" onclick="goStep(0)">Step 1</button>
+      <button class="step-btn" onclick="goStep(1)">Step 2</button>
+      <button class="step-btn" onclick="goStep(2)">Step 3</button>
+      <button class="step-btn" onclick="goStep(3)">Step 4</button>
+      <button class="step-btn" onclick="goStep(4)">Step 5</button>
+      <button class="step-btn" onclick="goStep(5)">Step 6 💥</button>
+    </div>
+    <div class="step-display">
+
+      <div class="step-card on" id="s0">
+        <div class="step-num">Step 1 — Lambda 啟動</div>
+        <div class="sim-row">
+          <div class="sim-box b-lambda">Lambda 環境啟動</div>
+          <div class="sim-arrow">→</div>
+          <div class="sim-box" style="background:var(--orange-d);color:var(--orange);border:1px solid rgba(245,158,11,.3)">注入 <span class="mono">LAMBDA_FUNCTION_NAME</span></div>
+        </div>
+        <div class="step-desc">AWS 自動在 Lambda 運行環境中設定 <code>LAMBDA_FUNCTION_NAME=my-function</code>。這是 Lambda 的標準行為。</div>
+      </div>
+
+      <div class="step-card" id="s1">
+        <div class="step-num">Step 2 — LWA 啟動</div>
+        <div class="sim-row">
+          <div class="sim-box b-lambda">Lambda</div>
+          <div class="sim-arrow">→</div>
+          <div class="sim-box b-lwa">🔌 LWA 啟動<br><span class="mono" style="font-size:10px">Extension</span></div>
+          <div class="sim-arrow">→</div>
+          <div class="sim-box b-app">Go Web API 啟動<br><span class="mono" style="font-size:10px">:8080</span></div>
+        </div>
+        <div class="step-desc">LWA 以 Extension 啟動，接著啟動你的 Go Web API。你的 App 開始在 <code>:8080</code> 上監聽——它「以為」自己是普通 Server。</div>
+      </div>
+
+      <div class="step-card" id="s2">
+        <div class="step-num">Step 3 — dd-trace-go 初始化</div>
+        <div class="sim-row">
+          <div class="sim-box b-app">Go Web API</div>
+          <div class="sim-arrow">→</div>
+          <div class="sim-box b-dd">dd-trace-go 初始化</div>
+          <div class="sim-arrow">→</div>
+          <div class="sim-box" style="background:var(--orange-d);color:var(--orange);border:1px solid rgba(245,158,11,.3)">偵測到<br><span class="mono" style="font-size:10px">LAMBDA_FUNCTION_NAME</span></div>
+        </div>
+        <div class="step-desc">Orchestrion 自動注入的 <code>dd-trace-go</code> 啟動時，檢查環境變數。它發現 <code>LAMBDA_FUNCTION_NAME</code> 存在 → <span class="acc-o">切換到 Lambda 模式</span>。</div>
+      </div>
+
+      <div class="step-card" id="s3">
+        <div class="step-num">Step 4 — 請求進來，產生 Trace</div>
+        <div class="sim-row">
+          <div class="sim-box b-user">使用者</div>
+          <div class="sim-arrow">→</div>
+          <div class="sim-box b-gw">API GW</div>
+          <div class="sim-arrow">→</div>
+          <div class="sim-box b-lwa">LWA</div>
+          <div class="sim-arrow">→</div>
+          <div class="sim-box b-app">Go API 處理請求</div>
+          <div class="sim-arrow">→</div>
+          <div class="sim-box b-dd">Trace 產生 ✓</div>
+        </div>
+        <div class="step-desc">請求正常進來，LWA 翻譯成 HTTP，Go API 處理完畢。<code>dd-trace-go</code> 也正確地記錄了 trace span。到目前為止都沒問題。</div>
+      </div>
+
+      <div class="step-card" id="s4">
+        <div class="step-num">Step 5 — Trace 該送出去了</div>
+        <div class="sim-row">
+          <div class="sim-box b-dd">dd-trace-go<br><span class="mono" style="font-size:10px">Lambda 模式</span></div>
+          <div class="sim-arrow">→</div>
+          <div class="sim-box b-ext">等待 Datadog<br>Lambda Extension<br><span class="mono" style="font-size:10px">來 flush trace</span></div>
+        </div>
+        <div class="step-desc">因為 tracer 在 Lambda 模式下，它<span class="acc-r">不會自己主動送 trace</span>。它等待 Datadog Lambda Extension 在 Lambda 生命週期的特定時間點來 flush。</div>
+      </div>
+
+      <div class="step-card" id="s5">
+        <div class="step-num">Step 6 — 💥 Trace 送不出去</div>
+        <div class="sim-row">
+          <div class="sim-box b-dd" style="opacity:.5">dd-trace-go<br><span class="mono" style="font-size:10px">一直在等...</span></div>
+          <div class="sim-arrow" style="color:var(--red)">✗</div>
+          <div class="sim-box b-fail">Trace 遺失<br><span class="mono" style="font-size:10px">沒有正確 flush</span></div>
+        </div>
+        <div class="step-desc">
+          <p>但 LWA 的運作方式與標準 Lambda invocation 不同——App 是以持續運行的 Web Server 模式在跑，不是標準的「一個 event → 一次 invocation → freeze」流程。Tracer 期待的 Lambda Extension flush 機制在這個混合架構下<span class="acc-r">無法正確觸發</span>。</p>
+          <p style="margin-top:8px">結果：<span class="acc-r">Trace 產生了，但永遠送不到 Datadog APM。</span></p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>💥 一句話總結根因</h2>
+  <div class="analogy">
+    <div class="analogy-title">🎯 根本原因</div>
+    <p><code>dd-trace-go</code> 看到 <span class="env-box">LAMBDA_FUNCTION_NAME</span> → 以為自己在標準 Lambda 裡 → 用 Lambda 模式送 trace。</p>
+    <p>但 App 實際上是透過 LWA 當作普通 Web Server 跑的 → Lambda 模式的 flush 機制不適用 → <span class="acc-r">Trace 卡住</span>。</p>
+    <p style="margin-top:8px"><strong>身分認知錯亂：</strong>App 以為自己是 Web Server，但 Tracer 以為自己在 Lambda 裡。</p>
+  </div>
+</div>
+
+</div>
+
+<!-- ============================================================ -->
+<!-- CH.5 — 解法                                                   -->
+<!-- ============================================================ -->
+<div class="chapter" id="ch4">
+
+<div class="card">
+  <h2>✅ 客戶的回避方法：刪掉那個環境變數</h2>
+  <p>客戶在 App 啟動時呼叫：</p>
+  <div style="text-align:center;margin:16px 0">
+    <code style="font-size:14px;padding:8px 16px">os.Unsetenv("LAMBDA_FUNCTION_NAME")</code>
+  </div>
+  <div class="sim">
+    <div class="sim-title">刪掉環境變數後</div>
+    <div class="sim-row">
+      <div class="sim-box b-dd">dd-trace-go 初始化</div>
+      <div class="sim-arrow">→</div>
+      <div class="sim-box" style="background:var(--green-d);color:var(--green);border:1px solid rgba(34,197,94,.3)"><span class="mono" style="font-size:10px">LAMBDA_FUNCTION_NAME</span><br>不存在 ✓</div>
+      <div class="sim-arrow">→</div>
+      <div class="sim-box b-ok">普通模式 ✓<br><span class="mono" style="font-size:10px">自己送 trace</span></div>
+    </div>
+  </div>
+
+  <div class="vs">
+    <div class="vs-col vs-fail">
+      <h4 style="color:var(--red)">修改前</h4>
+      <p><span class="env-box">LAMBDA_FUNCTION_NAME=my-func</span></p>
+      <p style="margin-top:8px">→ Tracer 進入 Lambda 模式<br>→ 等待 Extension flush<br>→ <span class="acc-r">Trace 遺失</span></p>
+    </div>
+    <div class="vs-col vs-ok">
+      <h4 style="color:var(--green)">修改後</h4>
+      <p><span class="env-box env-del">LAMBDA_FUNCTION_NAME</span></p>
+      <p style="margin-top:8px">→ Tracer 進入普通模式<br>→ 自己送 trace 到 Datadog<br>→ <span class="acc-g">Trace 正常顯示 ✓</span></p>
+    </div>
+  </div>
+  <p>本質上就是<span class="accent">欺騙 tracer</span>：讓它以為自己不在 Lambda 裡，這樣它就會用普通模式自己把 trace 送出去。</p>
+</div>
+
+<div class="card">
+  <h2>💭 客戶想知道的：有沒有「更正式」的解法？</h2>
+  <p>客戶目前的 <code>os.Unsetenv</code> 方法可行，但他覺得這是 workaround，想知道有沒有官方推薦的做法。</p>
+  <p>這就是你需要問 TEE 的核心問題：</p>
+  <div class="analogy">
+    <div class="analogy-title">🔍 需要確認的方向</div>
+    <p>1. <code>dd-trace-go</code> 是否有設定可以強制指定 tracer 模式（不依賴環境變數自動偵測）？</p>
+    <p>2. Datadog Lambda Extension 是否能與 LWA 架構正確配合？如果能，需要什麼額外設定？</p>
+    <p>3. Orchestrion 是否有 LWA 專用的設定或已知的最佳實踐？</p>
+    <p>4. <code>os.Unsetenv("LAMBDA_FUNCTION_NAME")</code> 是否為目前的官方建議做法？</p>
+  </div>
+</div>
+
+</div>
+
+</div>
+
+<script>
+function go(n) {
+  document.querySelectorAll('.ch-btn').forEach((b,i) => b.classList.toggle('on', i===n));
+  document.querySelectorAll('.chapter').forEach((c,i) => c.classList.toggle('on', i===n));
+}
+function goStep(n) {
+  document.querySelectorAll('.step-btn').forEach((b,i) => b.classList.toggle('on', i===n));
+  document.querySelectorAll('.step-card').forEach((c,i) => c.classList.toggle('on', i===n));
+}
+</script>
+</body>
+</html>

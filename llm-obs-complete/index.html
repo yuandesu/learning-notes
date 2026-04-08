@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM Observability 概念地圖</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0c0d14;--s1:#131422;--s2:#1a1b2e;--s3:#222338;
+  --bdr:#2d2e48;--tx:#d8d8e8;--txd:#7578a0;--txdd:#4a4c6a;
+  --ac:#7b6cf0;--acl:#ada2ff;--grn:#2dd4bf;--org:#f7b955;--red:#ef6060;--blu:#60a5fa;--pnk:#f472b6;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans TC',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh}
+
+/* === HEADER === */
+.hdr{text-align:center;padding:28px 16px 8px}
+.hdr h1{font-size:22px;font-weight:900;background:linear-gradient(135deg,var(--acl),var(--grn));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hdr p{font-size:12px;color:var(--txd);margin-top:4px}
+
+/* === PROGRESS === */
+.prog{display:flex;align-items:center;gap:8px;max-width:400px;margin:16px auto;padding:0 20px}
+.prog-bar{flex:1;height:4px;background:var(--s2);border-radius:2px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--ac),var(--grn));border-radius:2px;transition:width .4s ease;width:0%}
+.prog-txt{font-size:11px;color:var(--txd);font-weight:600;white-space:nowrap}
+
+/* === TABS === */
+.tabs{position:sticky;top:0;z-index:200;background:rgba(12,13,20,.95);backdrop-filter:blur(10px);border-bottom:1px solid var(--bdr);display:flex;justify-content:center;gap:4px;padding:8px 12px}
+.tb{padding:8px 16px;border:1px solid var(--bdr);background:var(--s1);color:var(--txd);border-radius:8px;font:600 13px/1 inherit;cursor:pointer;transition:.2s}
+.tb.on{background:var(--ac);border-color:var(--ac);color:#fff}
+.tb:hover:not(.on){background:var(--s2);color:var(--tx)}
+.pn{display:none;max-width:840px;margin:0 auto;padding:20px 16px 100px}
+.pn.on{display:block}
+
+/* === MAP === */
+.map-section{padding:8px 0}
+.map-group{margin-bottom:20px}
+.map-group-label{font-size:11px;font-weight:700;color:var(--txdd);text-transform:uppercase;letter-spacing:1.5px;padding:0 4px 8px;border-bottom:1px solid var(--bdr);margin-bottom:12px}
+.map-group-label.basic{color:var(--grn)}.map-group-label.core{color:var(--acl)}.map-group-label.adv{color:var(--pnk)}
+
+/* node row */
+.nr{display:flex;align-items:center;gap:14px;padding:8px 10px;margin-bottom:4px;border-radius:10px;cursor:pointer;transition:.2s;border:1px solid transparent}
+.nr:hover{background:var(--s2);border-color:var(--bdr)}
+.nr.visited{opacity:.7}
+.nr.visited:hover{opacity:1}
+
+/* dot */
+.nd{width:44px;height:44px;border-radius:50%;border:2.5px solid var(--bdr);background:var(--s1);display:flex;align-items:center;justify-content:center;font:700 15px/1 'JetBrains Mono',monospace;color:var(--txd);transition:.3s;flex-shrink:0;position:relative}
+.nr:hover .nd{border-color:var(--ac);color:var(--acl)}
+.nr.visited .nd{border-color:var(--grn);background:rgba(45,212,191,.08);color:var(--grn)}
+.nr.visited .nd::after{content:'✓';position:absolute;bottom:-2px;right:-2px;width:16px;height:16px;background:var(--grn);color:var(--bg);border-radius:50%;font-size:9px;display:flex;align-items:center;justify-content:center;font-weight:900}
+
+/* text */
+.nr-info{flex:1;min-width:0}
+.nr-title{font-size:14px;font-weight:700;color:var(--tx);transition:.2s}
+.nr:hover .nr-title{color:var(--acl)}
+.nr.visited .nr-title{color:var(--grn)}
+.nr-desc{font-size:12px;color:var(--txd);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* arrow */
+.nr-arrow{color:var(--txdd);font-size:18px;flex-shrink:0;transition:.2s}
+.nr:hover .nr-arrow{color:var(--acl);transform:translateX(3px)}
+
+/* === MODAL === */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:300;backdrop-filter:blur(6px)}
+.modal-bg.open{display:block;animation:.2s fadeIn}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal-wrap{position:fixed;inset:0;z-index:301;display:none;align-items:flex-end;justify-content:center;pointer-events:none}
+.modal-wrap.open{display:flex;pointer-events:auto}
+@media(min-width:600px){.modal-wrap.open{align-items:center}}
+.modal{background:var(--s1);border:1px solid var(--bdr);border-radius:16px 16px 0 0;width:100%;max-width:620px;max-height:85vh;overflow-y:auto;padding:0;animation:.25s slideUp ease;pointer-events:auto}
+@media(min-width:600px){.modal{border-radius:16px;max-height:80vh}}
+@keyframes slideUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+.modal-bar{position:sticky;top:0;background:var(--s1);border-bottom:1px solid var(--bdr);padding:14px 18px;display:flex;align-items:center;justify-content:space-between;z-index:2;border-radius:16px 16px 0 0}
+.modal-step{font-size:12px;color:var(--txd);font-weight:600}
+.modal-close{background:var(--s2);border:1px solid var(--bdr);color:var(--txd);padding:6px 12px;border-radius:6px;font:600 12px/1 inherit;cursor:pointer;transition:.2s}
+.modal-close:hover{border-color:var(--red);color:var(--red);background:rgba(239,96,96,.08)}
+.modal-body{padding:20px 20px 24px}
+
+/* modal content */
+.modal-body h3{font-size:17px;font-weight:800;color:var(--acl);margin-bottom:4px}
+.tg{display:inline-block;font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;margin-bottom:14px;letter-spacing:.3px}
+.tg-b{background:rgba(45,212,191,.1);color:var(--grn)}
+.tg-c{background:rgba(123,108,240,.12);color:var(--acl)}
+.tg-a{background:rgba(244,114,182,.1);color:var(--pnk)}
+.tg-f{background:rgba(247,185,85,.1);color:var(--org)}
+.modal-body p{font-size:14px;margin-bottom:10px;line-height:1.7}
+.kw{display:inline;padding:1px 5px;background:rgba(123,108,240,.14);border-radius:3px;font:12px/1.4 'JetBrains Mono',monospace;color:var(--acl)}
+.bx{border-radius:8px;padding:11px 14px;margin:10px 0;font-size:13px;line-height:1.65}
+.bx-a{background:rgba(247,185,85,.06);border-left:3px solid var(--org);color:var(--org)}
+.bx-c{background:rgba(45,212,191,.06);border-left:3px solid var(--grn);color:var(--grn)}
+.bx-e{background:rgba(96,165,250,.06);border-left:3px solid var(--blu);color:var(--blu)}
+.bx b{display:block;margin-bottom:3px}
+.codeblk{background:#08080f;border:1px solid var(--bdr);border-radius:8px;padding:12px;font:11px/1.6 'JetBrains Mono',monospace;overflow-x:auto;margin:10px 0;white-space:pre;color:var(--txd)}
+.ck{color:var(--acl)}.cv{color:var(--grn)}.cs{color:var(--org)}
+.qz{background:var(--s2);border-radius:8px;padding:12px;margin:14px 0}
+.qz-q{font-weight:700;font-size:13px;margin-bottom:8px}
+.qz-opts{display:flex;flex-direction:column;gap:4px}
+.qb{background:var(--s1);border:1px solid var(--bdr);border-radius:6px;padding:9px 12px;color:var(--tx);font:13px/1.4 inherit;cursor:pointer;text-align:left;transition:.2s}
+.qb:hover{border-color:var(--ac);background:rgba(123,108,240,.05)}
+.qb.ok{border-color:var(--grn);background:rgba(45,212,191,.08);color:var(--grn)}
+.qb.no{border-color:var(--red);background:rgba(239,96,96,.06);color:var(--red)}
+.qz-fb{margin-top:8px;font-size:12px;display:none;line-height:1.5}
+.flow{display:flex;flex-direction:column;align-items:center;gap:0;margin:14px 0}
+.fl-b{background:var(--s2);border:1px solid var(--bdr);border-radius:6px;padding:7px 16px;text-align:center;font-size:12px;font-weight:600;min-width:200px}
+.fl-ar{color:var(--txd);font-size:14px}.fl-h{border-color:var(--ac);color:var(--acl);background:rgba(123,108,240,.08)}.fl-o{border-color:var(--org);color:var(--org);background:rgba(247,185,85,.06)}
+
+/* modal footer */
+.modal-foot{padding:0 20px 20px;display:flex;gap:8px;justify-content:flex-end}
+.nbtn{padding:10px 20px;background:var(--ac);color:#fff;border:none;border-radius:8px;font:600 13px/1 inherit;cursor:pointer;transition:.2s}
+.nbtn:hover{background:var(--acl);color:var(--bg)}
+.nbtn-ghost{padding:10px 20px;background:none;color:var(--txd);border:1px solid var(--bdr);border-radius:8px;font:600 13px/1 inherit;cursor:pointer;transition:.2s}
+.nbtn-ghost:hover{border-color:var(--tx);color:var(--tx)}
+
+/* === COMPARE === */
+.cmp{margin-bottom:24px}
+.cmp h3{font-size:16px;font-weight:700;color:var(--acl);margin-bottom:10px}
+table.ct{width:100%;border-collapse:collapse;font-size:13px}
+.ct th{background:var(--s2);padding:9px 10px;text-align:left;font-weight:600;border-bottom:1px solid var(--bdr);color:var(--txd)}
+.ct td{padding:9px 10px;border-bottom:1px solid var(--bdr);vertical-align:top}
+.bg{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600}
+.bg-y{background:rgba(45,212,191,.08);color:var(--grn)}.bg-n{background:rgba(239,96,96,.06);color:var(--red)}
+.ebox{background:var(--s1);border:1px solid var(--bdr);border-radius:8px;padding:14px;margin-top:10px}
+.ebox h4{font-size:14px;font-weight:700;color:var(--org);margin-bottom:6px}.ebox p{font-size:13px;margin-bottom:4px}
+
+/* === ANSWER === */
+.ablk{background:var(--s1);border:1px solid var(--bdr);border-radius:10px;padding:16px;margin-bottom:14px}
+.ablk h3{font-size:15px;font-weight:700;margin-bottom:8px}
+.ablk.q{border-left:3px solid var(--org)}.ablk.r{border-left:3px solid var(--grn)}
+.ablk pre{background:#08080f;border:1px solid var(--bdr);border-radius:8px;padding:14px;font:12.5px/1.7 'JetBrains Mono','Noto Sans TC',monospace;overflow-x:auto;white-space:pre-wrap;word-break:break-word;color:var(--tx)}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <h1>LLM Observability 概念地圖</h1>
+  <p>Annotation Queues 完全理解</p>
+</div>
+<div class="prog"><div class="prog-bar"><div class="prog-fill" id="progFill"></div></div><div class="prog-txt" id="progTxt">0 / 9</div></div>
+
+<div class="tabs">
+  <button class="tb on" onclick="switchTab('map',this)">概念地圖</button>
+</div>
+
+<!-- ============ TAB 1: MAP ============ -->
+<div class="pn on" id="p-map">
+<div class="map-section">
+
+  <div class="map-group">
+    <div class="map-group-label basic">基礎概念</div>
+    <div class="nr" id="r1" onclick="openModal(1)"><div class="nd">01</div><div class="nr-info"><div class="nr-title">Trace & Span</div><div class="nr-desc">LLM 互動紀錄的最小單位</div></div><div class="nr-arrow">›</div></div>
+    <div class="nr" id="r2" onclick="openModal(2)"><div class="nd">02</div><div class="nr-info"><div class="nr-title">Evaluation</div><div class="nr-desc">LLM 回答好不好？三種評分方式</div></div><div class="nr-arrow">›</div></div>
+  </div>
+
+  <div class="map-group">
+    <div class="map-group-label core">核心機制</div>
+    <div class="nr" id="r3" onclick="openModal(3)"><div class="nd">03</div><div class="nr-info"><div class="nr-title">Ground Truth</div><div class="nr-desc">為什麼需要人類介入</div></div><div class="nr-arrow">›</div></div>
+    <div class="nr" id="r4" onclick="openModal(4)"><div class="nd">04</div><div class="nr-info"><div class="nr-title">Annotation Queue</div><div class="nr-desc">人類審查的結構化工作台</div></div><div class="nr-arrow">›</div></div>
+    <div class="nr" id="r5" onclick="openModal(5)"><div class="nd">05</div><div class="nr-info"><div class="nr-title">Automations</div><div class="nr-desc">自動路由，不用手動挑 trace</div></div><div class="nr-arrow">›</div></div>
+    <div class="nr" id="r6" onclick="openModal(6)"><div class="nd">06</div><div class="nr-info"><div class="nr-title">Dataset & Golden Dataset</div><div class="nr-desc">正解資料的倉庫</div></div><div class="nr-arrow">›</div></div>
+  </div>
+
+  <div class="map-group">
+    <div class="map-group-label adv">進階應用</div>
+    <div class="nr" id="r7" onclick="openModal(7)"><div class="nd">07</div><div class="nr-info"><div class="nr-title">Metadata 🔑</div><div class="nr-desc">標籤匯出後變成什麼</div></div><div class="nr-arrow">›</div></div>
+    <div class="nr" id="r8" onclick="openModal(8)"><div class="nd">08</div><div class="nr-info"><div class="nr-title">四大用途</div><div class="nr-desc">Metadata 拿來幹嘛？完整循環</div></div><div class="nr-arrow">›</div></div>
+    <div class="nr" id="r9" onclick="openModal(9)"><div class="nd">🏆</div><div class="nr-info"><div class="nr-title">通關：綜合整理</div><div class="nr-desc">把所有概念串起來</div></div><div class="nr-arrow">›</div></div>
+  </div>
+
+</div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modalBg" onclick="closeModal()"></div>
+<div class="modal-wrap" id="modalWrap" onclick="if(event.target===this)closeModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-bar">
+      <div class="modal-step" id="modalStep"></div>
+      <button class="modal-close" onclick="closeModal()">關閉 ESC</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-foot" id="modalFoot"></div>
+  </div>
+</div>
+
+
+<script>
+const N=9;
+const visited=new Set();
+let curModal=0;
+
+const data=[null,
+{title:'01 — Trace & Span',tag:'tg-b',tagText:'BASIC',body:`
+<p><span class="kw">LLM Application</span> = 用 GPT-4、Claude 等做的應用。</p>
+<p><span class="kw">Trace</span> = 一次使用者互動的完整紀錄。<span class="kw">Span</span> = Trace 裡的每一步。</p>
+<div class="bx bx-c"><b>🏢 實際案例</b>客戶的 AI 客服收到「退貨政策是什麼？」→ 1 個 trace，3 個 span：收到問題 → RAG 搜尋 → GPT-4o 生成回答。</div>
+<div class="bx bx-a"><b>💡 比喻</b>Trace = 就診紀錄，Span = 掛號→看診→開藥。</div>
+<div class="qz"><div class="qz-q">🧪 使用者問了一個問題，LLM 經 3 步回答。幾個 trace、幾個 span？</div><div class="qz-opts">
+<button class="qb" onclick="qz(this,0)">3 trace、1 span</button>
+<button class="qb" onclick="qz(this,1)">1 trace、3 span</button>
+<button class="qb" onclick="qz(this,0)">3 trace、3 span</button>
+</div><div class="qz-fb">一次互動 = 1 trace，裡面的步驟 = span。</div></div>`},
+
+{title:'02 — Evaluation（評估）',tag:'tg-b',tagText:'BASIC',body:`
+<p>LLM 回答得好不好？需要打分數 = <span class="kw">Evaluation</span></p>
+<p>① <span class="kw">Managed Evaluation</span>：Datadog 內建自動檢查<br>② <span class="kw">LLM-as-a-Judge</span>：用另一個 LLM 評分<br>③ <span class="kw">External Evaluation</span>：你自己的程式送分數</p>
+<div class="bx bx-c"><b>🏢 實際案例</b>客戶每天 10,000 trace，開了 "failure_to_answer" 檢查。~3% 標為 fail，但人力不夠全看 → 需要 Annotation Queue。</div>
+<div class="qz"><div class="qz-q">🧪 「用 GPT-4o 判 GPT-4o-mini 有沒有幻覺」是哪種？</div><div class="qz-opts">
+<button class="qb" onclick="qz(this,0)">Managed Evaluation</button>
+<button class="qb" onclick="qz(this,1)">LLM-as-a-Judge</button>
+<button class="qb" onclick="qz(this,0)">External Evaluation</button>
+</div><div class="qz-fb">用 LLM 評另一個 LLM = LLM-as-a-Judge。</div></div>`},
+
+{title:'03 — Ground Truth',tag:'tg-c',tagText:'CORE',body:`
+<p>LLM-as-judge 方便但<strong>自己也會判錯</strong>。</p>
+<p><span class="kw">Ground Truth</span> = 人類專家的最終判斷 = 標準答案。</p>
+<div class="bx bx-a"><b>💡 比喻</b>LLM-as-judge = 助教改考卷。Ground Truth = 教授的標準答案。</div>
+<div class="bx bx-c"><b>🏢 實際案例</b>客戶發現 judge 把「正確但簡短」回答標為 fail。需要人類確認 → 這個人類判斷就是 ground truth。</div>
+<p>問題：<strong>怎麼有效率收集 ground truth？</strong> → 下一關 Annotation Queue！</p>`},
+
+{title:'04 — Annotation Queue & Label Schema',tag:'tg-c',tagText:'CORE',body:`
+<p><span class="kw">Annotation</span> = 人類看 trace 後貼標籤<br><span class="kw">Annotation Queue</span> = 待審清單<br><span class="kw">Label Schema</span> = 統一標籤模板</p>
+<div class="bx bx-a"><b>💡 比喻</b>候診名單：病歷（trace）等醫生（審查者）看診，用統一表單（schema）記錄。</div>
+<div class="bx bx-c"><b>🏢 實際案例</b>客戶建了「Q1 品質審查」queue。Schema：Quality (pass/fail)、Failure Type (hallucination/off-topic/incomplete/correct)、Score (1-5)、Notes。3 位專家每週各審 50 筆。</div>
+<div class="qz"><div class="qz-q">🧪 沒有 Label Schema 會怎樣？</div><div class="qz-opts">
+<button class="qb" onclick="qz(this,0)">效率更高</button>
+<button class="qb" onclick="qz(this,1)">標法不同，結果無法比較統計</button>
+<button class="qb" onclick="qz(this,0)">Datadog 會自動產生</button>
+</div><div class="qz-fb">沒統一標準 → A 寫「不好」、B 寫「hallucination」→ 無法量化。</div></div>`},
+
+{title:'05 — Automations',tag:'tg-c',tagText:'CORE',body:`
+<p><span class="kw">Automations</span> = 設規則，自動把符合條件的 trace 送到指定地方。</p>
+<div class="bx bx-e"><b>📝 例子</b>規則 1：evaluation fail → 自動送 Annotation Queue<br>規則 2：隨機 10% → 自動存 Dataset</div>
+<div class="bx bx-c"><b>🏢 實際案例</b>每天 10,000 trace 不可能全看。設 Automation：「failure_to_answer=fail」→ 自動送 queue。每天只剩 ~300 筆人工看。</div>`},
+
+{title:'06 — Dataset & Golden Dataset',tag:'tg-c',tagText:'CORE',body:`
+<p><span class="kw">Dataset</span> = 保存的 trace 集合。<span class="kw">Golden Dataset</span> = 每筆都經人類標註 = 附標準答案的題庫。</p>
+<div class="bx bx-c"><b>🏢 實際案例</b>匯出 200 筆已標註 trace。pass 150 筆 → golden dataset。fail 50 筆 → 回歸測試。每次改 prompt 跑一遍確認沒退步。</div>`},
+
+{title:'07 — Metadata 🔑',tag:'tg-a',tagText:'ADVANCED',body:`
+<p>標註過的 trace 匯出到 Dataset 時，標籤變成 <span class="kw">metadata</span>：</p>
+<div class="codeblk">{
+  <span class="ck">"input"</span>: <span class="cs">"退貨政策是什麼？"</span>,
+  <span class="ck">"output"</span>: <span class="cs">"本店提供 30 天退貨..."</span>,
+  <span class="ck">"metadata"</span>: {
+    <span class="ck">"annotation_quality"</span>: <span class="cv">"pass"</span>,
+    <span class="ck">"annotation_failure_type"</span>: <span class="cv">"none"</span>,
+    <span class="ck">"annotation_reasoning"</span>: <span class="cs">"回答正確且完整"</span>
+  }
+}</div>
+<p>這些 <strong>metadata 拿來幹嘛？</strong> → 下一關！</p>`},
+
+{title:'08 — Metadata 的四大用途',tag:'tg-a',tagText:'ADVANCED',body:`
+<div class="flow">
+<div class="fl-b">Production Traces</div><div class="fl-ar">↓</div>
+<div class="fl-b fl-h">Automations 篩選</div><div class="fl-ar">↓</div>
+<div class="fl-b fl-h">Annotation Queue 人類標籤</div><div class="fl-ar">↓</div>
+<div class="fl-b fl-h">匯出 Dataset（標籤→metadata）</div><div class="fl-ar">↓</div>
+<div class="fl-b fl-o">用 metadata 做四件事 ↓</div></div>
+<p><strong style="color:var(--grn)">① 校準 LLM-as-judge</strong><br>人類 pass/fail 跟自動評估器比較。100~200 筆就夠。</p>
+<div class="bx bx-c"><b>🏢 案例</b>200 筆比對後發現 judge 誤判 15%「正確但簡短」回答。調 prompt 後降到 3%。</div>
+<p><strong style="color:var(--grn)">② 建立 Golden Dataset</strong></p>
+<div class="bx bx-c"><b>🏢 案例</b>pass trace 匯成 golden dataset，每次改 prompt 先跑 Experiment 確認 pass rate 沒下降。</div>
+<p><strong style="color:var(--grn)">③ 比較 prompt/模型版本</strong></p>
+<div class="bx bx-c"><b>🏢 案例</b>GPT-4o-mini → GPT-4o：hallucination 8%→2%，latency +200ms。metadata 讓比較可量化。</div>
+<p><strong style="color:var(--grn)">④ 追蹤失敗趨勢</strong></p>
+<div class="bx bx-c"><b>🏢 案例</b>每月審 200 筆，failure_type 畫趨勢圖。3 月 off-topic 突升 → 知識庫更新遺漏。</div>`},
+
+{title:'🏆 通關：綜合整理',tag:'tg-f',tagText:'CLEAR',body:`
+<div class="ablk r"><h3 style="color:var(--grn)">核心總結</h3>
+<p style="font-size:13px">metadata 裡的人類標註 = ground truth，是品質改善循環的軸：當 filter key 篩選 dataset、當 ground truth 校準 evaluator、當指標追蹤失敗趨勢。</p></div>
+<p style="margin-top:12px;color:var(--grn);font-weight:700">🎉 全部通關！</p>`}
+];
+
+function openModal(n){
+  if(n<1||n>N)return;
+  curModal=n;
+  const d=data[n];
+  document.getElementById('modalStep').textContent=`第 ${n} / ${N} 關`;
+  let html=`<h3>${d.title}</h3><span class="tg ${d.tag}">${d.tagText}</span>${d.body}`;
+  document.getElementById('modalBody').innerHTML=html;
+
+  // footer buttons
+  let foot='';
+  if(n>1)foot+=`<button class="nbtn-ghost" onclick="markAndGo(${n-1})">‹ 上一關</button>`;
+  if(n<N)foot+=`<button class="nbtn" onclick="markAndGo(${n+1})">下一關 ›</button>`;
+  else foot+=`<button class="nbtn" onclick="markDone();closeModal()">完成 ✓</button>`;
+  document.getElementById('modalFoot').innerHTML=foot;
+
+  document.getElementById('modalBg').classList.add('open');
+  document.getElementById('modalWrap').classList.add('open');
+}
+
+function closeModal(){
+  markDone();
+  document.getElementById('modalBg').classList.remove('open');
+  document.getElementById('modalWrap').classList.remove('open');
+}
+
+function markDone(){
+  if(curModal>0)visited.add(curModal);
+  updateUI();
+}
+
+function markAndGo(n){
+  markDone();
+  openModal(n);
+}
+
+function updateUI(){
+  for(let i=1;i<=N;i++){
+    const row=document.getElementById('r'+i);
+    if(visited.has(i))row.classList.add('visited');
+    else row.classList.remove('visited');
+  }
+  const pct=Math.round(visited.size/N*100);
+  document.getElementById('progFill').style.width=pct+'%';
+  document.getElementById('progTxt').textContent=`${visited.size} / ${N}`;
+}
+
+function qz(btn,ok){
+  const w=btn.closest('.qz');
+  const bs=w.querySelectorAll('.qb');
+  const fb=w.querySelector('.qz-fb');
+  bs.forEach(b=>{b.disabled=true;b.style.cursor='default';b.style.opacity='.45'});
+  btn.style.opacity='1';
+  if(ok){btn.classList.add('ok');fb.style.color='var(--grn)';fb.textContent='✅ '+fb.textContent}
+  else{btn.classList.add('no');bs.forEach(b=>{if(b.getAttribute('onclick')?.includes(',1)'))b.classList.add('ok'),b.style.opacity='1'});fb.style.color='var(--red)';fb.textContent='❌ '+fb.textContent}
+  fb.style.display='block';
+}
+
+function switchTab(id,el){
+  document.querySelectorAll('.pn').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tb').forEach(b=>b.classList.remove('on'));
+  document.getElementById('p-'+id).classList.add('on');
+  el.classList.add('on');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+</script>
+</body>
+</html>

@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Datadog Agent 部署架構比較（含實體硬體）</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface-hover: #1a2337;
+    --border: #1e2a3e;
+    --border-active: #632bf3;
+    --text: #e2e8f0;
+    --text-muted: #8899b4;
+    --text-dim: #4a5a74;
+    --accent-purple: #632bf3;
+    --accent-purple-glow: rgba(99, 43, 243, 0.25);
+    --accent-green: #10b981;
+    --accent-green-dim: rgba(16, 185, 129, 0.15);
+    --accent-orange: #f59e0b;
+    --accent-orange-dim: rgba(245, 158, 11, 0.15);
+    --accent-blue: #3b82f6;
+    --accent-blue-dim: rgba(59, 130, 246, 0.15);
+    --accent-red: #ef4444;
+    --accent-red-dim: rgba(239, 68, 68, 0.12);
+    --accent-cyan: #06b6d4;
+    --accent-cyan-dim: rgba(6, 182, 212, 0.12);
+    --accent-slate-dim: rgba(100, 116, 139, 0.15);
+    --hw-color: #94a3b8;
+    --radius: 12px;
+    --radius-sm: 8px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Noto Sans TC', sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; min-height: 100vh; overflow-x: hidden; }
+  body::before { content: ''; position: fixed; inset: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E"); pointer-events: none; z-index: 0; }
+  .container { max-width: 1100px; margin: 0 auto; padding: 40px 24px 80px; position: relative; z-index: 1; }
+  .header { text-align: center; margin-bottom: 56px; animation: fadeUp 0.8s ease; }
+  .header-badge { display: inline-flex; align-items: center; gap: 8px; background: var(--accent-purple-glow); border: 1px solid rgba(99,43,243,0.3); border-radius: 100px; padding: 6px 18px; font-size: 13px; font-weight: 500; color: #a78bfa; margin-bottom: 20px; letter-spacing: 0.5px; }
+  .header h1 { font-size: clamp(26px,5vw,40px); font-weight: 900; letter-spacing: -0.5px; line-height: 1.3; background: linear-gradient(135deg,#e2e8f0 0%,#a78bfa 50%,#818cf8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; margin-bottom: 14px; }
+  .header p { color: var(--text-muted); font-size: 16px; max-width: 650px; margin: 0 auto; }
+  .tab-nav { display: flex; gap: 6px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 6px; margin-bottom: 32px; animation: fadeUp 0.8s ease 0.1s both; }
+  .tab-btn { flex: 1; padding: 14px 12px; border: 2px solid transparent; border-radius: var(--radius); background: transparent; color: var(--text-muted); font-family: 'Noto Sans TC', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.3s ease; text-align: center; }
+  .tab-btn:hover { background: var(--surface-hover); color: var(--text); }
+  .tab-btn.active { background: var(--surface-hover); border-color: var(--border-active); color: #fff; box-shadow: 0 0 20px var(--accent-purple-glow); }
+  .tab-label { display: block; font-size: 11px; color: var(--text-dim); margin-top: 4px; font-weight: 400; }
+  .tab-btn.active .tab-label { color: #a78bfa; }
+  .arch-panel { display: none; animation: fadeUp 0.5s ease; }
+  .arch-panel.active { display: block; }
+  .diagram-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 32px; margin-bottom: 24px; position: relative; overflow: hidden; }
+  .diagram-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg,transparent,var(--accent-purple),transparent); opacity: 0.6; }
+  .diagram-title { font-size: 13px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 2px; margin-bottom: 24px; }
+  .arch-visual { display: flex; flex-direction: column; gap: 0; }
+  .lyr { border-radius: var(--radius-sm); padding: 16px; position: relative; transition: transform 0.2s ease; }
+  .lyr:hover { transform: translateY(-1px); }
+  .lyr-dc { border: 1px dashed rgba(148,163,184,0.2); background: rgba(148,163,184,0.03); padding: 20px; }
+  .lyr-hw { border: 1px solid rgba(148,163,184,0.2); background: rgba(148,163,184,0.05); margin-top: 10px; }
+  .lyr-hyper { border: 1px solid rgba(6,182,212,0.25); background: rgba(6,182,212,0.04); margin-top: 10px; }
+  .lyr-vm { border: 1px solid rgba(245,158,11,0.25); background: rgba(245,158,11,0.05); margin-top: 10px; }
+  .lyr-os { border: 1px solid rgba(245,158,11,0.15); background: rgba(245,158,11,0.03); margin-top: 8px; }
+  .lyr-docker { border: 1px solid rgba(59,130,246,0.25); background: rgba(59,130,246,0.04); margin-top: 8px; }
+  .lyr-fargate-task { border: 1px solid rgba(59,130,246,0.3); background: rgba(59,130,246,0.06); margin-top: 10px; }
+  .lyr-microvm { border: 1px solid rgba(239,68,68,0.2); background: rgba(239,68,68,0.04); margin-top: 10px; }
+  .lyr-backend { border: 1px solid rgba(99,43,243,0.25); background: rgba(99,43,243,0.06); text-align: center; padding: 16px; margin-top: 6px; }
+  .ltag { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 8px; padding: 3px 10px; border-radius: 6px; }
+  .ltag-dc { color: var(--hw-color); background: var(--accent-slate-dim); }
+  .ltag-hw { color: var(--hw-color); background: var(--accent-slate-dim); }
+  .ltag-hyper { color: var(--accent-cyan); background: var(--accent-cyan-dim); }
+  .ltag-vm { color: var(--accent-orange); background: var(--accent-orange-dim); }
+  .ltag-os { color: var(--accent-orange); background: rgba(245,158,11,0.1); }
+  .ltag-docker { color: var(--accent-blue); background: var(--accent-blue-dim); }
+  .ltag-fargate { color: var(--accent-blue); background: var(--accent-blue-dim); }
+  .ltag-microvm { color: var(--accent-red); background: var(--accent-red-dim); }
+  .ltag-backend { color: #a78bfa; background: var(--accent-purple-glow); }
+  .ldesc { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+  .ldesc code { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; background: rgba(255,255,255,0.06); padding: 2px 7px; border-radius: 4px; color: #c4b5fd; }
+  .hw-specs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .hw-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-family: 'JetBrains Mono', monospace; padding: 3px 10px; border-radius: 100px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: var(--text-dim); }
+  .inner-boxes { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 8px; margin-top: 10px; }
+  .inner-box { border-radius: var(--radius-sm); padding: 12px; font-size: 13px; text-align: center; font-weight: 500; }
+  .box-agent { border: 1px solid rgba(99,43,243,0.3); background: rgba(99,43,243,0.1); color: #c4b5fd; }
+  .box-app { border: 1px solid rgba(16,185,129,0.3); background: rgba(16,185,129,0.08); color: #6ee7b7; }
+  .arrow-down { text-align: center; color: var(--text-dim); font-size: 18px; padding: 6px 0 2px; }
+  .arrow-label { font-size: 11px; color: var(--text-dim); text-align: center; font-family: 'JetBrains Mono', monospace; padding-bottom: 4px; }
+  .you-badge { display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; padding: 2px 8px; border-radius: 4px; margin-left: 8px; vertical-align: middle; }
+  .you-see { background: rgba(16,185,129,0.2); color: #6ee7b7; }
+  .you-no { background: rgba(239,68,68,0.15); color: #f87171; }
+  .ownership-legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 16px 0 0; padding: 14px 16px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: var(--radius-sm); font-size: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 6px; color: var(--text-muted); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+  .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); gap: 14px; margin-bottom: 24px; }
+  .info-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; transition: border-color 0.3s ease, transform 0.2s ease; }
+  .info-card:hover { border-color: rgba(99,43,243,0.3); transform: translateY(-2px); }
+  .info-card-icon { font-size: 22px; margin-bottom: 10px; }
+  .info-card h4 { font-size: 14px; font-weight: 700; margin-bottom: 8px; color: #fff; }
+  .info-card p { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+  .hl { color: #c4b5fd; font-weight: 600; }
+  .compare-section { margin-top: 48px; animation: fadeUp 0.8s ease 0.2s both; }
+  .compare-title { font-size: 22px; font-weight: 800; margin-bottom: 20px; text-align: center; }
+  .compare-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: 16px; border: 1px solid var(--border); }
+  .compare-table { width: 100%; min-width: 720px; border-collapse: collapse; font-size: 14px; }
+  .compare-table thead th { background: var(--surface); padding: 16px; text-align: left; font-weight: 700; font-size: 13px; border-bottom: 1px solid var(--border); color: var(--text); position: sticky; top: 0; }
+  .compare-table thead th:first-child { color: var(--text-muted); }
+  .compare-table tbody td { padding: 13px 16px; border-bottom: 1px solid rgba(30,42,62,0.5); color: var(--text-muted); vertical-align: top; line-height: 1.6; background: var(--bg); }
+  .compare-table tbody tr:hover td { background: var(--surface); }
+  .compare-table tbody td:first-child { font-weight: 600; color: var(--text); white-space: nowrap; }
+  .pill { display: inline-block; padding: 2px 10px; border-radius: 100px; font-size: 12px; font-weight: 600; }
+  .pill-host { background: var(--accent-orange-dim); color: var(--accent-orange); }
+  .pill-fargate { background: var(--accent-blue-dim); color: var(--accent-blue); }
+  .pill-green { background: var(--accent-green-dim); color: var(--accent-green); }
+  .footer-note { margin-top: 40px; padding: 20px 24px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; color: var(--text-muted); line-height: 1.8; }
+  .footer-note a { color: #a78bfa; text-decoration: none; border-bottom: 1px dashed rgba(167,139,250,0.4); }
+  .footer-note a:hover { border-bottom-style: solid; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* ======== Overlay comparison section ======== */
+  .overlay-section { animation: fadeUp 0.8s ease 0.3s both; }
+
+  .hl-toggle-bar {
+    display: flex; justify-content: center; gap: 8px;
+    margin: 16px 0 28px; flex-wrap: wrap;
+  }
+  .hl-btn {
+    padding: 8px 20px; border-radius: 100px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text-muted); font-family: 'Noto Sans TC', sans-serif;
+    font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.25s ease;
+  }
+  .hl-btn:hover { border-color: rgba(99,43,243,0.4); color: var(--text); }
+  .hl-btn-active { border-color: var(--accent-purple); color: #fff; background: rgba(99,43,243,0.15); box-shadow: 0 0 16px var(--accent-purple-glow); }
+
+  .ov-stack { display: flex; flex-direction: column; gap: 4px; }
+
+  .ov-row {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    overflow: hidden; cursor: pointer; transition: all 0.3s ease;
+  }
+  .ov-row:hover { border-color: rgba(99,43,243,0.35); }
+  .ov-row.ov-open { border-color: rgba(99,43,243,0.4); }
+
+  .ov-row-header {
+    display: flex; align-items: center; gap: 12px; padding: 16px 20px;
+    user-select: none;
+  }
+  .ov-row-icon { font-size: 20px; flex-shrink: 0; }
+  .ov-row-title { flex: 1; font-weight: 600; font-size: 15px; }
+  .ov-row-verdict {
+    font-size: 12px; font-weight: 600; padding: 3px 12px; border-radius: 100px;
+    flex-shrink: 0; letter-spacing: 0.3px;
+  }
+  .ov-verdict-same { background: var(--accent-green-dim); color: var(--accent-green); }
+  .ov-verdict-diff { background: var(--accent-red-dim); color: var(--accent-red); }
+
+  .ov-chevron {
+    font-size: 14px; color: var(--text-dim); transition: transform 0.3s ease;
+    flex-shrink: 0;
+  }
+  .ov-row.ov-open .ov-chevron { transform: rotate(180deg); }
+
+  .ov-row-detail {
+    max-height: 0; overflow: hidden; transition: max-height 0.4s ease, padding 0.3s ease;
+    padding: 0 20px;
+  }
+  .ov-row.ov-open .ov-row-detail {
+    max-height: 600px; padding: 0 20px 20px;
+  }
+
+  .ov-3col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+
+  .ov-col {
+    background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);
+    border-radius: var(--radius-sm); padding: 14px; transition: all 0.3s ease;
+  }
+  .ov-col:hover { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.1); }
+
+  .ov-col-highlight {
+    background: rgba(239,68,68,0.04) !important;
+    border-color: rgba(239,68,68,0.2) !important;
+    box-shadow: inset 0 0 12px rgba(239,68,68,0.05);
+  }
+
+  .ov-col-label {
+    font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase;
+    margin-bottom: 8px; padding: 2px 8px; border-radius: 4px; display: inline-block;
+  }
+  .ov-label-a { background: rgba(245,158,11,0.15); color: var(--accent-orange); }
+  .ov-label-b { background: rgba(6,182,212,0.15); color: var(--accent-cyan); }
+  .ov-label-c { background: rgba(59,130,246,0.15); color: var(--accent-blue); }
+
+  .ov-col-body { font-size: 13px; color: var(--text-muted); line-height: 1.7; }
+  .ov-dim { opacity: 0.5; font-size: 12px; }
+  .ov-accent { color: #f87171; font-weight: 600; }
+  .ov-good { color: #6ee7b7; font-weight: 500; }
+  .ov-bad { color: #f87171; font-weight: 500; }
+
+  /* Highlight filter: hide/dim rows */
+  .ov-stack[data-filter="same"] .ov-diff { opacity: 0.15; transform: scaleY(0.92); pointer-events: none; }
+  .ov-stack[data-filter="diff"] .ov-same { opacity: 0.15; transform: scaleY(0.92); pointer-events: none; }
+  .ov-stack .ov-row { transition: all 0.35s ease; }
+
+  @media (max-width: 640px) {
+    .ov-3col { grid-template-columns: 1fr; }
+    .ov-row-header { padding: 14px 16px; gap: 8px; }
+    .ov-row-title { font-size: 13px; }
+    .ov-row-verdict { font-size: 11px; padding: 2px 8px; }
+  }
+  @media (max-width: 640px) { .container { padding: 24px 16px 60px; } .diagram-card { padding: 20px; } .tab-btn { padding: 12px 8px; font-size: 12px; } .inner-boxes { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="header-badge">🐶 Datadog Agent 架構指南 — 含實體硬體層</div>
+    <h1>ECS / Fargate 環境<br>Agent 部署架構完整拆解</h1>
+    <p>從 AWS 資料中心的實體伺服器，到你的應用程式容器——每一層都標出來</p>
+  </div>
+
+  <div class="tab-nav" role="tablist">
+    <button class="tab-btn active" onclick="showTab('daemon')" role="tab">方式 A<span class="tab-label">ECS on EC2 · Daemon 容器</span></button>
+    <button class="tab-btn" onclick="showTab('direct')" role="tab">方式 B<span class="tab-label">ECS on EC2 · 直接安裝</span></button>
+    <button class="tab-btn" onclick="showTab('fargate')" role="tab">方式 C<span class="tab-label">ECS on Fargate</span></button>
+  </div>
+
+  <!-- TAB A: Daemon -->
+  <div class="arch-panel active" id="panel-daemon">
+    <div class="diagram-card">
+      <div class="diagram-title">從實體硬體到容器 — 完整架構圖</div>
+      <div class="arch-visual">
+        <div class="lyr lyr-dc">
+          <span class="ltag ltag-dc">🏢 AWS 資料中心</span><span class="you-badge you-no">你看不到</span>
+          <div class="ldesc">AWS 在全球擁有的實體機房（如 ap-northeast-1 東京），包含電力、冷卻、網路骨幹</div>
+          <div class="lyr lyr-hw">
+            <span class="ltag ltag-hw">🖥️ 實體伺服器（裸機）</span><span class="you-badge you-no">你看不到</span>
+            <div class="ldesc">AWS 機架上的真實硬體主機</div>
+            <div class="hw-specs">
+              <span class="hw-chip">🔲 Intel Xeon / AMD EPYC / Graviton</span>
+              <span class="hw-chip">🧠 數百 GB DDR5 RAM</span>
+              <span class="hw-chip">💾 NVMe SSD</span>
+              <span class="hw-chip">🌐 100Gbps NIC</span>
+            </div>
+            <div class="lyr lyr-hyper">
+              <span class="ltag ltag-hyper">⚡ Nitro Hypervisor（虛擬化層）</span><span class="you-badge you-no">你看不到</span>
+              <div class="ldesc">AWS 自研的輕量 Hypervisor，將一台實體伺服器切割成多個 EC2 虛擬機，隔離 CPU / 記憶體 / 網路</div>
+              <div class="lyr lyr-vm">
+                <span class="ltag ltag-vm">🟧 EC2 Instance = 虛擬機</span><span class="you-badge you-see">你管理這一層 ↓</span>
+                <div class="ldesc">你選的機型（如 <code>m5.xlarge</code>）。從這裡開始你有完整控制權：SSH、裝軟體、管 OS</div>
+                <div class="hw-specs"><span class="hw-chip">例：m5.xlarge → 4 vCPU / 16GB RAM</span><span class="hw-chip">Amazon Linux 2 / Ubuntu</span></div>
+                <div class="lyr lyr-os">
+                  <span class="ltag ltag-os">🐧 Linux OS + ECS Container Agent</span>
+                  <div class="ldesc">EC2 上的 Linux，ECS Agent 在此層運行，接收排程指令</div>
+                  <div class="lyr lyr-docker">
+                    <span class="ltag ltag-docker">🐳 Docker Engine（容器執行環境）</span>
+                    <div class="ldesc">所有容器共享同一個 OS Kernel，Docker 用 cgroups / namespaces 做資源隔離</div>
+                    <div class="inner-boxes" style="margin-top:12px;">
+                      <div class="inner-box box-agent">🐶 <strong>Datadog Agent</strong><br><small style="opacity:0.7">Daemon Service 容器</small><br><small style="opacity:0.5">每台 EC2 恰好 1 個</small></div>
+                      <div class="inner-box box-app">📦 App 容器 A<br><small style="opacity:0.7">ECS Task</small></div>
+                      <div class="inner-box box-app">📦 App 容器 B<br><small style="opacity:0.7">ECS Task</small></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="arrow-down">↓</div>
+        <div class="arrow-label">透過 EC2 本機網路（172.17.0.1 或 ECS metadata endpoint）上報</div>
+        <div class="arrow-down">↓</div>
+        <div class="lyr lyr-backend"><span class="ltag ltag-backend">☁️ Datadog Backend（SaaS）</span><div class="ldesc">指標、Trace、Log 統一收集與儲存</div></div>
+      </div>
+      <div class="ownership-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#94a3b8"></div> AWS 擁有 & 管理</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#06b6d4"></div> 虛擬化層</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div> 你管理的 EC2 + OS</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div> Docker 容器層</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#632bf3"></div> Datadog Agent</div>
+      </div>
+    </div>
+    <div class="info-grid">
+      <div class="info-card"><div class="info-card-icon">🔑</div><h4>核心概念</h4><p>EC2 = 在 AWS 實體伺服器上被 Nitro Hypervisor 虛擬化出來的 <span class="hl">虛擬機</span>。你擁有完整 OS 控制權。</p></div>
+      <div class="info-card"><div class="info-card-icon">⚙️</div><h4>Agent 部署方式</h4><p>Agent 以 ECS <span class="hl">Daemon Scheduling Strategy</span> 部署為容器，自動在每台 EC2 上跑恰好一個。</p></div>
+      <div class="info-card"><div class="info-card-icon">💰</div><h4>APM 計費</h4><p>以 <span class="hl">APM Host（= EC2 實例）</span> 為單位。3 台 EC2 跑 50 個容器 → 只算 3 個 APM Host。</p></div>
+      <div class="info-card"><div class="info-card-icon">✅</div><h4>官方推薦</h4><p>ECS on EC2 環境的 <span class="hl">首選部署方式</span>，容器探索整合最完整，升級只需更新 image tag。</p></div>
+    </div>
+  </div>
+
+  <!-- TAB B: Direct Install -->
+  <div class="arch-panel" id="panel-direct">
+    <div class="diagram-card">
+      <div class="diagram-title">從實體硬體到容器 — 完整架構圖</div>
+      <div class="arch-visual">
+        <div class="lyr lyr-dc">
+          <span class="ltag ltag-dc">🏢 AWS 資料中心</span><span class="you-badge you-no">你看不到</span>
+          <div class="ldesc">同方式 A — AWS 全球機房中的實體基礎設施</div>
+          <div class="lyr lyr-hw">
+            <span class="ltag ltag-hw">🖥️ 實體伺服器（裸機）</span><span class="you-badge you-no">你看不到</span>
+            <div class="ldesc">Intel/AMD/Graviton 處理器、實體 RAM、NVMe SSD</div>
+            <div class="lyr lyr-hyper">
+              <span class="ltag ltag-hyper">⚡ Nitro Hypervisor</span><span class="you-badge you-no">你看不到</span>
+              <div class="ldesc">虛擬化層，從實體機器切出你的 EC2</div>
+              <div class="lyr lyr-vm">
+                <span class="ltag ltag-vm">🟧 EC2 Instance = 虛擬機</span><span class="you-badge you-see">你管理這一層 ↓</span>
+                <div class="ldesc">你的虛擬機，有完整 SSH 權限</div>
+                <div class="lyr lyr-os">
+                  <span class="ltag ltag-os">🐧 Linux OS + ECS Container Agent</span>
+                  <div class="ldesc">關鍵差異：<strong>Datadog Agent 直接安裝在 OS 上</strong>，以 <code>systemd</code> 服務運行，不是容器</div>
+                  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;">
+                    <div style="flex:1;min-width:180px;">
+                      <div class="inner-box box-agent" style="height:100%;">🐶 <strong>Datadog Agent</strong><br><small style="opacity:0.7">systemd 服務（非容器）</small><br><small style="opacity:0.5">直接跑在 OS 上</small><br><small style="opacity:0.5">監聽 localhost:8126</small></div>
+                    </div>
+                    <div style="flex:2;min-width:220px;">
+                      <div class="lyr lyr-docker" style="margin-top:0;">
+                        <span class="ltag ltag-docker">🐳 Docker Engine</span>
+                        <div class="inner-boxes" style="margin-top:6px;">
+                          <div class="inner-box box-app">📦 App 容器 A</div>
+                          <div class="inner-box box-app">📦 App 容器 B</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="arrow-down">↓</div>
+        <div class="arrow-label">Agent 以主機 process 方式上報，容器透過 host network 送 trace</div>
+        <div class="arrow-down">↓</div>
+        <div class="lyr lyr-backend"><span class="ltag ltag-backend">☁️ Datadog Backend（SaaS）</span><div class="ldesc">指標、Trace、Log 統一收集與儲存</div></div>
+      </div>
+      <div class="ownership-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#94a3b8"></div> AWS 管理</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div> 你管理的 EC2 + OS</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#632bf3"></div> DD Agent（OS 層級）</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div> Docker 容器層</div>
+      </div>
+    </div>
+    <div class="info-grid">
+      <div class="info-card"><div class="info-card-icon">🔑</div><h4>核心差異</h4><p>底層硬體與方式 A 完全相同。唯一差別：Agent <span class="hl">不在 Docker 裡</span>，直接裝在 EC2 OS 上，與容器「並列」而非「同層」。</p></div>
+      <div class="info-card"><div class="info-card-icon">⚙️</div><h4>Agent 部署方式</h4><p>透過 <span class="hl">User Data script</span> 或 AMI 預裝，以 <code>systemd</code> 服務常駐。需自行管理版本升級。</p></div>
+      <div class="info-card"><div class="info-card-icon">💰</div><h4>APM 計費</h4><p>同樣以 <span class="hl">APM Host（= EC2 實例）</span> 為單位，與方式 A 完全一致。</p></div>
+      <div class="info-card"><div class="info-card-icon">⚠️</div><h4>注意事項</h4><p>容器探索需額外設定 Docker socket。Agent 升級需 SSH 或重建 AMI，不如 Daemon 方式便利。</p></div>
+    </div>
+  </div>
+
+  <!-- TAB C: Fargate -->
+  <div class="arch-panel" id="panel-fargate">
+    <div class="diagram-card">
+      <div class="diagram-title">從實體硬體到容器 — 完整架構圖</div>
+      <div class="arch-visual">
+        <div class="lyr lyr-dc">
+          <span class="ltag ltag-dc">🏢 AWS 資料中心</span><span class="you-badge you-no">你看不到</span>
+          <div class="ldesc">同樣的 AWS 實體機房</div>
+          <div class="lyr lyr-hw">
+            <span class="ltag ltag-hw">🖥️ 實體伺服器（裸機）</span><span class="you-badge you-no">你看不到</span>
+            <div class="ldesc">與 EC2 使用相同等級的 AWS 硬體，但你完全接觸不到</div>
+            <div class="hw-specs">
+              <span class="hw-chip">🔲 同樣是 Intel / AMD / Graviton</span>
+              <span class="hw-chip">🧠 同樣是 DDR5 RAM</span>
+            </div>
+            <div class="lyr lyr-hyper">
+              <span class="ltag ltag-hyper">⚡ Nitro Hypervisor + Firecracker 🔥</span><span class="you-badge you-no">你看不到</span>
+              <div class="ldesc">這裡是最大差異！AWS 使用 <strong>Firecracker</strong>（自研輕量 microVM 引擎），為每個 Fargate Task 建立獨立的 <strong>microVM</strong>。不是傳統大 VM，而是啟動速度 &lt;125ms 的極輕量沙箱。Lambda 也用這個技術。</div>
+
+              <div class="lyr lyr-microvm">
+                <span class="ltag ltag-microvm">🔥 Firecracker microVM — Task A</span><span class="you-badge you-no">你看不到這個 VM</span>
+                <div class="ldesc">每個 Task 被隔離在自己的 microVM 裡，有獨立 Linux kernel、獨立記憶體。你無法 SSH 進來。</div>
+                <div class="hw-specs"><span class="hw-chip">vCPU / RAM 依 Task Definition 設定</span><span class="hw-chip">獨立 Linux kernel</span></div>
+                <div class="lyr lyr-fargate-task" style="margin-top:10px;">
+                  <span class="ltag ltag-fargate">🚀 ECS Fargate Task A</span><span class="you-badge you-see">你只控制這一層</span>
+                  <div class="inner-boxes">
+                    <div class="inner-box box-app">📦 App 容器</div>
+                    <div class="inner-box box-agent">🐶 Agent<br><small style="opacity:0.7">Sidecar 容器</small></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="lyr lyr-microvm" style="margin-top:10px;">
+                <span class="ltag ltag-microvm">🔥 Firecracker microVM — Task B</span><span class="you-badge you-no">你看不到這個 VM</span>
+                <div class="ldesc">完全獨立的另一個 microVM，與 Task A 之間有硬體級隔離</div>
+                <div class="lyr lyr-fargate-task" style="margin-top:10px;">
+                  <span class="ltag ltag-fargate">🚀 ECS Fargate Task B</span><span class="you-badge you-see">你只控制這一層</span>
+                  <div class="inner-boxes">
+                    <div class="inner-box box-app">📦 App 容器</div>
+                    <div class="inner-box box-agent">🐶 Agent<br><small style="opacity:0.7">Sidecar 容器</small></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="arrow-down">↓</div>
+        <div class="arrow-label">每個 microVM 內的 Sidecar Agent 各自上報</div>
+        <div class="arrow-down">↓</div>
+        <div class="lyr lyr-backend"><span class="ltag ltag-backend">☁️ Datadog Backend（SaaS）</span><div class="ldesc">指標、Trace、Log 統一收集與儲存</div></div>
+      </div>
+      <div class="ownership-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#94a3b8"></div> AWS 管理（硬體 + 實體伺服器）</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#06b6d4"></div> Nitro + Firecracker</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div> microVM（AWS 隔離用，你看不到）</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div> Fargate Task（你只控制這裡）</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#632bf3"></div> DD Agent Sidecar</div>
+      </div>
+    </div>
+    <div class="info-grid">
+      <div class="info-card"><div class="info-card-icon">🔑</div><h4>核心差異</h4><p>沒有「你的 EC2」。AWS 用 <span class="hl">Firecracker microVM</span> 為每個 Task 建立硬體級隔離沙箱。你無法 SSH，也看不到底層 OS。</p></div>
+      <div class="info-card"><div class="info-card-icon">🔥</div><h4>Firecracker 是什麼？</h4><p>AWS 開源的 microVM 引擎，比傳統 VM 更輕（啟動 &lt;125ms），但保有 <span class="hl">kernel 級隔離</span>。Lambda 也用它。</p></div>
+      <div class="info-card"><div class="info-card-icon">💰</div><h4>APM 計費</h4><p>以 <span class="hl">APM Fargate Task</span> 為單位。10 個 Task 各 1 個 Sidecar → 10 個計費單位。</p></div>
+      <div class="info-card"><div class="info-card-icon">📐</div><h4>為什麼必須 Sidecar？</h4><p>沒有共享主機，不可能 Daemon 模式。Agent <span class="hl">只能放在 Task 內部</span>作為 Sidecar。</p></div>
+    </div>
+  </div>
+
+  <!-- Comparison Table -->
+  <div class="compare-section">
+    <div class="compare-title">📊 三種方式完整比較（含硬體層）</div>
+    <div class="compare-table-wrap">
+      <table class="compare-table">
+        <thead><tr>
+          <th>比較項目</th>
+          <th>A · Daemon 容器<br><small style="font-weight:400;color:var(--text-dim)">ECS on EC2</small></th>
+          <th>B · 直接安裝<br><small style="font-weight:400;color:var(--text-dim)">ECS on EC2</small></th>
+          <th>C · Sidecar<br><small style="font-weight:400;color:var(--text-dim)">ECS on Fargate</small></th>
+        </tr></thead>
+        <tbody>
+          <tr><td>實體硬體</td><td>AWS 伺服器 + Nitro</td><td>AWS 伺服器 + Nitro</td><td>AWS 伺服器 + Nitro + <strong>Firecracker</strong></td></tr>
+          <tr><td>虛擬化技術</td><td>傳統 VM（EC2）</td><td>傳統 VM（EC2）</td><td>Firecracker microVM<br><small>每 Task 一個獨立 microVM</small></td></tr>
+          <tr><td>你能 SSH？</td><td><span class="pill pill-green">能</span> 完整 OS 權限</td><td><span class="pill pill-green">能</span> 完整 OS 權限</td><td>❌ 完全不行</td></tr>
+          <tr><td>OS 由誰管？</td><td>你（選 AMI、裝軟體）</td><td>你（選 AMI、裝軟體）</td><td>AWS（你看不到 OS）</td></tr>
+          <tr><td>Agent 部署位置</td><td>Docker 容器（Daemon）</td><td>EC2 OS 上（systemd）</td><td>Task 內 Sidecar 容器</td></tr>
+          <tr><td>Agent : App</td><td>1 Agent : N Task</td><td>1 Agent : N Task</td><td>1 Agent : 1 Task</td></tr>
+          <tr><td>APM 計費</td><td><span class="pill pill-host">APM Host</span></td><td><span class="pill pill-host">APM Host</span></td><td><span class="pill pill-fargate">APM Fargate Task</span></td></tr>
+          <tr><td>計費單位</td><td>EC2 實例數</td><td>EC2 實例數</td><td>同時監控 Task 平均數</td></tr>
+          <tr><td>Agent 升級</td><td>更新 Task Def image tag</td><td>SSH / AMI 重建</td><td>更新 Task Def image tag</td></tr>
+          <tr><td>官方推薦</td><td><span class="pill pill-green">推薦 ✓</span></td><td>可行但非首選</td><td><span class="pill pill-green">唯一選項 ✓</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <!--  OVERLAY: Side-by-side stacked comparison                     -->
+  <!-- ============================================================ -->
+  <div class="overlay-section">
+    <div class="compare-title" style="margin-top:56px;">🔬 三架構重疊比較 — 逐層展開</div>
+    <p style="text-align:center;color:var(--text-muted);font-size:14px;margin-bottom:8px;">點擊每一層展開詳細比較，或用下方按鈕切換高亮模式</p>
+
+    <!-- Highlight toggle buttons -->
+    <div class="hl-toggle-bar">
+      <button class="hl-btn hl-btn-active" data-hl="all" onclick="setHighlight('all')">全部顯示</button>
+      <button class="hl-btn" data-hl="same" onclick="setHighlight('same')">✅ 相同部分</button>
+      <button class="hl-btn" data-hl="diff" onclick="setHighlight('diff')">🔴 差異部分</button>
+    </div>
+
+    <!-- Stacked overlay rows -->
+    <div class="ov-stack">
+
+      <!-- Row 1: Data Center -->
+      <div class="ov-row ov-same" onclick="toggleRow(this)">
+        <div class="ov-row-header">
+          <div class="ov-row-icon">🏢</div>
+          <div class="ov-row-title">AWS 資料中心（實體機房）</div>
+          <div class="ov-row-verdict ov-verdict-same">三者相同</div>
+          <div class="ov-chevron">▾</div>
+        </div>
+        <div class="ov-row-detail">
+          <div class="ov-3col">
+            <div class="ov-col"><div class="ov-col-label ov-label-a">A · Daemon</div><div class="ov-col-body">AWS 全球機房<br>電力 / 冷卻 / 網路骨幹<br><span class="ov-dim">你完全看不到</span></div></div>
+            <div class="ov-col"><div class="ov-col-label ov-label-b">B · 直接安裝</div><div class="ov-col-body">AWS 全球機房<br>電力 / 冷卻 / 網路骨幹<br><span class="ov-dim">你完全看不到</span></div></div>
+            <div class="ov-col"><div class="ov-col-label ov-label-c">C · Fargate</div><div class="ov-col-body">AWS 全球機房<br>電力 / 冷卻 / 網路骨幹<br><span class="ov-dim">你完全看不到</span></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 2: Physical Server -->
+      <div class="ov-row ov-same" onclick="toggleRow(this)">
+        <div class="ov-row-header">
+          <div class="ov-row-icon">🖥️</div>
+          <div class="ov-row-title">實體伺服器（裸機硬體）</div>
+          <div class="ov-row-verdict ov-verdict-same">三者相同</div>
+          <div class="ov-chevron">▾</div>
+        </div>
+        <div class="ov-row-detail">
+          <div class="ov-3col">
+            <div class="ov-col"><div class="ov-col-label ov-label-a">A</div><div class="ov-col-body">Intel Xeon / AMD EPYC / Graviton<br>數百 GB DDR5 · NVMe SSD<br>100Gbps NIC<br><span class="ov-dim">AWS 擁有，你摸不到</span></div></div>
+            <div class="ov-col"><div class="ov-col-label ov-label-b">B</div><div class="ov-col-body">Intel Xeon / AMD EPYC / Graviton<br>數百 GB DDR5 · NVMe SSD<br>100Gbps NIC<br><span class="ov-dim">AWS 擁有，你摸不到</span></div></div>
+            <div class="ov-col"><div class="ov-col-label ov-label-c">C</div><div class="ov-col-body">Intel Xeon / AMD EPYC / Graviton<br>數百 GB DDR5 · NVMe SSD<br>100Gbps NIC<br><span class="ov-dim">AWS 擁有，你摸不到</span></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 3: Hypervisor ← DIFF -->
+      <div class="ov-row ov-diff" onclick="toggleRow(this)">
+        <div class="ov-row-header">
+          <div class="ov-row-icon">⚡</div>
+          <div class="ov-row-title">虛擬化層（Hypervisor）</div>
+          <div class="ov-row-verdict ov-verdict-diff">⚠️ Fargate 不同</div>
+          <div class="ov-chevron">▾</div>
+        </div>
+        <div class="ov-row-detail">
+          <div class="ov-3col">
+            <div class="ov-col"><div class="ov-col-label ov-label-a">A</div><div class="ov-col-body"><strong>Nitro Hypervisor</strong><br>切出一台完整的 EC2 VM<br>你拿到一整台虛擬機</div></div>
+            <div class="ov-col"><div class="ov-col-label ov-label-b">B</div><div class="ov-col-body"><strong>Nitro Hypervisor</strong><br>切出一台完整的 EC2 VM<br>你拿到一整台虛擬機</div></div>
+            <div class="ov-col ov-col-highlight"><div class="ov-col-label ov-label-c">C</div><div class="ov-col-body"><strong>Nitro + 🔥 Firecracker</strong><br>每個 Task 一個 microVM<br>啟動 &lt;125ms 的輕量沙箱<br><span class="ov-accent">不是傳統 VM！</span></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 4: VM / Isolation ← DIFF -->
+      <div class="ov-row ov-diff" onclick="toggleRow(this)">
+        <div class="ov-row-header">
+          <div class="ov-row-icon">🟧</div>
+          <div class="ov-row-title">虛擬機 / 隔離單位</div>
+          <div class="ov-row-verdict ov-verdict-diff">⚠️ 完全不同</div>
+          <div class="ov-chevron">▾</div>
+        </div>
+        <div class="ov-row-detail">
+          <div class="ov-3col">
+            <div class="ov-col"><div class="ov-col-label ov-label-a">A</div><div class="ov-col-body"><strong>EC2 Instance</strong><br>如 m5.xlarge<br>4 vCPU / 16 GB RAM<br><span class="ov-good">✅ 你可以 SSH</span><br>多個容器共享此 VM</div></div>
+            <div class="ov-col"><div class="ov-col-label ov-label-b">B</div><div class="ov-col-body"><strong>EC2 Instance</strong><br>如 m5.xlarge<br>4 vCPU / 16 GB RAM<br><span class="ov-good">✅ 你可以 SSH</span><br>多個容器共享此 VM</div></div>
+            <div class="ov-col ov-col-highlight"><div class="ov-col-label ov-label-c">C</div><div class="ov-col-body"><strong>Firecracker microVM</strong><br>依 Task Def 分配資源<br>0.25–4 vCPU / 0.5–30 GB<br><span class="ov-bad">❌ 無法 SSH</span><br>每個 Task 獨立一個 microVM</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 5: OS ← DIFF -->
+      <div class="ov-row ov-diff" onclick="toggleRow(this)">
+        <div class="ov-row-header">
+          <div class="ov-row-icon">🐧</div>
+          <div class="ov-row-title">作業系統（OS）</div>
+          <div class="ov-row-verdict ov-verdict-diff">⚠️ Fargate 不同</div>
+          <div class="ov-chevron">▾</div>
+        </div>
+        <div class="ov-row-detail">
+          <div class="ov-3col">
+            <div class="ov-col"><div class="ov-col-label ov-label-a">A</div><div class="ov-col-body"><strong>你選擇的 AMI</strong><br>Amazon Linux 2 / Ubuntu 等<br>你有 root 權限<br>ECS Agent 跑在這層</div></div>
+            <div class="ov-col"><div class="ov-col-label ov-label-b">B</div><div class="ov-col-body"><strong>你選擇的 AMI</strong><br>Amazon Linux 2 / Ubuntu 等<br>你有 root 權限<br>ECS Agent + <span class="ov-accent">DD Agent</span> 都在這</div></div>
+            <div class="ov-col ov-col-highlight"><div class="ov-col-label ov-label-c">C</div><div class="ov-col-body"><strong>AWS 託管的 OS</strong><br>你看不到也碰不到<br><span class="ov-bad">❌ 無法安裝任何東西</span><br>由 Firecracker 自動管理</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 6: Container Runtime ← DIFF -->
+      <div class="ov-row ov-diff" onclick="toggleRow(this)">
+        <div class="ov-row-header">
+          <div class="ov-row-icon">🐳</div>
+          <div class="ov-row-title">容器執行環境</div>
+          <div class="ov-row-verdict ov-verdict-diff">⚠️ 三者不同</div>
+          <div class="ov-chevron">▾</div>
+        </div>
+        <div class="ov-row-detail">
+          <div class="ov-3col">
+            <div class="ov-col"><div class="ov-col-label ov-label-a">A</div><div class="ov-col-body"><strong>Docker Engine</strong><br>你管理的 Docker daemon<br>所有容器（包含 DD Agent）<br>共享同一個 OS kernel</div></div>
+            <div class="ov-col ov-col-highlight"><div class="ov-col-label ov-label-b">B</div><div class="ov-col-body"><strong>Docker Engine</strong><br>你管理的 Docker daemon<br>只有 App 容器在裡面<br><span class="ov-accent">DD Agent 不在 Docker 裡</span></div></div>
+            <div class="ov-col ov-col-highlight"><div class="ov-col-label ov-label-c">C</div><div class="ov-col-body"><strong>AWS 託管容器引擎</strong><br>containerd（非你管理）<br>每個 Task 內的容器共享<br>該 microVM 的 kernel</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 7: DD Agent ← DIFF (the key one) -->
+      <div class="ov-row ov-diff" onclick="toggleRow(this)">
+        <div class="ov-row-header">
+          <div class="ov-row-icon">🐶</div>
+          <div class="ov-row-title">Datadog Agent 位置</div>
+          <div class="ov-row-verdict ov-verdict-diff">🔴 核心差異！</div>
+          <div class="ov-chevron">▾</div>
+        </div>
+        <div class="ov-row-detail">
+          <div class="ov-3col">
+            <div class="ov-col ov-col-highlight"><div class="ov-col-label ov-label-a">A</div><div class="ov-col-body"><strong>Docker 容器（Daemon Service）</strong><br>與 App 容器同在 Docker 層<br>ECS 自動排程：1 Agent / EC2<br><span class="ov-good">1 Agent 服務 N 個 Task</span></div></div>
+            <div class="ov-col ov-col-highlight"><div class="ov-col-label ov-label-b">B</div><div class="ov-col-body"><strong>EC2 OS 上的 systemd 服務</strong><br>不在 Docker 裡，與容器「並列」<br>需手動安裝 / User Data<br><span class="ov-good">1 Agent 服務 N 個 Task</span></div></div>
+            <div class="ov-col ov-col-highlight"><div class="ov-col-label ov-label-c">C</div><div class="ov-col-body"><strong>Task 內的 Sidecar 容器</strong><br>與 App 容器同在 Task 定義裡<br>無共享主機，只能 Sidecar<br><span class="ov-bad">1 Agent 只服務 1 個 Task</span></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 8: Billing ← DIFF -->
+      <div class="ov-row ov-diff" onclick="toggleRow(this)">
+        <div class="ov-row-header">
+          <div class="ov-row-icon">💰</div>
+          <div class="ov-row-title">APM 計費方式</div>
+          <div class="ov-row-verdict ov-verdict-diff">⚠️ Fargate 不同</div>
+          <div class="ov-chevron">▾</div>
+        </div>
+        <div class="ov-row-detail">
+          <div class="ov-3col">
+            <div class="ov-col"><div class="ov-col-label ov-label-a">A</div><div class="ov-col-body"><span class="pill pill-host" style="font-size:13px;">APM Host</span><br><br>以 EC2 實例數計費<br>容器數不影響價格<br>3 台 EC2 = 3 個 APM Host</div></div>
+            <div class="ov-col"><div class="ov-col-label ov-label-b">B</div><div class="ov-col-body"><span class="pill pill-host" style="font-size:13px;">APM Host</span><br><br>以 EC2 實例數計費<br>容器數不影響價格<br>3 台 EC2 = 3 個 APM Host</div></div>
+            <div class="ov-col ov-col-highlight"><div class="ov-col-label ov-label-c">C</div><div class="ov-col-body"><span class="pill pill-fargate" style="font-size:13px;">APM Fargate Task</span><br><br>以同時監控 Task 數計費<br>Task 越多費用越高<br>10 個 Task = 10 個計費單位</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Row 9: Backend -->
+      <div class="ov-row ov-same" onclick="toggleRow(this)">
+        <div class="ov-row-header">
+          <div class="ov-row-icon">☁️</div>
+          <div class="ov-row-title">Datadog Backend（SaaS）</div>
+          <div class="ov-row-verdict ov-verdict-same">三者相同</div>
+          <div class="ov-chevron">▾</div>
+        </div>
+        <div class="ov-row-detail">
+          <div class="ov-3col">
+            <div class="ov-col"><div class="ov-col-label ov-label-a">A</div><div class="ov-col-body">指標 / Trace / Log<br>統一收集到 Datadog SaaS<br>相同的 UI 與功能</div></div>
+            <div class="ov-col"><div class="ov-col-label ov-label-b">B</div><div class="ov-col-body">指標 / Trace / Log<br>統一收集到 Datadog SaaS<br>相同的 UI 與功能</div></div>
+            <div class="ov-col"><div class="ov-col-label ov-label-c">C</div><div class="ov-col-body">指標 / Trace / Log<br>統一收集到 Datadog SaaS<br>相同的 UI 與功能</div></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="footer-note">
+    💡 <strong>一句話總結：</strong>EC2 = 你在 AWS 實體伺服器上租了一台「虛擬機」，Agent 裝在裡面或裡面的容器裡都行，費用看機器數（Host）。Fargate = 你租了一個 Firecracker「microVM 沙箱」，連 OS 都摸不到，Agent 只能塞在沙箱裡（Sidecar），費用看沙箱數（Task）。
+    <br><br>
+    📖 參考文件：
+    <a href="https://docs.datadoghq.com/account_management/billing/apm_tracing_profiler/" target="_blank">APM Billing</a> ·
+    <a href="https://docs.datadoghq.com/containers/amazon_ecs/" target="_blank">ECS Agent 部署</a> ·
+    <a href="https://docs.datadoghq.com/integrations/ecs_fargate/" target="_blank">Fargate 整合</a> ·
+    <a href="https://firecracker-microvm.github.io/" target="_blank">Firecracker 官方</a>
+  </div>
+</div>
+
+<script>
+function showTab(name) {
+  const tabs = ['daemon', 'direct', 'fargate'];
+  document.querySelectorAll('.tab-btn').forEach((btn, i) => btn.classList.toggle('active', tabs[i] === name));
+  document.querySelectorAll('.arch-panel').forEach(p => p.classList.toggle('active', p.id === `panel-${name}`));
+}
+
+function toggleRow(el) {
+  el.classList.toggle('ov-open');
+}
+
+function setHighlight(mode) {
+  document.querySelectorAll('.hl-btn').forEach(b => b.classList.toggle('hl-btn-active', b.dataset.hl === mode));
+  const stack = document.querySelector('.ov-stack');
+  if (mode === 'all') stack.removeAttribute('data-filter');
+  else stack.setAttribute('data-filter', mode);
+}
+
+// Auto-open the key diff row (DD Agent) on load
+document.addEventListener('DOMContentLoaded', () => {
+  const rows = document.querySelectorAll('.ov-row');
+  if (rows.length >= 7) rows[6].classList.add('ov-open'); // DD Agent row
+});
+</script>
+</body>
+</html>
