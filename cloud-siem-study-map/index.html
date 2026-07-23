@@ -1,0 +1,1968 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Datadog Cloud SIEM 完全理解地圖</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f2ecd9;
+  --surface:#fffdf6;
+  --surface2:#e8e0c5;
+  --border:#2a2a45;
+  --text:#201f33;
+  --text-dim:#4a4864;
+  --text-faint:#8a87a0;
+  --on-accent:#201f33;
+
+  --c1:#b8860c; /* Foundation - dark goldenrod */
+  --c1-bg:rgba(184,134,12,0.14);
+  --c2:#0e8fa3; /* Pipeline - deep teal-cyan */
+  --c2-bg:rgba(14,143,163,0.14);
+  --c3:#7c3fd8; /* Rule Basics - violet */
+  --c3-bg:rgba(124,63,216,0.14);
+  --c4:#c92d8f; /* MITRE & Advanced Tuning - raspberry magenta */
+  --c4-bg:rgba(201,45,143,0.14);
+  --c5:#0f9668; /* Investigation - deep emerald */
+  --c5-bg:rgba(15,150,104,0.14);
+  --c6:#1f5fd6; /* Ops/Metrics - royal blue */
+  --c6-bg:rgba(31,95,214,0.14);
+  --c7:#a06a00; /* Summary - burnt bronze */
+  --c7-bg:rgba(160,106,0,0.14);
+  --c8:#5c4fc4; /* Practice/Quiz - deep indigo */
+  --c8-bg:rgba(92,79,196,0.14);
+  --c9:#b8541f; /* Architecture Overview - terracotta */
+  --c9-bg:rgba(184,84,31,0.14);
+
+  --danger:#cc3520;
+  --ok:#148a34;
+}
+
+*{box-sizing:border-box;border-radius:0 !important;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Noto Sans TC','IBM Plex Sans',sans-serif;
+  line-height:1.75;
+  -webkit-font-smoothing:antialiased;
+}
+header.top .eyebrow, .chapter-head .kicker, .lbl, .qlabel, .qhead, th, .fb,
+.stepper-nav button, .cmp .col h4, .panel-mock .ph, .stbadge, footer{
+  font-family:'JetBrains Mono',monospace;
+}
+code, .mono{
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.88em;
+  background:#efe6ff;
+  color:#5b3fae;
+  padding:0.1em 0.45em;
+  border:1px solid #c9b3f0;
+}
+pre code{
+  display:block;
+  padding:14px 16px;
+  overflow-x:auto;
+  line-height:1.6;
+  white-space:pre;
+}
+
+/* ---------- Header ---------- */
+header.top{
+  padding:48px 24px 32px;
+  text-align:center;
+  border-bottom:4px solid var(--text);
+  background:var(--bg);
+}
+header.top .eyebrow{
+  letter-spacing:0.14em;
+  font-size:10px;
+  color:var(--text-faint);
+  margin-bottom:18px;
+}
+header.top h1{
+  font-family:'IBM Plex Sans',sans-serif;
+  font-weight:700;
+  font-size:clamp(28px,4.2vw,42px);
+  margin:0 0 20px;
+  letter-spacing:-0.01em;
+  line-height:1.3;
+  color:var(--c1);
+  text-shadow:3px 3px 0 rgba(32,31,51,0.16);
+}
+header.top p.sub{
+  color:var(--text-dim);
+  max-width:640px;
+  margin:0 auto;
+  font-size:14.5px;
+}
+
+/* ---------- Nav / world map ---------- */
+nav.tabs{
+  position:sticky;
+  top:0;
+  z-index:50;
+  padding:16px;
+  background:var(--bg);
+  border-bottom:4px solid var(--text);
+}
+nav.tabs .tabs-inner.worldmap{
+  display:grid;
+  grid-template-columns:minmax(90px,1fr) 32px minmax(90px,1fr) 32px minmax(90px,1fr) 32px minmax(90px,1fr);
+  grid-auto-rows:auto;
+  align-items:center;
+  gap:6px;
+  max-width:1120px;
+  margin:0 auto;
+  overflow-x:auto;
+  overflow-y:visible;
+  padding-top:22px;
+  scrollbar-width:none;
+}
+nav.tabs .tabs-inner.worldmap::-webkit-scrollbar{display:none;}
+.wpath-h{
+  height:4px;
+  align-self:center;
+  background:repeating-linear-gradient(to right, var(--text-faint) 0 6px, transparent 6px 12px);
+}
+.wpath-v{
+  width:4px;
+  height:100%;
+  min-height:24px;
+  justify-self:center;
+  background:repeating-linear-gradient(to bottom, var(--text-faint) 0 6px, transparent 6px 12px);
+}
+nav.tabs button{
+  position:relative;
+  flex:0 0 auto;
+  font-family:'Noto Sans TC','IBM Plex Sans',sans-serif;
+  font-size:12px;
+  font-weight:600;
+  line-height:1.4;
+  color:var(--text-dim);
+  background:var(--surface);
+  border:3px solid var(--border);
+  padding:8px 6px;
+  min-width:86px;
+  cursor:pointer;
+  transition:transform 0.1s linear;
+  white-space:normal;
+  text-align:center;
+}
+nav.tabs button .num{
+  display:block;
+  font-size:9px;
+  margin-bottom:4px;
+  opacity:0.7;
+}
+nav.tabs button:hover{color:var(--text);border-color:var(--text-faint);}
+nav.tabs button:active{transform:translate(2px,2px);}
+nav.tabs button.active{
+  color:var(--on-accent);
+  background:var(--accent);
+  border-color:var(--text);
+  box-shadow:3px 3px 0 0 rgba(32,31,51,0.30);
+}
+nav.tabs button.active::before{
+  content:'▲';
+  position:absolute;
+  top:-20px;
+  left:50%;
+  transform:translateX(-50%);
+  color:var(--c1);
+  font-size:13px;
+  animation:blink 0.7s steps(2) infinite;
+}
+@keyframes blink{50%{opacity:0;}}
+@media (max-width:820px){
+  nav.tabs .tabs-inner.worldmap{display:flex;flex-direction:column;gap:8px;padding-top:20px;}
+  .wpath-h, .wpath-v{display:none;}
+  nav.tabs button{width:100%;min-width:0;}
+}
+
+.overview-divider{
+  max-width:1120px;
+  margin:14px auto 10px;
+  text-align:center;
+  color:var(--text-faint);
+  font-size:11px;
+  position:relative;
+}
+.overview-divider::before, .overview-divider::after{
+  content:'';
+  position:absolute;
+  top:50%;
+  width:38%;
+  border-top:2px dashed var(--border);
+}
+.overview-divider::before{left:0;}
+.overview-divider::after{right:0;}
+.overview-wrap{max-width:1120px;margin:0 auto;text-align:center;}
+nav.tabs button.overview-tab{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-size:11.5px;
+  font-weight:600;
+  padding:8px 16px;
+  border:2px solid var(--c9);
+  background:var(--surface);
+  color:var(--c9);
+  box-shadow:2px 2px 0 0 rgba(32,31,51,0.15);
+}
+nav.tabs button.overview-tab:hover{transform:translate(-2px,-2px);box-shadow:3px 3px 0 0 rgba(32,31,51,0.2);}
+nav.tabs button.overview-tab.active{
+  background:var(--c9);
+  color:var(--on-accent);
+  box-shadow:2px 2px 0 0 rgba(32,31,51,0.30);
+}
+
+/* ---------- Main / chapters ---------- */
+main{max-width:1120px;margin:0 auto;padding:44px 24px 100px;}
+.chapter{display:none;}
+.chapter.active{display:block;animation:fadeUp 0.25s steps(3) both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+@media (prefers-reduced-motion: reduce){
+  .chapter.active{animation:none;}
+  *{transition:none !important;animation:none !important;}
+}
+
+.chapter-head{margin-bottom:36px;}
+.chapter-head .kicker{
+  font-size:11px;
+  letter-spacing:0.08em;
+  color:var(--accent);
+  margin-bottom:14px;
+}
+.chapter-head h2{
+  font-size:clamp(24px,3.2vw,32px);
+  margin:0 0 16px;
+  font-weight:700;
+  line-height:1.4;
+  color:var(--text);
+}
+.chapter-head .lead{
+  color:var(--text-dim);
+  font-size:15.5px;
+  max-width:760px;
+}
+
+.card{
+  position:relative;
+  background:var(--surface);
+  border:3px solid var(--border);
+  border-top:5px solid var(--accent);
+  padding:26px 28px;
+  margin-bottom:24px;
+  box-shadow:5px 5px 0 0 rgba(32,31,51,0.22);
+}
+.card::before{
+  content:'';
+  position:absolute;top:-3px;left:-3px;
+  width:9px;height:9px;
+  background:var(--bg);
+}
+.card::after{
+  content:'';
+  position:absolute;bottom:-3px;right:-3px;
+  width:9px;height:9px;
+  background:var(--bg);
+}
+.card h3{
+  font-size:18px;
+  font-weight:700;
+  line-height:1.5;
+  margin:0 0 16px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  color:var(--text);
+}
+.card h3 .dot{
+  width:9px;height:9px;
+  margin-top:6px;
+  background:var(--accent);
+  flex:0 0 auto;
+}
+.card p{margin:0 0 12px;color:var(--text);}
+.card p:last-child{margin-bottom:0;}
+.card ul, .card ol{margin:0 0 12px;padding-left:22px;}
+.card li{margin-bottom:8px;}
+
+.term{
+  display:inline-block;
+  font-weight:700;
+  color:var(--accent);
+}
+
+.analogy{
+  background:var(--accent-bg);
+  border:3px solid var(--accent);
+  padding:16px 18px;
+  margin:14px 0;
+  font-size:14.5px;
+}
+.analogy .lbl{
+  font-size:10px;
+  letter-spacing:0.06em;
+  color:var(--accent);
+  margin-bottom:10px;
+  display:block;
+}
+
+.example{
+  background:var(--surface2);
+  border:3px solid var(--border);
+  padding:14px 18px;
+  margin:14px 0;
+  font-size:14px;
+}
+.example .lbl{
+  font-size:10px;
+  letter-spacing:0.06em;
+  color:var(--text-faint);
+  margin-bottom:10px;
+  display:block;
+}
+
+.examtip{
+  background:rgba(204,53,32,0.10);
+  border:3px solid var(--danger);
+  padding:14px 18px;
+  margin:14px 0;
+  font-size:14px;
+}
+.examtip .lbl{
+  font-size:10px;
+  letter-spacing:0.06em;
+  color:var(--danger);
+  margin-bottom:10px;
+  display:block;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin:14px 0;
+  font-size:14px;
+}
+th,td{
+  padding:10px 12px;
+  border-bottom:2px solid var(--border);
+  text-align:left;
+  vertical-align:top;
+}
+th{
+  font-size:10px;
+  letter-spacing:0.02em;
+  color:var(--accent);
+  border-bottom:3px solid var(--accent);
+}
+tr:last-child td{border-bottom:none;}
+.table-wrap{overflow-x:auto;margin:14px 0;}
+
+/* accordion */
+.acc-item{
+  border:3px solid var(--border);
+  margin-bottom:10px;
+  overflow:hidden;
+  background:var(--surface2);
+}
+.acc-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:14px 18px;
+  cursor:pointer;
+  font-size:12.5px;
+  line-height:1.7;
+  color:var(--text);
+  user-select:none;
+}
+.acc-head:hover{background:rgba(32,31,51,0.05);}
+.acc-head .chev{
+  color:var(--accent);
+  font-family:'JetBrains Mono',monospace;
+  transition:transform 0.15s linear;
+  flex:0 0 auto;
+  margin-left:12px;
+}
+.acc-item.open .chev{transform:rotate(90deg);}
+.acc-body{
+  max-height:0;
+  overflow:hidden;
+  transition:max-height 0.25s linear;
+  padding:0 18px;
+  font-size:14px;
+  color:var(--text-dim);
+}
+.acc-item.open .acc-body{padding:0 18px 16px;}
+
+/* grid of mini cards */
+.grid{display:grid;gap:14px;}
+.grid.g4{grid-template-columns:repeat(4,1fr);}
+.grid.g3{grid-template-columns:repeat(3,1fr);}
+.grid.g2{grid-template-columns:repeat(2,1fr);}
+@media (max-width:820px){
+  .grid.g4{grid-template-columns:repeat(2,1fr);}
+  .grid.g3{grid-template-columns:1fr;}
+  .grid.g2{grid-template-columns:1fr;}
+}
+@media (max-width:480px){
+  .grid.g4{grid-template-columns:1fr;}
+}
+.mini{
+  border:3px solid var(--border);
+  padding:14px 16px;
+  background:var(--surface2);
+  cursor:pointer;
+  transition:border-color 0.1s linear, transform 0.1s linear;
+}
+.mini:hover{border-color:var(--accent);transform:translate(-2px,-2px);box-shadow:2px 2px 0 0 var(--accent);}
+.mini .mt{font-size:12.5px;margin-bottom:8px;color:var(--accent);}
+.mini .md{font-size:12.5px;color:var(--text-dim);}
+.mini .full{display:none;font-size:13px;color:var(--text);margin-top:10px;padding-top:10px;border-top:2px solid var(--border);}
+.mini.open .full{display:block;}
+
+/* step simulator */
+.stepper-nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
+.stepper-nav button{
+  font-size:10.5px;
+  padding:9px 14px;
+  border:3px solid var(--border);
+  background:var(--surface2);
+  color:var(--text-dim);
+  cursor:pointer;
+  transition:transform 0.1s linear;
+}
+.stepper-nav button:active{transform:translate(2px,2px);}
+.stepper-nav button.active{
+  background:var(--accent);
+  color:var(--on-accent);
+  border-color:var(--text);
+  box-shadow:3px 3px 0 0 rgba(32,31,51,0.30);
+}
+.step-panel{display:none;}
+.step-panel.active{display:block;animation:fadeUp 0.2s steps(3) both;}
+.flowbox{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  margin:14px 0;
+}
+.fb{
+  padding:12px 16px;
+  border:3px solid var(--accent);
+  background:var(--accent-bg);
+  font-size:11px;
+  line-height:1.7;
+  color:var(--text);
+}
+.farrow{color:var(--accent);font-size:16px;}
+
+/* comparison columns */
+.cmp{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:14px 0;}
+@media (max-width:820px){.cmp{grid-template-columns:1fr;}}
+.cmp .col{
+  border:3px solid var(--border);
+  padding:16px;
+  background:var(--surface2);
+}
+.cmp .col h4{
+  margin:0 0 12px;
+  font-size:11px;
+  color:var(--accent);
+  letter-spacing:0.02em;
+}
+.cmp .col p{font-size:13.5px;color:var(--text-dim);margin:0;}
+
+/* toggle */
+.toggle-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.toggle-row button{
+  font-size:11px;
+  padding:9px 16px;
+  border:3px solid var(--border);
+  background:var(--surface2);color:var(--text-dim);
+  cursor:pointer;transition:transform 0.1s linear;
+}
+.toggle-row button:active{transform:translate(2px,2px);}
+.toggle-row button.active{background:var(--accent);border-color:var(--text);color:var(--on-accent);box-shadow:3px 3px 0 0 rgba(32,31,51,0.30);}
+.toggle-panel{display:none;}
+.toggle-panel.active{display:block;animation:fadeUp 0.2s steps(3) both;}
+
+/* stepper timeline (chapter 6 mttd) */
+.timeline{display:flex;align-items:stretch;margin:20px 0;overflow-x:auto;}
+.tseg{
+  flex:1;min-width:150px;
+  padding:16px 14px;
+  border-top:4px solid var(--accent);
+  position:relative;
+}
+.tseg:not(:last-child)::after{
+  content:'→';
+  position:absolute;right:-4px;top:10px;
+  color:var(--text-faint);
+}
+.tseg .tt{font-size:9.5px;color:var(--text-faint);margin-bottom:8px;}
+.tseg .tm{color:var(--accent);font-size:12px;margin-bottom:8px;line-height:1.6;}
+.tseg .td{font-size:12.5px;color:var(--text-dim);}
+
+/* signal side panel mock */
+.panel-mock{
+  border:3px solid var(--border);
+  background:var(--surface2);
+  overflow:hidden;
+  margin:14px 0;
+}
+.panel-mock .ph{
+  padding:12px 16px;
+  background:var(--accent);
+  border-bottom:3px solid var(--border);
+  font-size:11px;
+  color:var(--on-accent);
+}
+.panel-mock .pr{
+  padding:12px 16px;
+  border-bottom:2px solid var(--border);
+  display:flex;
+  gap:14px;
+}
+.panel-mock .pr:last-child{border-bottom:none;}
+.panel-mock .pr .pk{
+  flex:0 0 130px;
+  font-size:12.5px;
+  color:var(--text-faint);
+  font-weight:600;
+}
+.panel-mock .pr .pv{font-size:13px;color:var(--text);}
+
+/* status stepper */
+.status-flow{display:flex;align-items:center;gap:0;margin:16px 0;flex-wrap:wrap;}
+.stbadge{
+  padding:8px 14px;font-size:11px;
+}
+.stbadge.open{background:rgba(204,53,32,0.14);color:var(--danger);border:3px solid var(--danger);}
+.stbadge.review{background:rgba(160,106,0,0.14);color:var(--c7);border:3px solid var(--c7);}
+.stbadge.archived{background:rgba(20,138,52,0.12);color:var(--ok);border:3px solid var(--ok);}
+.status-flow .sarrow{margin:0 12px;color:var(--text-faint);}
+
+/* heatmap mock */
+.heatmap{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;margin:16px 0;}
+.hcell{aspect-ratio:1;background:var(--c4);}
+.heat-legend{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--text-dim);margin-top:6px;}
+.heat-legend .lg{width:14px;height:14px;}
+
+/* summary table chapter7 */
+.bigtable td:first-child{font-weight:700;color:var(--text);}
+
+/* quiz / battle encounter */
+.quiz{
+  border:3px solid var(--border);
+  border-top:5px solid var(--accent);
+  padding:26px 28px;
+  margin-bottom:26px;
+  background:var(--surface);
+  position:relative;
+}
+.quiz.shake{animation:shake 0.4s linear;}
+@keyframes shake{
+  10%,90%{transform:translateX(-3px);}
+  20%,80%{transform:translateX(4px);}
+  30%,50%,70%{transform:translateX(-6px);}
+  40%,60%{transform:translateX(6px);}
+}
+.quiz .qhead{
+  font-size:11px;
+  color:var(--text-faint);
+  margin-bottom:14px;
+  letter-spacing:0.04em;
+}
+.quiz .qhead::before{content:'◆ ';color:var(--accent);}
+.quiz h4{font-size:16px;line-height:1.7;margin:0 0 20px;color:var(--text);font-weight:600;}
+.qopt{
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
+  padding:13px 16px;
+  border:3px solid var(--border);
+  margin-bottom:10px;
+  cursor:pointer;
+  transition:transform 0.08s linear;
+  font-size:14.5px;
+}
+.qopt::before{content:'▶';color:var(--accent);opacity:0;flex:0 0 auto;}
+.qopt:hover::before, .qopt:focus-visible::before{opacity:1;}
+.qopt:hover:not(.disabled){border-color:var(--text-faint);transform:translate(-2px,-2px);}
+.qopt .qlabel{
+  font-weight:700;
+  color:var(--accent);
+  flex:0 0 auto;
+}
+.qopt.correct{border-color:var(--ok);background:rgba(20,138,52,0.10);}
+.qopt.wrong{border-color:var(--danger);background:rgba(204,53,32,0.12);}
+.qopt.disabled{cursor:default;}
+.qopt.disabled:hover{transform:none;}
+.qexplain{
+  display:none;
+  margin-top:16px;
+  padding:16px 18px;
+  background:var(--surface2);
+  border:3px solid var(--border);
+  font-size:14px;
+  color:var(--text-dim);
+}
+.qexplain.show{display:block;animation:fadeUp 0.25s steps(3) both;}
+.qexplain b{color:var(--text);}
+.qexplain::before{
+  display:block;
+  font-size:12px;
+  letter-spacing:0.04em;
+  margin-bottom:12px;
+}
+.quiz.victory .qexplain::before{content:'◆ CORRECT！ 過關';color:var(--ok);}
+.quiz.defeat .qexplain::before{content:'✕ MISS... 再試一次';color:var(--danger);}
+
+/* ---------- One-log trace (Chapter 9) ---------- */
+.factory-legend{
+  display:flex;
+  flex-wrap:wrap;
+  gap:14px;
+  margin-bottom:24px;
+  padding:14px 18px;
+  background:var(--surface2);
+  border:3px solid var(--border);
+  font-size:12.5px;
+  color:var(--text-dim);
+}
+.factory-legend .lgi{display:flex;align-items:center;gap:7px;}
+.factory-legend .sw{width:13px;height:13px;flex:0 0 auto;border:2px solid var(--text);}
+
+.trace{display:flex;flex-direction:column;}
+.trace-step{margin-bottom:40px;}
+.trace-step:last-child{margin-bottom:0;}
+.trace-step:not(:last-child)::after{
+  content:'▼';
+  position:absolute;
+  left:28px;
+  bottom:-30px;
+  color:var(--text-faint);
+  font-size:14px;
+}
+.trace-step.gate{border-top-style:dashed;}
+.trace-step.analyst{background:var(--c8-bg);}
+.trace-note{font-size:12.5px;color:var(--text-faint);font-style:italic;margin-top:8px;}
+
+.reveal-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  margin-top:12px;
+  padding:9px 16px;
+  border:3px solid var(--accent);
+  background:var(--accent-bg);
+  color:var(--accent);
+  font-weight:700;
+  font-size:13px;
+  cursor:pointer;
+  transition:transform 0.08s linear;
+}
+.reveal-btn:hover{transform:translate(-2px,-2px);}
+.reveal-btn::before{content:'▶ ';}
+
+.branch-wrap{
+  display:grid;
+  grid-template-columns:1fr 40px minmax(0,260px);
+  align-items:center;
+  gap:0;
+  margin-top:14px;
+}
+.branch-main{font-size:13px;color:var(--text-dim);}
+.branch-arrow{
+  text-align:center;
+  color:var(--text-faint);
+  font-size:16px;
+}
+.branch-box{
+  padding:12px 14px;
+  border:3px dashed var(--border);
+  background:var(--surface2);
+  font-size:12.5px;
+  color:var(--text-dim);
+}
+.branch-box .bb-lbl{
+  display:block;
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;
+  letter-spacing:0.04em;
+  color:var(--text-faint);
+  margin-bottom:6px;
+}
+@media (max-width:640px){
+  .branch-wrap{grid-template-columns:1fr;}
+  .branch-arrow{display:none;}
+  .branch-box{margin-top:8px;}
+}
+
+/* floating node detail panel */
+.node-panel{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:200;
+}
+.node-panel.open{display:block;}
+.node-panel-backdrop{
+  position:absolute;
+  inset:0;
+  background:rgba(32,31,51,0.45);
+}
+.node-panel-content{
+  position:absolute;
+  top:0;right:0;
+  height:100%;
+  width:min(440px, 92vw);
+  background:var(--surface);
+  border-left:5px solid var(--panel-accent, var(--c1));
+  box-shadow:-6px 0 0 0 rgba(32,31,51,0.2);
+  overflow-y:auto;
+  padding:26px 24px 40px;
+  animation:panelSlide 0.18s ease both;
+}
+@keyframes panelSlide{from{transform:translateX(24px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+@media (prefers-reduced-motion: reduce){.node-panel-content{animation:none;}}
+.node-panel-close{
+  position:absolute;
+  top:16px;right:16px;
+  width:32px;height:32px;
+  border:3px solid var(--border);
+  background:var(--surface2);
+  color:var(--text);
+  font-size:14px;
+  cursor:pointer;
+}
+.node-panel-tag{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  letter-spacing:0.04em;
+  color:var(--panel-accent, var(--c1));
+  margin:0 40px 10px 0;
+}
+.node-panel-title{
+  font-size:19px;
+  font-weight:700;
+  margin:0 40px 16px 0;
+  line-height:1.5;
+  color:var(--text);
+}
+.node-panel-body{font-size:14.5px;color:var(--text);}
+.node-panel-body p{margin:0 0 12px;}
+.node-panel-body ul{margin:0 0 12px;padding-left:20px;}
+.node-panel-body li{margin-bottom:6px;}
+.node-panel-body b{color:var(--panel-accent, var(--c1));}
+
+.pk-diagram{margin:6px 0 22px;}
+.pk-hub{
+  padding:13px 14px;
+  text-align:center;
+  font-weight:700;
+  font-size:13px;
+  border:3px solid var(--panel-accent, var(--c1));
+  background:var(--surface2);
+  color:var(--panel-accent, var(--c1));
+}
+.pk-arrow{text-align:center;color:var(--text-faint);font-size:14px;margin:4px 0;}
+.pk-branch-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.pk-item{
+  padding:10px 8px;
+  text-align:center;
+  font-size:11.5px;
+  line-height:1.5;
+  font-weight:600;
+  border:2px solid var(--border);
+  background:var(--surface2);
+  color:var(--text);
+}
+.pk-item small{display:block;font-weight:400;color:var(--text-faint);font-size:10px;margin-top:3px;}
+.pk-hub.small{font-size:11.5px;font-weight:600;padding:10px 12px;}
+.pk-branch-single{grid-column:1 / -1;}
+
+footer{
+  text-align:center;
+  padding:40px 24px 60px;
+  color:var(--text-faint);
+  font-size:11px;
+  line-height:2;
+}
+
+/* focus visibility */
+button:focus-visible, .acc-head:focus-visible, .mini:focus-visible, .qopt:focus-visible{
+  outline:2px solid var(--text);
+  outline-offset:2px;
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="eyebrow">DATADOG CLOUD SIEM · AWS FUNDAMENTALS</div>
+  <p style="margin:0 0 4px;"><a href="../cloud-siem-study-map-jp/" style="font-size:12px;color:var(--text-faint);text-decoration:underline;">日本語版はこちら →</a></p>
+  <h1>Cloud SIEM 完全理解地圖</h1>
+  <p class="sub">從「雲端供應商到底幫你防了什麼」到「一筆 log 怎麼變成一個被解決的案子」——用同一條資料的生命線，把六篇筆記串成一張圖。</p>
+</header>
+
+<nav class="tabs" id="tabs">
+  <div class="tabs-inner worldmap">
+    <button data-ch="1" class="active" style="grid-column:1;grid-row:1;"><span class="num">01</span>為什麼需要 SIEM</button>
+    <button data-ch="2" style="grid-column:3;grid-row:1;"><span class="num">02</span>資料怎麼變乾淨</button>
+    <button data-ch="3" style="grid-column:5;grid-row:1;"><span class="num">03</span>規則基礎</button>
+    <button data-ch="4" style="grid-column:7;grid-row:1;"><span class="num">04</span>MITRE 與進階調校</button>
+    <button data-ch="5" style="grid-column:7;grid-row:3;"><span class="num">05</span>Signal 怎麼調查</button>
+    <button data-ch="6" style="grid-column:5;grid-row:3;"><span class="num">06</span>衡量與持續改善</button>
+    <button data-ch="7" style="grid-column:3;grid-row:3;"><span class="num">07</span>總結地圖</button>
+    <button data-ch="8" style="grid-column:1;grid-row:3;"><span class="num">08</span>模擬題</button>
+
+    <div class="wpath-h" aria-hidden="true" style="grid-column:2;grid-row:1;"></div>
+    <div class="wpath-h" aria-hidden="true" style="grid-column:4;grid-row:1;"></div>
+    <div class="wpath-h" aria-hidden="true" style="grid-column:6;grid-row:1;"></div>
+    <div class="wpath-v" aria-hidden="true" style="grid-column:7;grid-row:2;"></div>
+    <div class="wpath-h" aria-hidden="true" style="grid-column:6;grid-row:3;"></div>
+    <div class="wpath-h" aria-hidden="true" style="grid-column:4;grid-row:3;"></div>
+    <div class="wpath-h" aria-hidden="true" style="grid-column:2;grid-row:3;"></div>
+  </div>
+
+  <div class="overview-divider" aria-hidden="true"><span>◆</span></div>
+  <div class="overview-wrap">
+    <button class="overview-tab" data-ch="9">◆ 架構總覽 · 一筆 Log 全追蹤</button>
+  </div>
+</nav>
+
+<main>
+
+<!-- ===================== CHAPTER 1 ===================== -->
+<section class="chapter active" data-chapter="1" style="--accent:var(--c1);--accent-bg:var(--c1-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Chapter 01 · Foundation</div>
+    <h2>為什麼需要 SIEM</h2>
+    <p class="lead">這一章回答一個問題：雲端供應商到底幫你防了什麼、又留了哪些洞讓你自己補？答案決定了你必須自己收集哪些資料，而這正是整條 Cloud SIEM 產線的原料來源。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>先講全名：Cloud SIEM 到底是什麼</h3>
+    <p><span class="term">SIEM</span> 全名是 <b>Security Information and Event Management（安全資訊與事件管理）</b>，是資安領域行之有年的一種系統類別，核心工作就是把分散在各系統的紀錄（log/event）集中起來，做關聯分析、找出可能的威脅。Datadog 的 <b>Cloud SIEM</b> 就是這類系統長在 Datadog 平台上的實作：直接沿用你已經送進 Datadog 的 log，即時分析，不用另外接一套獨立的資安系統。</p>
+    <div class="analogy">
+      <span class="lbl">Analogy</span>
+      把公司裡分散的監視器畫面（各系統的 log）全部接到同一間監控室（SIEM），由同一批人、用同一套規則盯著看，而不是每個部門各自看自己的畫面、各自判斷有沒有異常。
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>共享責任模型（Shared Responsibility Model）</h3>
+    <p>公有雲的安全從來不是「供應商全包」或「客戶全包」，而是依服務型態分工，且分界線會隨著服務越「代管」而往供應商那邊移動。</p>
+    <div class="analogy">
+      <span class="lbl">Analogy</span>
+      你租的公寓大樓裝了門禁、監視器、消防系統（供應商負責），但你家裡的門要不要上鎖、貴重物品放哪裡、備用鑰匙給了誰——這些永遠是你自己的責任，大樓管理員不會幫你管。
+    </div>
+    <div class="cmp">
+      <div class="col">
+        <h4>IaaS · 例如 AWS EC2</h4>
+        <p><span class="term">IaaS</span> 全名 <b>Infrastructure as a Service（基礎設施即服務）</b>：虛擬機器層級。客戶自己管作業系統、應用程式、網路規則；供應商只管實體機房、硬體、虛擬化層。客戶要負責的範圍最大。</p>
+      </div>
+      <div class="col">
+        <h4>PaaS / 全代管 · 例如 RDS、Lambda</h4>
+        <p><span class="term">PaaS</span> 全名 <b>Platform as a Service（平台即服務）</b>：供應商連作業系統、patch、底層維運都包了，客戶只要管自己的資料和存取設定。</p>
+      </div>
+      <div class="col">
+        <h4>不管哪種型態，永遠不變</h4>
+        <p><span class="term">資料</span>、<span class="term">身分（identity）</span>、<span class="term">存取權限（access policy）</span>永遠是客戶的責任，供應商不會幫你管員工的帳號權限設得對不對。</p>
+      </div>
+    </div>
+    <div class="example">
+      <span class="lbl">對監控的實際意義</span>
+      供應商會產生大量安全遙測資料（稽核 log、流量 log、威脅偵測結果），但<b>不會主動幫你送到 SIEM</b>。你要自己決定收集哪些來源、送到哪裡、保留多久——這就是「為什麼需要 SIEM」的答案：供應商給原料，你需要工具把原料集中、正規化、分析。
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>關鍵 Log 來源五大類</h3>
+    <p>Cloud SIEM 要發揮效果，必須看得到整個環境。點開每一類看範例：</p>
+
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">雲端稽核 Log（Cloud audit logs）<span class="chev">▸</span></div>
+      <div class="acc-body"><p>例如 AWS CloudTrail、GCP Audit Logs、Azure Activity Logs。記錄「誰對雲端環境做了什麼 API（<b>Application Programming Interface，應用程式介面</b>，系統之間互相溝通、下指令的介面）呼叫、什麼管理操作」，是雲端安全監控的地基。<br><b>範例：</b>有人用 <span class="term">IAM（Identity and Access Management，身分與存取管理）</span>使用者的憑證呼叫了 <code>DeleteBucket</code> API，CloudTrail 會記下是誰、什麼時候、從哪個 IP。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">身分與驗證 Log（Identity and authentication logs）<span class="chev">▸</span></div>
+      <div class="acc-body"><p>例如 Okta、Auth0、Azure AD。追蹤登入事件、<span class="term">MFA（Multi-Factor Authentication，多因子驗證）</span>挑戰、帳號活動。<br><b>專有名詞：<span class="term">Impossible Travel（不可能的移動）</span></b>——同一個帳號短時間內從相距很遠的兩個地點登入（例如 10 分鐘內先在台北登入、又在紐約登入），物理上不可能真的移動這麼快，代表帳號可能被盜用。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">網路流量 Log（Network flow logs）<span class="chev">▸</span></div>
+      <div class="acc-body"><p>例如 AWS <span class="term">VPC（Virtual Private Cloud，虛擬私有雲）</span> Flow Logs、Azure <span class="term">NSG（Network Security Group，網路安全群組）</span> Flow Logs、GCP VPC Flow Logs。只記錄連線的中繼資料（誰連到誰、哪個 port、多少流量），不記錄封包內容本身。<br><b>範例：</b>內部主機突然對外部陌生 IP 大量傳輸資料，可能是<span class="term">資料外洩（data exfiltration）</span>；內部主機間出現異常橫向連線，可能是<span class="term">橫向移動（lateral movement）</span>——攻擊者拿下一台機器後，再用它當跳板攻擊其他內部機器。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">SaaS 與協作工具 Log<span class="chev">▸</span></div>
+      <div class="acc-body"><p><span class="term">SaaS</span> 全名 <b>Software as a Service（軟體即服務）</b>：不用自己安裝維護，開瀏覽器登入就能用的雲端軟體。例如 Microsoft 365、Google Workspace、Slack、GitHub。追蹤使用者在協作平台和開發工具上的活動。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">端點與第三方安全工具 Log<span class="chev">▸</span></div>
+      <div class="acc-body"><p>例如 CrowdStrike、SentinelOne、Amazon GuardDuty。把專門安全工具本身已經產生的告警和發現（findings）轉送進來，Cloud SIEM 可以把這些現成的判斷結果也納入關聯分析。</p></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Content Pack：把「從零開始」變成「插電即用」</h3>
+    <p><span class="term">Content Pack</span> 是針對特定 log 來源打包好的一整組安全內容：<b>Detection Rules</b>、<b>Dashboards</b>、<b>Investigator widgets</b>、<b>Workflow Automation / SOAR blueprints</b>（SOAR = Security Orchestration, Automation and Response，安全編排、自動化與應變），有時還包含 parser。</p>
+
+    <div class="toggle-row">
+      <button class="active" onclick="toggleP(this,'nopack')">沒有 Content Pack</button>
+      <button onclick="toggleP(this,'haspack')">有 Content Pack</button>
+    </div>
+    <div class="toggle-panel active" id="nopack">
+      <div class="example"><span class="lbl">你要自己做</span>自己找資料源接進來 → 自己寫 Detection Rule → 自己刻 Dashboard → 自己建 Workflow → 每一項都要花時間驗證正不正確。</div>
+    </div>
+    <div class="toggle-panel" id="haspack">
+      <div class="example"><span class="lbl">範例：AWS CloudTrail Content Pack</span>啟用並接好 CloudTrail log 之後直接得到：偵測異常 <code>AssumeRole</code> 行為（角色假設異常，常見於權限提升攻擊）的 Detection Rule、CloudTrail 活動儀表板、針對 IAM user / IP 的調查視圖、自動通知或自動回應的 workflow。</div>
+    </div>
+
+    <p>另一種偏向威脅情報整合的例子：<b>Recorded Future Content Pack</b>，提供預建偵測規則、log enrichment（豐富化）、整合式 dashboard。</p>
+
+    <div class="examtip">
+      <span class="lbl">考試重點</span>
+      <ul style="margin:0;">
+        <li>常考「這個 Content Pack 依賴哪些資料來源」。</li>
+        <li><b>啟用 Content Pack 會自動更新 SIEM Index Filter</b>（把該 Content Pack 需要的 log 來源自動加進 filter，見第 2 章），不用手動另外設定。</li>
+        <li>Content Pack 的核心價值是縮短 <span class="term">time-to-value</span>（從裝好到真正產生價值的時間）。</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>附註：AWS Org 帳號串接（CloudFormation StackSet）</h3>
+    <p>要把整個 AWS Organization 底下的多個帳號一次接進 Cloud SIEM，Datadog 提供一份 <span class="term">CloudFormation StackSet</span>，靠 Organization 的 <b>trusted access（信任存取）</b> 和 <b>service-managed permissions（服務代管權限）</b>，讓管理帳號自動把必要的 IAM role 部署到每個成員帳號裡。</p>
+    <div class="examtip">
+      <span class="lbl">常見部署失敗原因</span>
+      部署設定裡的 <b>Specify regions（指定區域）</b> 這一步，只能選<b>單一區域</b>。IAM 是 AWS 的全域（global）服務，不分區域，但 StackSet 的部署機制是依「帳號 × 區域」建立 stack instance；如果選了多個區域，Datadog 的樣板會嘗試在多個區域各自建立同名的 IAM role，造成衝突，導致部署在還沒替任何帳號建立好 IAM role 之前就整個失敗。
+      <br><br>
+      容易混淆但<b>不是</b>原因的設定：Execution configuration 設成 Active（平行執行）只影響部署的速度/並行度；Deployment targets 設成整個 Organization 而非某個 OU（Organizational Unit，組織單位）只是佈署範圍大小的設定，這兩者都不會直接導致部署整個失敗，只有「多區域選擇」會。
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Cloud SIEM 在 Datadog Security 產品線中的定位</h3>
+    <p>Cloud SIEM 只是 Datadog Security 產品線的其中一塊，各自負責安全堆疊的不同層面：</p>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">Cloud Security（雲端安全態勢）<span class="chev">▸</span></div>
+      <div class="acc-body">
+        <p>關注基礎設施的「安全態勢（posture）」——重點是<b>設定本身安不安全</b>，跟 Cloud SIEM 關注的「有沒有被攻擊」是不同層面的問題。底下分三塊：</p>
+        <ul>
+          <li>
+            <b>Misconfigurations（設定錯誤）</b>：持續稽核資源設定，對照 <span class="term">CIS（Center for Internet Security，網際網路安全中心）</span>、<span class="term">PCI DSS（Payment Card Industry Data Security Standard，支付卡產業資料安全標準）</span>等合規框架寫好的檢查項目。
+            <div class="example" style="margin-top:8px;"><span class="lbl">範例</span>某個 S3 bucket 被設成「任何人都能公開讀取」，這是一個設定錯誤，不需要有人真的來偷資料，光是這個設定本身就已經是風險，Misconfigurations 會直接標出來。</div>
+          </li>
+          <li>
+            <b>Identity Risks（身分風險）</b>：偵測 IAM（Identity and Access Management）相關的風險。
+            <div class="example" style="margin-top:8px;"><span class="lbl">範例</span>某個 IAM 角色被授予了「管理員（admin）」等級的權限，但過去 90 天完全沒被使用過，這就是「權限過大（excessive permissions）」加「沒在用的憑證（unused credentials）」的組合，一旦這組憑證外洩，攻擊者能拿到的權限會遠超過實際需要。
+            </div>
+          </li>
+          <li>
+            <b>Vulnerabilities（弱點掃描）</b>：掃描容器和主機，找出已知的安全漏洞。
+            <div class="example" style="margin-top:8px;"><span class="lbl">範例</span>某台 EC2 主機上跑的一個開源套件版本，被掃描出對應到一個 <span class="term">CVE（Common Vulnerabilities and Exposures，通用漏洞揭露，業界對已知安全漏洞的統一編號系統）</span>，Vulnerabilities 會列出這台主機有這個弱點，即使它現在還沒被拿來攻擊。
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">Workload Protection（工作負載防護）<span class="chev">▸</span></div>
+      <div class="acc-body"><p>監控主機和容器上的檔案、網路、程序活動，抓執行期間（runtime，程式實際跑起來的當下）發生的威脅。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">App and API Protection（應用程式與 API 防護）<span class="chev">▸</span></div>
+      <div class="acc-body"><p>偵測並攔截應用層攻擊，例如 <span class="term">SSRF（Server-Side Request Forgery，伺服器端請求偽造）</span>——攻擊者誘騙伺服器代替他發出請求，去存取原本存取不到的內部資源；以及 <span class="term">SQL（Structured Query Language，結構化查詢語言）Injection（SQL 注入）</span>——把惡意 SQL 語法混進輸入欄位，操縱資料庫查詢。同時提供 API 探索與態勢管理。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">Code Security（程式碼安全）<span class="chev">▸</span></div>
+      <div class="acc-body"><p>在開發生命週期中找出自家程式碼和開源相依套件裡的弱點。</p></div>
+    </div>
+    <div class="example">
+      <span class="lbl">產品之間怎麼互相加值</span>
+      Cloud SIEM 可以拿其他安全產品的資訊來豐富自己的偵測結果。例如第 5 章會提到的 <b>Risk Insights</b>，就是把 Cloud SIEM 的 signal，加上 Cloud Security 的 Misconfigurations 和 Identity Risks 資料，合併算出一個統一的「實體風險分數」，不只看到「發生了什麼」，還能看到「這個實體本身有多危險」。
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 2 ===================== -->
+<section class="chapter" data-chapter="2" style="--accent:var(--c2);--accent-bg:var(--c2-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Chapter 02 · Pipeline</div>
+    <h2>資料怎麼變乾淨</h2>
+    <p class="lead">光有 log 送進來還不夠。這一章拆解 log 進來之後要經過哪些加工站，才會變成規則看得懂、查得到的乾淨資料。用同一筆 log 走完整條產線，一步一步看它長什麼樣。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>先搞懂 Pipeline 跟 Processor 是什麼關係</h3>
+    <p>在 Datadog 的 Log Management 裡，<span class="term">Pipeline（管線）</span>是一組<b>依序執行</b>的 <span class="term">Processor（處理器）</span>，設定在 <b>Logs → Configuration → Pipelines</b> 頁面。每個 processor 只負責一件很小的事，前一站處理完的結果會原封不動傳給下一站，跟工廠產線一樣：原始 log 是原料，processor 是一站一站的加工站，最後輸出的是可供 SIEM 分析的標準化 log。</p>
+    <p>下面用同一筆 log，走完整條產線的 5 個步驟，一步一步看它實際長什麼樣、每一步用哪個 processor：</p>
+
+    <div class="stepper-nav">
+      <button class="active" data-step="1" onclick="setStep(this,'pipe')">1. 原始 log</button>
+      <button data-step="2" onclick="setStep(this,'pipe')">2. Grok 解析</button>
+      <button data-step="3" onclick="setStep(this,'pipe')">3. OCSF 正規化</button>
+      <button data-step="4" onclick="setStep(this,'pipe')">4. GeoIP 豐富化</button>
+      <button data-step="5" onclick="setStep(this,'pipe')">5. Index Filter 放行</button>
+    </div>
+
+    <div class="step-panel active pipe-step" data-step="1">
+      <p><span class="term">Grok Processor</span> 之前，log 通常只是一串非結構化文字，規則沒辦法針對特定欄位比對。</p>
+      <div class="example"><span class="lbl">原始 log</span><code>2020-01-01 12:00:01 google oauth login success by John Doe from 1.2.3.4</code></div>
+    </div>
+    <div class="step-panel pipe-step" data-step="2">
+      <p><span class="term">Grok Processor</span>：從非結構化字串裡把要的欄位抓出來，就像把一句亂糟糟的話拆成一格一格可用欄位。</p>
+      <div class="analogy">
+        <span class="lbl">名字由來</span>
+        <b>Grok</b> 這個字來自 1961 年的科幻小說《異鄉異客（Stranger in a Strange Land）》，作者 Robert Heinlein 在書中創造這個詞，意思是「完全地、直覺地理解一件事的本質」，不只是表面知道，而是徹底吃透。日誌處理界（Logstash 最早這樣用，後來 Splunk、Datadog 都沿用同一套慣例）借用這個詞，因為這個 processor 做的事正是「讀懂一句本來雜亂無章的文字，理解裡面每一段代表什麼意義」，所以取名 Grok。
+      </div>
+      <p>Grok 的實際做法是用<b>預先定義好的樣式（pattern，本質上是包裝過的正規表示式 regex）</b>去比對文字，命中樣式的片段就會被抓出來、貼上欄位名稱。</p>
+      <div class="example"><span class="lbl">原始 log 對照 Grok pattern（示意）</span><pre><code>%{date("yyyy-MM-dd HH:mm:ss"):timestamp} %{word:evt.name} login %{word:evt.outcome} by %{data:usr.id} from %{ip:network.client.ip}</code></pre>
+      套用上面這樣的 pattern 到原始文字，就能解析成：
+      <pre><code>{
+  "usr.id": "John Doe",
+  "evt.category": "authentication",
+  "evt.name": "google oauth",
+  "evt.outcome": "success",
+  "network.client.ip": "1.2.3.4"
+}</code></pre>有了這些欄位，規則才能查 <code>evt.outcome:failure</code> 這種條件；如果沒有 Grok 解析，這整句話對規則來說只是一串看不懂結構的文字，沒辦法針對「outcome 是不是失敗」單獨比對。</div>
+    </div>
+    <div class="step-panel pipe-step" data-step="3">
+      <p><span class="term">OCSF Processor</span>：把來源特有的欄位 remap（重新對應）成跨來源一致的標準欄位。</p>
+      <div class="analogy">
+        <span class="lbl">來源背景</span>
+        <b>OCSF（Open Cybersecurity Schema Framework）</b>是 2022 年由 <b>AWS</b> 和 <b>Splunk</b> 共同發起、捐給開源社群的一套「資安事件資料綱要（schema）」標準，後續 Datadog、CrowdStrike、IBM 等上百家資安廠商陸續加入採用。<span class="term">Schema（綱要）</span>白話講就是「一份規定資料要長什麼樣子的說明書」：規定一個「登入事件」該有哪些欄位、欄位該叫什麼名字、值該是什麼型態，讓所有廠商都照同一份說明書出貨，不再各講各的話。
+      </div>
+      <p>OCSF 把事件分成不同<b>類別（class）</b>，例如第 1 章提過的 <b>Authentication（驗證）</b>、<b>API Activity（API 活動）</b>、<b>Account Change（帳號變更）</b>，每個類別底下規定好一組標準屬性名稱。這裡示範「使用者」這個屬性，在 OCSF 裡標準名稱是 <code>actor.user.name</code>，不管來源是 CloudTrail、Okta 還是這裡的 Google OAuth log，Processor 都會把各自原本的欄位對應過去：</p>
+      <div class="example"><span class="lbl">OCSF 對照（同一個「使用者」概念，各來源原始欄位名稱 → 統一對應到 <code>actor.user.name</code>）</span>
+        <div class="table-wrap"><table>
+          <tr><th>概念</th><th>AWS CloudTrail</th><th>Okta</th><th>GitHub</th><th>OCSF 標準欄位</th></tr>
+          <tr><td>使用者</td><td><code>userIdentity.arn</code></td><td><code>actor.displayName</code></td><td><code>actor</code></td><td rowspan="3"><code>actor.user.name</code><br><code>src_endpoint.ip</code><br><code>class_uid</code> / <code>activity_id</code></td></tr>
+          <tr><td>IP 位址</td><td><code>sourceIPAddress</code></td><td><code>client.ipAddress</code></td><td><code>actor_ip</code></td></tr>
+          <tr><td>事件類型</td><td><code>eventName</code></td><td><code>eventType</code></td><td><code>action</code></td></tr>
+        </table></div>
+        沒有 OCSF，這三個來源要各寫一套規則、各記一套欄位名稱；有了 OCSF，一條規則就能跨三個來源用。<b>這是超高頻考點。</b>
+      </div>
+    </div>
+    <div class="step-panel pipe-step" data-step="4">
+      <p><span class="term">GeoIP Processor</span>：根據 IP 位址補上地理位置資訊。</p>
+      <div class="analogy">
+        <span class="lbl">實際怎麼查到地理位置</span>
+        GeoIP Processor 背後接的是一份<b>IP 位址對照地理區塊的資料庫</b>（例如業界常見的 MaxMind GeoLite2，Datadog 內建維護這類資料庫），裡面記錄了「哪一段 IP 範圍是分配給哪個國家/城市的網路業者」。Processor 拿到一個 IP，就去資料庫裡查它落在哪一段範圍，回傳對應的國家、城市、經緯度。這跟你查詢「這支電話號碼的區碼是哪個城市」的邏輯一樣：不是即時去問誰，而是查一份已知的對照表。
+      </div>
+      <div class="example"><span class="lbl">豐富化後多出的欄位</span><pre><code>{
+  "network.client.ip": "1.2.3.4",
+  "country": "Japan",
+  "city": "Tokyo"
+}</code></pre>用途：Impossible Travel 偵測（需要先知道每筆登入的地理位置才能算兩地距離）、新國家登入偵測、地圖化顯示攻擊來源。</div>
+    </div>
+    <div class="step-panel pipe-step" data-step="5">
+      <p><span class="term">SIEM Index Filter</span> 決定這筆已經處理乾淨的 log 要不要送進 Cloud SIEM index。</p>
+      <div class="analogy">
+        <span class="lbl">「通過 filter」實際上是什麼意思</span>
+        SIEM Index Filter 本質上就是一條<b>查詢語法（跟你平常在 Datadog 搜尋 log 用的語法一樣）</b>，設定在 <b>Logs → Configuration → Indexes → 該 SIEM index → Index filter</b> 裡。「通過 filter」的意思是：這筆 log 身上帶的欄位/tag，符合這條查詢條件。
+      </div>
+      <div class="example">
+        <span class="lbl">範例：一條實際的 filter query 可能長這樣</span>
+        <pre><code>source:(cloudtrail OR okta OR github OR guardduty)</code></pre>
+        這條 filter 的意思是：只要這筆 log 的 <code>source</code> 標籤是 CloudTrail、Okta、GitHub、GuardDuty 其中之一，就算「通過」，會被放行進 SIEM index。如果今天有一筆 log 是 <code>source:my-custom-app</code>，而 filter 裡沒有這個來源，這筆 log 就<b>不會</b>進入 SIEM index，任何 Detection Rule 都看不到它。
+      </div>
+      <div class="flowbox">
+        <div class="fb">加工完的 log<br><span style="color:var(--text-faint);">帶著 source、tag 等屬性</span></div><span class="farrow">→</span>
+        <div class="fb">比對 SIEM Index Filter 的查詢條件</div><span class="farrow">→</span>
+        <div class="fb">屬性符合條件：放行進 SIEM index，交給 Detection Rule 評估</div>
+      </div>
+      <p><b>怎麼讓一筆 log「通過」：</b>① 手動到 Logs Index Configuration 頁面，把該來源的 <code>source</code>（或其他自訂 tag）加進 filter 查詢條件；② 更省事的做法是啟用對應的 <b>Content Pack</b>（見第 1 章），Datadog 會自動把該 Content Pack 需要的來源加進這條 filter，不用手動編輯查詢語法。</p>
+      <p>只要通過 filter，log 就會被存進 SIEM index——<b>即使沒有觸發任何 Detection Rule，也還是會被留下來供之後回頭調查</b>。不符合 filter 的 log，完全不會被任何 Detection Rule 看到。</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>OOTB Pipeline 是唯讀的起點</h3>
+    <p><span class="term">OOTB</span>（Out-Of-The-Box，開箱即用）：Datadog 已經幫常見來源做好預設 pipeline，例如 AWS CloudTrail pipeline、AWS GuardDuty pipeline，會自動解析常見欄位（<code>eventName</code>、<code>sourceIPAddress</code>、<code>userIdentity</code>）。</p>
+    <div class="examtip"><span class="lbl">重要細節</span>這類 OOTB pipeline 通常<b>唯讀</b>，不能直接改，但可以在它後面<b>串接自訂處理</b>，補上組織特有的解析需求。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Log 保留分層</h3>
+    <p>可以想成資料的「熱度分層」，背後的邏輯是<b>查詢速度跟儲存成本互相拉扯</b>：查得越快的層級，成本越高，所以不會把所有 log 都無限期放在最貴的那一層。</p>
+    <div class="table-wrap"><table>
+      <tr><th>層級</th><th>適用場景</th><th>查詢速度</th></tr>
+      <tr><td><b>Standard indexing</b></td><td>頻繁查詢的熱資料，能負擔較多運算資源</td><td>最快</td></tr>
+      <tr><td><b>Flex Logs</b></td><td>不常查、但需要保留且可搜尋，最長 <b>15 個月</b></td><td>中等</td></tr>
+      <tr><td><b>Log Archives</b></td><td>合規/長期儲存，很少查詢</td><td>最慢（要先還原）</td></tr>
+    </table></div>
+    <div class="example">
+      <span class="lbl">範例：一套典型的分層策略</span>
+      最近 30 天的 log 放 Standard indexing（分析師天天在查，要快）；30 天到 15 個月的 log 轉存到 Flex Logs（合規或事後鑑識偶爾會查，但不用即時）；超過 15 個月、只是為了滿足法規要求留存的 log，轉進 Log Archives（幾乎不會查，查的時候先花時間還原）。這三層是在 <b>Logs → Configuration → Indexes</b> 裡針對每個 index 設定保留天數/轉存規則。
+    </div>
+    <p>不管選哪一層，Cloud SIEM 都在資料<b>進來的當下即時分析</b>，威脅偵測不會因為選了便宜的儲存層級而延遲——即時分析發生在 log 剛進來的那一刻，之後要把它歸檔到哪一層只是「事後儲存」的決定，兩者是分開的兩件事。<span class="term">Security Signal</span> 本身保留 <b>15 個月</b>。</p>
+    <div class="examtip">
+      <span class="lbl">Flex Logs 的限制（易忽略考點）</span>
+      <p style="margin:0 0 10px;"><b>Flex Logs 不支援 Log Monitor，官方表明不會支援</b>，原因兩個：① 查詢速度較慢，Monitor 需要近乎即時掃描，Flex 延遲會讓告警不即時；② 會大量消耗 Flex 的運算資源（Query Pool），Monitor 持續反覆查詢會把額度吃光。<b>Watchdog 也不支援 Flex Logs</b>（同樣需要持續掃描）。</p>
+      <p style="margin:0;"><b>替代方案：</b>先用 <span class="term">Metrics from Logs</span> 把想監控的模式轉成 metric，再對 metric 設 Monitor。一句話記憶：Flex Logs 適合「留著以後回查」，不適合「即時盯著它告警」。</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Index 排序：SIEM index 必須排第一</h3>
+    <p>Log 經過 pipeline 之後要決定進哪個 index。一個帳號底下通常設有<b>好幾個 index</b>（例如一般應用程式 log 的 index、稽核用的 index），Cloud SIEM 也有自己專用的 index（例如 <code>cloud-siem-xxxx</code>），而這些 index 在設定頁面裡是<b>有先後順序</b>的。</p>
+    <div class="analogy">
+      <span class="lbl">為什麼順序會影響「收不收得到」</span>
+      每個 index 都有自己的篩選條件、每日配額（quota）、取樣規則。log 會依照 index 排列的順序被依序檢查，排在前面的 index 如果配額被用完、或設定了排除規則，可能會提早把某些 log 攔下來或丟棄，導致排在後面的 index（包含 SIEM index）根本沒機會再看到這筆 log。
+    </div>
+    <div class="examtip"><span class="lbl">考試重點</span><b>Cloud SIEM index 必須排在第一位</b>，確保它一定能優先拿到符合條件的 log，不會被其他 index 的配額或排除規則搶先攔截。畫面可能出現警告「The Cloud SIEM index is not in the first」，看到要知道代表 index 順序設定錯誤，需要到 <b>Logs → Configuration → Indexes</b> 頁面手動把 SIEM index 拖到最上面（reorder）。</div>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 3 ===================== -->
+<section class="chapter" data-chapter="3" style="--accent:var(--c3);--accent-bg:var(--c3-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Chapter 03 · Rule Basics</div>
+    <h2>規則基礎：類型、元件、八種偵測方法</h2>
+    <p class="lead">資料乾淨之後，真正的判斷邏輯在這裡發生：signal 是什麼、規則分幾種、共用元件有哪些、又用什麼方法認定「這是異常」。這些是下一章 MITRE 對應和進階調校的地基。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Signal ≠ 原始 log</h3>
+    <p>偵測規則定義 Cloud SIEM 要對即時進來的 log 套用什麼邏輯，符合條件就產生 <span class="term">Security Signal</span>。</p>
+    <div class="analogy"><span class="lbl">Analogy</span>log 是原始證據，規則是偵探的推理邏輯，signal 是偵探破案後寫出的「這裡有問題」報告。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>三種規則類型</h3>
+    <div class="grid g3">
+      <div class="mini" tabindex="0" onclick="toggleMini(this)">
+        <div class="mt">Real-time rules</div>
+        <div class="md">log 一進來就持續監控，條件符合馬上產生 signal</div>
+        <div class="full">範例：規則正在算「5 分鐘內失敗登入次數」，這個累計和監控是即時在跑的。</div>
+      </div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)">
+        <div class="mt">Scheduled rules</div>
+        <div class="md">每隔固定時間跑一次查詢，適合抓拉得很長的威脅</div>
+        <div class="full">範例：<span class="term">DNS（Domain Name System，網域名稱系統）</span> tunneling（把資料藏在 DNS 查詢裡外送）、low-and-slow brute force（故意放慢速度分散嘗試，躲過短時間門檻）。這類攻擊要拉長時間範圍定期回顧才抓得到。</div>
+      </div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)">
+        <div class="mt">Historical jobs</div>
+        <div class="md">對歷史資料跑一次性查詢，不是持續監控</div>
+        <div class="full">用途：backtesting（回測）新規則——「如果這條規則兩個月前就存在，會不會抓到某個已知事件」，驗證規則會不會漏抓或抓太多。</div>
+      </div>
+    </div>
+    <p style="margin-top:14px;">Cloud SIEM 內建幾百條 <span class="term">OOTB 規則</span>，由 Datadog Security Research 團隊持續維護，新規則自動匯入帳號。<b>Rules List</b> 可用 source 篩選規則涵蓋狀況。</p>
+    <div class="examtip">
+      <span class="lbl">OOTB 規則跟自訂規則的關係（容易誤會的細節）</span>
+      <ul style="margin:0;">
+        <li>OOTB 規則由 Datadog 持續開發，更新<b>自動</b>匯入帳號；自訂規則是使用者自己建立維護的，<b>不會</b>收到 Datadog 的自動更新，要調整只能自己手動改。</li>
+        <li>兩者是<b>互相獨立</b>的規則，不存在「誰蓋過誰」的優先權機制。就算自訂規則和某條 OOTB 規則針對同一種活動，兩條規則會各自獨立評估、各自可能產生各自的 signal，自訂規則<b>不會</b>自動取代或蓋過 OOTB 規則。</li>
+        <li>建立一條功能類似的自訂規則，<b>不會</b>讓對應的 OOTB 規則自動被移除，兩者會一起繼續運作，除非使用者自己手動停用其中一條。</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>規則的五個共用元件</h3>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">Detection method（偵測方法）<span class="chev">▸</span></div>
+      <div class="acc-body"><p>定義 Cloud SIEM 怎麼評估 log，共 8 種方法，見下方章節。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">Search queries（搜尋查詢）<span class="chev">▸</span></div>
+      <div class="acc-body"><p>指定要符合哪些 log 條件。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">Conditions（觸發條件）<span class="chev">▸</span></div>
+      <div class="acc-body"><p>決定什麼時候要產生 signal，以及嚴重程度（severity）等級。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">Playbook（應變手冊）<span class="chev">▸</span></div>
+      <div class="acc-body"><p>包含規則名稱、調查用的說明文字、標籤（tag），其中包含 MITRE ATT&amp;CK 對應標籤（見下一章開頭）。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">Suppressions（抑制條件）<span class="chev">▸</span></div>
+      <div class="acc-body">
+        <p>定義哪些狀況下<b>不要產生 signal</b>，用來排除已知誤判，降低 alert fatigue。抑制的是「signal 這一層」，log 本身完全沒被刪除，之後仍可回頭查詢。</p>
+        <div class="table-wrap"><table>
+          <tr><th>Query 類型</th><th>比對對象</th><th>作用時機</th></tr>
+          <tr><td><b>Suppression query</b></td><td>signal 的屬性</td><td>signal 已經因規則條件符合而準備產生<b>之後</b></td></tr>
+          <tr><td><b>Data exclusion query</b></td><td>原始資料（log/event）的屬性</td><td>規則<b>還沒評估</b>這筆資料<b>之前</b></td></tr>
+        </table></div>
+        <p>兩者用同一套查詢語法，差別純粹在比對對象；也都只對<b>這一條規則</b>生效，跟能不能跨多條規則無關。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>八種偵測方法</h3>
+    <p>點開每張卡看範例：</p>
+    <div class="grid g4">
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">Threshold</div><div class="md">次數超過門檻</div><div class="full">範例：5 分鐘內超過 10 次登入失敗。所有人共用同一條固定門檻線。</div></div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">New Value</div><div class="md">從沒出現過的值</div><div class="full">範例：某使用者第一次從「從沒登入過的國家」登入。</div></div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">Anomaly</div><div class="md">動態門檻，比自己的歷史</div><div class="full">範例：平常每小時 50 次 API 突然變 500 次。每個實體有自己的基準線，跟 Threshold 的固定門檻不同。</div></div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">Content Anomaly</div><div class="md">內容異常，不是次數</div><div class="full">範例：某 API 呼叫平常參數模式固定，某次內容結構突然很不一樣，即使次數沒變多。</div></div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">Impossible Travel</div><div class="md">地理位置不合理</div><div class="full">同一帳號的存取事件發生在兩地，距離在經過時間內人類不可能移動過去。</div></div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">Third Party</div><div class="md">轉送外部工具告警</div><div class="full">例如 Amazon GuardDuty 已產生的告警，轉送進 Datadog 當作 signal 呈現。</div></div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">Signal Correlation</div><div class="md">多個 signal 合併成一個</div><div class="full">範例：單獨看「新裝置登入」和「大量下載檔案」都只是低嚴重度提醒，關聯在一起信心度就高很多。</div></div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">Sequence</div><div class="md">有順序的一連串事件</div><div class="full">範例：假設角色 → 權限提升 → 存取資料，依序發生且在合理時間內才判定為完整攻擊序列。</div></div>
+    </div>
+  </div>
+
+</section>
+
+<!-- ===================== CHAPTER 4 ===================== -->
+<section class="chapter" data-chapter="4" style="--accent:var(--c4);--accent-bg:var(--c4-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Chapter 04 · MITRE &amp; Advanced Tuning</div>
+    <h2>MITRE ATT&amp;CK 與進階調校</h2>
+    <p class="lead">規則基礎搞懂之後，這裡看規則怎麼跟業界共同的攻擊手法語言（MITRE ATT&amp;CK）對應，再看三個容易混淆的「擋東西」機制，最後是規則調校與版本比較。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>MITRE ATT&amp;CK 從哪來、解決什麼問題</h3>
+    <p><span class="term">MITRE ATT&amp;CK</span> 全名 <b>Adversarial Tactics, Techniques, and Common Knowledge（對手戰術、技術與常識）</b>。</p>
+    <div class="analogy">
+      <span class="lbl">來源背景</span>
+      <b>MITRE Corporation</b> 是美國一家非營利研究機構，長期替美國政府經營國防、資安相關的研發中心。2013 年，MITRE 內部一個叫 FMX 的研究計畫開始系統性整理「真實攻擊者到底都做了哪些事」，方法是分析大量真實入侵事件和 APT（進階持續性威脅組織）的活動紀錄，把觀察到的手法歸納分類，2015 年公開發布成 ATT&amp;CK 框架。它要解決的問題是：<b>資安圈長期沒有一套共同語言</b>，同一種攻擊手法，不同廠商、不同分析師可能用完全不同的說法描述，導致經驗沒辦法累積、規則沒辦法互通。ATT&amp;CK 之後，「T1110 是暴力破解」變成業界共識，不管你是哪家公司的分析師，看到這個代號就知道在講什麼。
+    </div>
+    <p>框架拆兩層：</p>
+    <ul>
+      <li><b>Tactic（戰術）</b>：攻擊者的高層次目標，也就是「為什麼」要做這件事。企業版矩陣（Enterprise Matrix）大致依攻擊生命週期排序，包含 Initial Access（初始入侵）、Execution（執行）、Persistence（持久化）、Privilege Escalation（權限提升）、Defense Evasion（防禦規避）、Credential Access（憑證存取）、Discovery（探索）、Lateral Movement（橫向移動）、Collection（蒐集）、Exfiltration（資料外洩）、Impact（造成影響）等十幾種。</li>
+      <li><b>Technique（技術）</b>：達成該戰術目標的具體手法，也就是「怎麼做」，每個技術都有一個固定編號，格式是 <code>T####</code>，更細的子技術則是 <code>T####.###</code>。</li>
+    </ul>
+    <p>可以想成 Tactic 是章節標題，Technique 是章節底下的具體招式，一個 Tactic 底下通常對應好幾個 Technique。</p>
+
+    <div class="example">
+      <span class="lbl">範例：一次完整攻擊，怎麼對應到多個 Tactic</span>
+      單一 Technique 只是攻擊鏈裡的一步，真實攻擊通常橫跨好幾個 Tactic，串起來才是完整故事：
+      <div class="flowbox" style="margin-top:10px;">
+        <div class="fb">Initial Access<br><span style="color:var(--text-faint);">T1566 釣魚郵件</span></div><span class="farrow">→</span>
+        <div class="fb">Execution<br><span style="color:var(--text-faint);">T1059 執行惡意腳本</span></div><span class="farrow">→</span>
+        <div class="fb">Persistence<br><span style="color:var(--text-faint);">T1078 濫用合法帳號</span></div><span class="farrow">→</span>
+        <div class="fb">Credential Access<br><span style="color:var(--text-faint);">T1110 暴力破解</span></div><span class="farrow">→</span>
+        <div class="fb">Exfiltration<br><span style="color:var(--text-faint);">資料外送</span></div>
+      </div>
+      這也呼應上一章介紹過的 <b>Sequence 偵測方法</b>：假設角色 → 權限提升 → 存取資料的序列規則，本質上就是在偵測攻擊者沿著這條 Tactic 鏈往下走的過程。
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Cloud SIEM 怎麼用它：靠 tag 對應，不是靠額外模組</h3>
+    <div class="examtip">
+      <span class="lbl">考試陷阱重點</span>
+      Detection Rule 跟 MITRE ATT&amp;CK 的對應，是靠<b>在規則上加 tag</b> 完成的，不是靠另外一個獨立模組：
+      <pre><code>tactic:credential-access
+technique:brute-force
+security:attack</code></pre>
+      signal 產生時，規則身上帶的這些 tag 會直接顯示在 signal 上。題目問「MITRE mapping 是怎麼實現的」，正確答案就是「Detection Rule 的 tags」。
+    </div>
+    <div class="examtip">
+      <span class="lbl">易忽略細節：三個 tag 要配對出現</span>
+      光加 <code>tactic:</code> 和 <code>technique:</code> 還不夠，規則必須<b>同時</b>帶有 <code>security:attack</code> 這個 tag，MITRE ATT&amp;CK Map 才會把這條規則納入視覺化。如果自訂規則只設了 <code>tactic:</code>/<code>technique:</code> 卻漏了 <code>security:attack</code>，規則本身照樣正常運作、正常產生 signal，就是不會出現在地圖上——這跟規則是不是 OOTB、用哪種偵測方法完全無關，純粹是漏了這個 tag。
+    </div>
+    <p><span class="term">MITRE ATT&amp;CK Map</span>：把你帳號裡所有偵測規則畫成一張以 tactic（橫軸）/technique（縱軸，或反過來）為座標的熱圖，顏色越深代表對應到該 technique 的規則數量越多、涵蓋越密集；顏色淺甚至空白，代表「如果攻擊者真的用了這個技術，你可能完全沒有規則會響」。示意如下（僅示意，非真實資料）：</p>
+    <div class="heatmap" id="heatmap"></div>
+    <div class="heat-legend"><span class="lg" style="background:rgba(201,45,143,0.15);"></span>低涵蓋（缺口，考慮補自訂規則）<span class="lg" style="background:rgba(201,45,143,0.55);margin-left:14px;"></span>中涵蓋<span class="lg" style="background:rgba(201,45,143,1);margin-left:14px;"></span>高涵蓋</div>
+    <p style="margin-top:12px;">這張圖回答的關鍵問題是「如果攻擊者用了技術 X，我有沒有規則能抓到它？」，用來找出涵蓋率的缺口，決定要優先自訂寫哪些規則來補洞——這個動作直接銜接到第 6 章會教的<b>持續改善循環</b>：定期回看這張圖，是「追新」的具體做法之一。</p>
+    <p style="margin-top:12px;color:var(--text-dim);">把這套業界共同語言放在偵測方法之後，是因為上一章的三種規則類型、五個共用元件、八種偵測方法，最終都會被貼上這裡的 tactic/technique tag 分類——回頭對照上一章，才知道每個偵測方法實際上是在防哪一種攻擊手法。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>三個易混淆機制：Filter / Rule / Suppression</h3>
+    <p>這三個常被出成情境判斷題，考你分辨「這是哪個機制在起作用」：</p>
+    <div class="table-wrap"><table>
+      <tr><th>機制</th><th>作用時機</th><th>作用範圍</th><th>效果</th></tr>
+      <tr><td><b>SIEM Index Filter</b></td><td>log 進 SIEM index<b>之前</b></td><td>帳號 / index 層級，影響<b>所有</b>規則</td><td>不符合的 log 完全不會被任何規則評估</td></tr>
+      <tr><td><b>Detection Rule 的 Data Exclusion Query</b></td><td>log 已在 SIEM index，這條規則評估<b>之前</b></td><td><b>單一規則</b>層級</td><td>這批資料對「這條規則」等於不存在</td></tr>
+      <tr><td><b>Suppression Query</b></td><td>signal 即將產生的那一刻</td><td>單一規則層級</td><td>signal 被靜音，底層 log 完全沒被動到</td></tr>
+    </table></div>
+    <div class="examtip"><span class="lbl">口訣</span>Filter 管「能不能進 SIEM」，Rule（含 Data Exclusion）管「這條規則看不看得到」，Suppression 管「符合條件之後要不要吵你」。</div>
+
+    <p style="margin-top:18px;"><b>時序圖：同一筆 log 依序會經過這三個關卡</b></p>
+    <div class="timeline">
+      <div class="tseg"><div class="tt">CHECKPOINT 1</div><div class="tm">SIEM Index Filter</div><div class="td">帳號層級關卡。比對 log 的 <code>source</code>/tag。<br><b>沒通過</b> → log 完全不進 SIEM index，之後兩關都輪不到它，任何規則都看不到。</div></div>
+      <div class="tseg"><div class="tt">CHECKPOINT 2</div><div class="tm">Data Exclusion Query</div><div class="td">單一規則的關卡。比對進來的原始資料屬性。<br><b>沒通過</b> → 這條規則直接跳過這筆資料，連累計次數都不算，但 log 仍在 SIEM index，其他規則正常看得到。</div></div>
+      <div class="tseg"><div class="tt">CHECKPOINT 3</div><div class="tm">Suppression Query</div><div class="td">單一規則的最後一關。比對<b>即將產生的 signal</b> 屬性。<br><b>命中</b> → signal 被靜音，不進 Signal Explorer；<b>沒命中</b> → signal 正常產生。</div></div>
+    </div>
+
+    <div class="example">
+      <span class="lbl">範例：同一個「已知誤判」，用不同關卡處理，結果差很多</span>
+      情境：服務帳號 <code>backup-bot</code> 每天跑排程備份，固定會先登入失敗一次再重試成功，是團隊已知的誤判來源，規則是「5 分鐘內登入失敗超過 10 次」的 Threshold 規則。
+      <div class="cmp" style="margin-top:12px;grid-template-columns:1fr 1fr;">
+        <div class="col">
+          <h4>若在規則上設 Data Exclusion Query</h4>
+          <p>設定 <code>-usr.id:backup-bot</code>。<code>backup-bot</code> 的登入失敗 log 對「這條規則」來說從一開始就<b>不存在</b>，完全不計入次數累計。就算它一天登入失敗 100 次，這條規則也永遠不會因為它被觸發。其他規則（例如 Impossible Travel）不受影響，一樣正常評估這筆 log。</p>
+        </div>
+        <div class="col">
+          <h4>若改成設 Suppression Query</h4>
+          <p>設定比對 signal 屬性 <code>usr.id:backup-bot</code>。規則仍然<b>正常累計次數</b>，一旦達到 10 次的門檻，規則邏輯判定「這裡要產生 signal」，只是在最後一刻被 Suppression Query 攔下來，讓這個 signal 不出現在 Signal Explorer。底層 log 和「差一點觸發」的過程完全沒受影響，之後仍可回頭查詢。</p>
+        </div>
+      </div>
+      <p style="margin-top:12px;">兩種做法最後「使用者看不到告警」的結果一樣，但發生的<b>階段</b>完全不同：Data Exclusion 是讓規則從頭到尾當這筆資料不存在；Suppression 是讓規則走完整個判斷流程、真的判定要告警了，才在終點前臨門一腳擋下來。</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>規則調校、自訂規則與版本比較</h3>
+    <p>認識完偵測方法之後，接下來是怎麼把規則養成適合自己環境的樣子：OOTB 規則是很好的起點，但通常需要依照自己環境調校，可以直接在 OOTB 規則上新增已知誤判的 suppression、調整 severity 等級、更新 playbook 加上組織專屬的調查指引。對於 OOTB 規則沒涵蓋到、但組織特有的威脅，可以用同一套元件和偵測方法建立<b>完全自訂的規則</b>——因為 OCSF 正規化，針對 OCSF 屬性寫的自訂規則能同時適用多個 log 來源，一條寫得好的自訂規則就能提供很廣的涵蓋範圍。</p>
+    <div class="example">
+      <span class="lbl">Rule Version History：比較規則新舊版本的設定差異</span>
+      規則編輯器內建版本歷史功能，調校規則之後（例如把查詢範圍從單一 environment 擴大到多個 environment），可以用 <b>Open Version Comparison</b> 選項，直接把目前版本和先前版本的設定<b>並排比較</b>，用顏色標出差異（紅色代表被移除的設定、綠色代表新增的設定）。
+      <br><br>
+      這跟第 6 章會提到的 <b>Datadog Audit Trail</b> 不同：Audit Trail 記錄的是「誰在什麼時候改了規則」這種平台層級的操作事件，Rule Version History 才是規則編輯器裡直接比較兩個版本設定內容差異的工具。
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 5 ===================== -->
+<section class="chapter" data-chapter="5" style="--accent:var(--c5);--accent-bg:var(--c5-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Chapter 05 · Investigation</div>
+    <h2>Signal 產生後怎麼調查</h2>
+    <p class="lead">規則觸發之後，你拿到的不是一堆雜亂 log，而是已經整理好的 signal。這一章看四個工具怎麼從「發生了什麼」一路查到「這個實體有多危險」。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Signal 不是原始 log</h3>
+    <div class="analogy"><span class="lbl">Analogy</span>log 是散落的證據碎片，signal 是已經把碎片拼起來、附上偵探筆記的案卷。</div>
+    <p><b>基本產生流程：</b>log 進來 → 通過 SIEM Index Filter → 套用 Detection Rule → 條件符合 → 產生 signal。</p>
+    <p>Signal 有兩個關鍵狀態欄位：<b>Severity</b>（Critical / High / Medium / Low / Info）和<b>分流狀態</b>：</p>
+    <div class="status-flow">
+      <span class="stbadge open">Open</span><span class="sarrow">→</span>
+      <span class="stbadge review">Under Review</span><span class="sarrow">→</span>
+      <span class="stbadge archived">Archived</span>
+    </div>
+    <p>可指派給特定使用者當負責人，並保留 <b>15 個月</b>。點開任一 signal 會打開側邊面板：</p>
+    <div class="panel-mock">
+      <div class="ph">SIGNAL DETAIL PANEL</div>
+      <div class="pr"><div class="pk">Overview</div><div class="pv">發生了什麼事的概要</div></div>
+      <div class="pr"><div class="pk">Playbook</div><div class="pv">建議怎麼調查 / 回應</div></div>
+      <div class="pr"><div class="pk">Related Logs<br><span style="font-weight:400;color:var(--text-faint);">(又稱 What Happened)</span></div><div class="pv">顯示符合規則查詢條件、實際觸發這個 signal 的那些原始 log，含時間戳記和相關屬性。要看「這個 signal 是被哪幾筆 log 觸發的」找這裡。</div></div>
+      <div class="pr"><div class="pk">Related Signals</div><div class="pv">靠比對欄位/屬性值是否相同（例如 source IP、使用者身分）找出的<b>其他</b> signal，讓分析師從一個 signal 出發，抓出同一個攻擊者牽涉到的其他活動。</div></div>
+      <div class="pr"><div class="pk">Entities</div><div class="pv">牽涉到的使用者、IP、IAM 實體等</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>四個調查工具，由淺入深</h3>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">Signals Explorer<span class="chev">▸</span></div>
+      <div class="acc-body"><p>檢視、搜尋、篩選、關聯 signal 的介面，可依 severity、source、rule、tag、時間範圍或任何屬性篩選。是調查的起點。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">Investigator<span class="chev">▸</span></div>
+      <div class="acc-body"><p>圖形化介面，追蹤實體之間的關係和<span class="term">攻擊路徑（Attack Path）</span>：攻擊者從一個立足點，經過一連串動作，最終達到目標的整條路徑。回答：「這個身分做了什麼？跟哪些服務互動過？角色被假設之後發生了什麼？成功了嗎？」支援 AWS、GCP、Azure、Datadog、Kubernetes。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">Risk Insights<span class="chev">▸</span></div>
+      <div class="acc-body"><p>把安全資料彙整成「個別實體」（IAM 使用者、S3 bucket、EC2 instance、GitHub repo 等）的統一風險檔案。風險分數根據該實體過去 <b>14 天</b> 內相關 signal 的嚴重程度和頻率計算，若同時啟用 Cloud Security，Misconfigurations 和 Identity Risks 也會納入計分。回答：「我的環境現在哪些實體風險最高？」</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">Bits AI Security Analyst<span class="chev">▸</span></div>
+      <div class="acc-body"><p>AI 自動化初步分流：分析觸發的 log 和脈絡、摘要關鍵證據、說明判斷「良性還是可疑」的推理、建議下一步。以 MITRE ATT&amp;CK 為基礎，能跳轉多個 IOC、查歷史資料。<b>不取代分析師判斷</b>，而是加速初步評估，實際效益是更快的 MTTA。<br><b>範例：</b>Amazon SNS enumeration signal，Bits AI 判斷 SUSPICIOUS，證據包含帳號盜用指標、匿名代理伺服器基礎設施、系統性 AWS 服務偵察。</p></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>威脅情資（Threat Intelligence）與 IOC</h3>
+    <p><span class="term">IOC（Indicators of Compromise，危害指標）</span>：可觀察到的具體證物，例如 IP、網域、檔案雜湊值、URL，暗示某系統可能已被入侵或被鎖定攻擊。</p>
+
+    <div class="analogy">
+      <span class="lbl">先搞懂 Feed 是什麼</span>
+      <span class="term">Feed（情資饋送）</span>可以想成一份<b>持續更新的「已知壞人名單」訂閱</b>：資安研究單位或廠商每天都在觀察全世界的攻擊活動，把發現的惡意 IP、惡意網域整理成一份清單，透過訂閱的方式源源不絕送給你，你的系統就能拿這份清單去比對自己的資料。跟訂閱新聞一樣，feed 的價值在於「持續更新」，不是查一次就結束的靜態名單。
+    </div>
+
+    <div class="example">
+      <span class="lbl">運作機制：threat_intel 屬性是什麼</span>
+      <p style="margin:0 0 10px;">當進來的 log 裡的 IP 或網域，跟 feed 裡的某一筆已知 IOC 對上時，Cloud SIEM 會在<b>這筆 log 本身</b>上，額外加註一個 <code>threat_intel</code> 屬性，把「這個 IP 是已知威脅、屬於哪一類」的判斷結果直接寫進資料裡：</p>
+      <pre><code>{
+  "network.client.ip": "185.220.101.42",
+  "threat_intel": {
+    "category": "residential_proxy"
+  }
+}</code></pre>
+      <p style="margin:10px 0 0;">這個屬性不是只是顯示用的標籤而已——因為它跟其他欄位一樣是可查詢的資料，<b>Detection Rule 可以直接拿它當查詢條件</b>，例如寫一條規則比對 <code>@threat_intel.category:(malware OR tor)</code>，就能只針對「連線對象本身已知是惡意來源」的事件產生 signal，不用自己維護一份 IP 黑名單。常見分類：malware（惡意軟體）、cryptomining（加密貨幣挖礦）、tor（Tor 匿名網路）、residential proxy（住宅代理伺服器，常被用來偽裝成一般家用網路掩護惡意流量）、scanner（掃描工具）。</p>
+    </div>
+
+    <div class="cmp">
+      <div class="col"><h4>內建策展 feed</h4><p>來自 IPinfo、GreyNoise 等合作夥伴，自動套用在所有 log 上，<b>不需要任何設定</b>。</p></div>
+      <div class="col"><h4>自帶 feed（Bring your own）</h4><p>來自商業供應商、產業情資分享組織<span class="term">ISAC（Information Sharing and Analysis Center，資訊分享與分析中心，同產業公司互相交換威脅情資的組織）</span>、或內部管線，存成 <b>reference table</b>，可手動上傳 <span class="term">CSV（Comma-Separated Values，逗號分隔值）</span>檔案，或從雲端儲存定期自動更新。</p></div>
+    </div>
+    <div class="examtip">
+      <span class="lbl">易忽略細節：一種指標類型一張表</span>
+      每一種指標類型都需要各自獨立的一張 reference table，例如 IP 位址一張表、網域另一張表，不能把不同類型的指標混在同一張表裡上傳。目前支援的自訂 IOC 匯入方式就是「CSV 進 Reference Table」這一條路徑，<b>沒有</b>獨立的 Threat Intelligence API 可以直接送 JSON，也不是走 <b>STIX（Structured Threat Information eXpression，結構化威脅資訊表達式）</b>/<b>TAXII（Trusted Automated Exchange of Intelligence Information，可信自動化情資交換）</b>——這是業界另一套威脅情資交換標準協定，不是 Datadog 用來匯入自訂 IOC 的方式。
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 6 ===================== -->
+<section class="chapter" data-chapter="6" style="--accent:var(--c6);--accent-bg:var(--c6-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Chapter 06 · Metrics &amp; Continuous Improvement</div>
+    <h2>怎麼衡量與持續改善</h2>
+    <p class="lead">偵測和調查只是一半，另一半是把整套運作量化成可以追蹤、可以跟主管報告、可以拿去做合規證據的東西——並形成一個持續變好的迴圈。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>一個 signal 的生命線：MTTD / MTTA / MTTR</h3>
+    <p>三個指標都是「Mean Time to ___（平均要花多久時間做到某件事）」的縮寫，各自衡量生命線上不同的一段：</p>
+    <ul>
+      <li><span class="term">MTTD</span> 全名 <b>Mean Time to Detect（平均偵測時間）</b></li>
+      <li><span class="term">MTTA</span> 全名 <b>Mean Time to Acknowledge（平均確認時間）</b></li>
+      <li><span class="term">MTTR</span> 全名 <b>Mean Time to Resolve（平均解決時間）</b></li>
+    </ul>
+    <div class="timeline">
+      <div class="tseg"><div class="tt">STAGE 1</div><div class="tm">log 被送入</div><div class="td">符合規則條件的 log 進入 ingestion</div></div>
+      <div class="tseg"><div class="tt">STAGE 2 · MTTD</div><div class="tm">signal 產生</div><div class="td">Mean Time to Detect：<code>time_to_detect</code>，從 log 送入到 signal 產生的時間</div></div>
+      <div class="tseg"><div class="tt">STAGE 3 · MTTA</div><div class="tm">Under Review</div><div class="td">Mean Time to Acknowledge：<code>time_to_acknowledge</code>，從 signal 產生到分析師標記確認的時間</div></div>
+      <div class="tseg"><div class="tt">STAGE 4 · MTTR</div><div class="tm">Archived</div><div class="td">Mean Time to Resolve：<code>time_to_resolve</code>，從 signal 產生到歸檔的總解決時間</div></div>
+    </div>
+    <div class="examtip"><span class="lbl">推理範例</span>如果 MTTD 很低但 MTTA 一直上升，代表<b>偵測管線運作良好</b>，問題出在<b>分析師分流不夠快</b>——該做的是調整通知路由，或善用 Bits AI 自動初步分流，而不是去改偵測規則。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>儀表板與週報：讓數字被看到</h3>
+    <p><b>Cloud SIEM Overview</b> 頁面呈現：重要 signal、高風險實體、Content Pack 健康狀態與上手進度、依地理/MITRE tactic 分類的 top signal、MTTD 和誤判率、最新 Security Research Feed。</p>
+    <p>OOTB 儀表板（例如 CloudTrail 儀表板）可複製自訂；也可依受眾建立主管用、偵測工程師用、營運用的儀表板。</p>
+    <p><b>週報摘要</b>：彙整過去七天的告警量、回應時間、重要新問題。每個使用者要<b>個別訂閱</b>，需要 <code>security_monitoring_signals_read</code> 權限。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>通知規則與 Workflow Automation（SOAR）</h3>
+    <p><span class="term">Notification rules</span> 依 severity / tag / 屬性把 signal 路由到對的地方：</p>
+    <div class="table-wrap"><table>
+      <tr><th>Severity</th><th>路由到</th></tr>
+      <tr><td>Critical</td><td>PagerDuty，啟動立即待命回應</td></tr>
+      <tr><td>High</td><td>專屬安全團隊 Slack 頻道</td></tr>
+      <tr><td>Medium</td><td>供上班時間審視的頻道</td></tr>
+    </table></div>
+    <p><span class="term">Workflow Automation</span> 是 Cloud SIEM 的 SOAR 層，可以撤銷憑證、隔離資源、建立工單、豐富化 signal。Datadog 提供預建 workflow <b>blueprint</b>，每個 Content Pack 也附特定整合的 blueprint。</p>
+    <div class="examtip"><span class="lbl">易考細節：blueprint 是什麼</span>blueprint 是<b>可自訂的起始樣板</b>，需要依團隊流程修改才能用，<b>不會</b>自動依 signal 內容變設定、<b>也不是</b>裝了就能直接上生產環境——這正是「藍圖」這個字面意思：起點，不是成品。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>合規對齊（Compliance Alignment）</h3>
+    <p>Cloud SIEM 的輸出可直接當合規證據：security signal、營運指標、signal 分流歷史、儀表板、log 保留紀錄。</p>
+    <div class="table-wrap"><table>
+      <tr><th>輸出</th><th>對應的合規領域</th></tr>
+      <tr><td>Signal 分流歷史（Open→Under Review→Archived，含時間戳與負責人）</td><td>事件偵測與回應能力的證明</td></tr>
+      <tr><td>MTTD / MTTA / MTTR</td><td>量化偵測與回應成效</td></tr>
+      <tr><td>Log 保留紀錄（Standard / Flex / Archives）</td><td>稽核 log 管理</td></tr>
+      <tr><td>驗證/權限提升/未授權存取的偵測規則</td><td>存取控制主動監控</td></tr>
+    </table></div>
+    <div class="table-wrap"><table>
+      <tr><th>框架</th><th>全名</th></tr>
+      <tr><td><b>SOC 2</b></td><td>System and Organization Controls 2，服務機構內控與資安控制的稽核報告</td></tr>
+      <tr><td><b>PCI DSS</b></td><td>Payment Card Industry Data Security Standard，支付卡產業資料安全標準</td></tr>
+      <tr><td><b>HIPAA</b></td><td>Health Insurance Portability and Accountability Act，美國健康保險可攜與責任法案，規範病患醫療資料保護</td></tr>
+      <tr><td><b>CCSP</b></td><td>Certified Cloud Security Professional，雲端安全專業認證，定義了一套雲端安全控制領域（domains）</td></tr>
+    </table></div>
+    <p>這些輸出提供的是<b>持續證據</b>，不是某個時間點的快照。<b>Datadog Audit Trail</b> 額外記錄「Datadog 平台本身」的操作（規則被改、signal 狀態被更新），補足當責性紀錄。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>持續改善循環</h3>
+    <div class="flowbox">
+      <div class="fb">① 檢視 KPI<br><span style="color:var(--text-faint);">MTTD/MTTA/MTTR、誤判率、signal 量趨勢</span></div><span class="farrow">→</span>
+      <div class="fb">② 依所學調校<br><span style="color:var(--text-faint);">資料收集 / 規則 / 流程</span></div><span class="farrow">→</span>
+      <div class="fb">③ 追新<br><span style="color:var(--text-faint);">Research Feed、Release Notes、重新看 MITRE Map</span></div><span class="farrow">→</span>
+      <div class="fb">回到 ①</div>
+    </div>
+    <p>每跑完一輪，雜訊變少、回應時間變短，偵測涵蓋率也會跟著環境和威脅樣貌一起演進。</p>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 7 ===================== -->
+<section class="chapter" data-chapter="7" style="--accent:var(--c7);--accent-bg:var(--c7-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Chapter 07 · Summary</div>
+    <h2>總結地圖</h2>
+    <p class="lead">整條資料生命線已經走完一輪。這裡收斂成一張概念總表，再用 pipeline 全景回顧把七個章節串成一條線。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>概念總表</h3>
+    <div class="table-wrap"><table class="bigtable">
+      <tr><th>概念</th><th>全名</th><th>所在章節</th><th>一句話定義</th></tr>
+      <tr><td>SIEM</td><td>Security Information and Event Management</td><td>01</td><td>集中分析各系統 log、找出威脅的系統類別，Cloud SIEM 是 Datadog 的實作</td></tr>
+      <tr><td>Shared Responsibility Model</td><td>—</td><td>01</td><td>資料/身分/存取權限永遠是客戶責任，供應商不主動送 log 給你</td></tr>
+      <tr><td>IaaS / PaaS / SaaS</td><td>Infrastructure / Platform / Software as a Service</td><td>01</td><td>依服務代管程度分類，決定責任邊界落在誰身上</td></tr>
+      <tr><td>Content Pack</td><td>—</td><td>01</td><td>預打包的規則+儀表板+SOAR blueprint，啟用時自動更新 Index Filter</td></tr>
+      <tr><td>Cloud Security / Workload Protection / App &amp; API Protection / Code Security</td><td>—</td><td>01</td><td>Datadog Security 產品線裡跟 Cloud SIEM 分工的其他四塊，各管態勢、執行期威脅、應用層攻擊、程式碼弱點</td></tr>
+      <tr><td>Grok Processor</td><td>—</td><td>02</td><td>把非結構化字串 log 拆成可查詢的欄位</td></tr>
+      <tr><td>OCSF</td><td>Open Cybersecurity Schema Framework</td><td>02</td><td>把不同來源的欄位 remap 成統一標準屬性，規則一次寫到處用</td></tr>
+      <tr><td>GeoIP Processor</td><td>—</td><td>02</td><td>依 IP 補上地理位置，支援 Impossible Travel 等偵測</td></tr>
+      <tr><td>Flex Logs</td><td>—</td><td>02</td><td>中間保留層，最長 15 個月，不支援 Monitor / Watchdog</td></tr>
+      <tr><td>SIEM Index Filter</td><td>—</td><td>02 / 04</td><td>帳號層級，決定 log 能不能進 SIEM index，影響所有規則</td></tr>
+      <tr><td>Data Exclusion Query</td><td>—</td><td>03 / 04</td><td>規則層級，讓「這條規則」看不到某批原始資料</td></tr>
+      <tr><td>Suppression Query</td><td>—</td><td>03 / 04</td><td>signal 即將產生時靜音它，log 本身不受影響</td></tr>
+      <tr><td>MITRE ATT&amp;CK</td><td>Adversarial Tactics, Techniques, and Common Knowledge</td><td>04</td><td>Tactic/Technique 對應是靠規則上的 tag，不是額外模組</td></tr>
+      <tr><td>Signal</td><td>—</td><td>03 / 05</td><td>規則觸發後產生的可調查發現，含 Overview/Playbook/Related Logs 等</td></tr>
+      <tr><td>Investigator</td><td>—</td><td>05</td><td>圖形化追蹤實體關係與攻擊路徑</td></tr>
+      <tr><td>Risk Insights</td><td>—</td><td>05</td><td>依過去 14 天 signal 算出實體風險分數</td></tr>
+      <tr><td>IOC / Threat Intel</td><td>Indicators of Compromise</td><td>05</td><td>已知惡意 IP/網域比對，加上 <code>threat_intel</code> 屬性</td></tr>
+      <tr><td>MTTD / MTTA / MTTR</td><td>Mean Time to Detect / Acknowledge / Resolve</td><td>06</td><td>偵測/確認/解決三段時間指標，量化整條生命線</td></tr>
+      <tr><td>Workflow Blueprint (SOAR)</td><td>Security Orchestration, Automation and Response</td><td>06</td><td>可自訂起始樣板，需客製化才能用，不會自動變設定</td></tr>
+    </table></div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>全景回顧</h3>
+    <p>把游標移回最上方的流程條，每個節點都對應到前面六章的其中一段。這條線就是整份筆記真正的骨架：</p>
+    <div class="flowbox">
+      <div class="fb">Log 來源</div><span class="farrow">→</span>
+      <div class="fb">Content Pack</div><span class="farrow">→</span>
+      <div class="fb">Grok→OCSF→GeoIP</div><span class="farrow">→</span>
+      <div class="fb">Index Filter</div><span class="farrow">→</span>
+      <div class="fb">Detection Rule</div><span class="farrow">→</span>
+      <div class="fb">MITRE Tag</div><span class="farrow">→</span>
+      <div class="fb">Suppression 檢查</div><span class="farrow">→</span>
+      <div class="fb">Signal</div><span class="farrow">→</span>
+      <div class="fb">調查工具</div><span class="farrow">→</span>
+      <div class="fb">MTTD/MTTA/MTTR</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 8 ===================== -->
+<section class="chapter" data-chapter="8" style="--accent:var(--c8);--accent-bg:var(--c8-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Chapter 08 · Practice</div>
+    <h2>模擬題</h2>
+    <p class="lead">全部十題實際模擬考題，依題號順序排列，驗證前面七章的理解。點選項後會標示對錯並顯示解題邏輯。</p>
+  </div>
+
+  <div class="quiz">
+    <div class="qhead">QUESTION 1 OF 10</div>
+    <h4>After creating a custom log detection rule for identifying privilege escalation attempts, the rule does not appear on the MITRE ATT&amp;CK Map despite being enabled. What is the most likely cause?</h4>
+    <div class="qopt" onclick="answerQ(this,'q1')"><span class="qlabel">A</span><span>The rule uses a log detection type, which is incompatible with the MITRE ATT&amp;CK Map visualization.</span></div>
+    <div class="qopt" data-correct="true" onclick="answerQ(this,'q1')"><span class="qlabel">B</span><span>The rule is missing the required <code>tactic:</code> and <code>technique:</code> tags paired with the <code>security:attack</code> tag.</span></div>
+    <div class="qopt" onclick="answerQ(this,'q1')"><span class="qlabel">C</span><span>The rule must be converted from a custom rule to an out-of-the-box rule to appear on the map.</span></div>
+    <div class="qexplain" id="q1-explain">
+      <p><b>正確答案是 B。</b>MITRE 對應靠的是規則上的 tag（見第 4 章），但光加 <code>tactic:</code>/<code>technique:</code> 還不夠，規則必須<b>同時</b>帶有 <code>security:attack</code> 這個 tag，三者配對出現，MITRE ATT&amp;CK Map 才會把這條規則納入視覺化。</p>
+      <p>A 錯：log detection type（用 Threshold、New Value 等偵測方法寫成的規則）完全能正常對應到 MITRE Map，兩者不衝突。C 錯：自訂規則本來就能出現在地圖上，不需要、也不可能被轉換成 OOTB 規則，只要 tag 補齊即可。</p>
+    </div>
+  </div>
+
+  <div class="quiz">
+    <div class="qhead">QUESTION 2 OF 10</div>
+    <h4>Custom threat intelligence indicators need to be imported into Cloud SIEM for log enrichment. Which format is supported for uploading custom Indicators of Compromise?</h4>
+    <div class="qopt" onclick="answerQ(this,'q2')"><span class="qlabel">A</span><span>STIX 2.0 bundles uploaded through a TAXII server integration.</span></div>
+    <div class="qopt" data-correct="true" onclick="answerQ(this,'q2')"><span class="qlabel">B</span><span>CSV files uploaded to or imported into Datadog Reference Tables.</span></div>
+    <div class="qopt" onclick="answerQ(this,'q2')"><span class="qlabel">C</span><span>JSON objects submitted directly through the Threat Intelligence API.</span></div>
+    <div class="qexplain" id="q2-explain">
+      <p><b>正確答案是 B。</b>呼應第 5 章的威脅情資機制：自帶 feed 存成 <b>Reference Table</b>，可手動上傳 <b>CSV</b> 檔案。補充細節：每一種指標類型（IP、網域…）都需要各自獨立的一張 reference table，不能混在同一張表裡。</p>
+      <p>A 錯：STIX/TAXII 是業界另一套威脅情資交換標準協定，不是 Datadog Cloud SIEM 匯入自訂 IOC 的方式。C 錯：目前沒有獨立的 Threat Intelligence API 可以直接送 JSON，匯入只能走 Reference Table 這條路徑。</p>
+    </div>
+  </div>
+
+  <div class="quiz">
+    <div class="qhead">QUESTION 3 OF 10</div>
+    <h4>Which statement accurately describes how SOAR workflow blueprints function in Datadog?</h4>
+    <div class="qopt" data-correct="true" onclick="answerQ(this,'q3')"><span class="qlabel">A</span><span>Blueprints provide customizable starting templates that can be modified to match team-specific processes.</span></div>
+    <div class="qopt" onclick="answerQ(this,'q3')"><span class="qlabel">B</span><span>Blueprints automatically adapt their configuration based on the security signals that trigger them.</span></div>
+    <div class="qopt" onclick="answerQ(this,'q3')"><span class="qlabel">C</span><span>Blueprints generate fully configured workflows that are immediately ready for production deployment.</span></div>
+    <div class="qexplain" id="q3-explain">
+      <p><b>正確答案是 A。</b>「Blueprint（藍圖）」這個字本身就是關鍵：藍圖是可自訂的起始樣板，不是成品，要依團隊流程去改才能真正上線用（見第 6 章）。</p>
+      <p>B 錯：把「workflow 執行時依 signal 走不同分支」誤植成「blueprint 本身自動變設定」。C 錯：跟「需要客製化」互相矛盾，能直接上線的東西不會被稱為 blueprint。</p>
+    </div>
+  </div>
+
+  <div class="quiz">
+    <div class="qhead">QUESTION 4 OF 10</div>
+    <h4>After launching the Datadog CloudFormation StackSet to onboard AWS accounts under an Organization, the deployment fails before creating IAM roles in any target account. The Organization has trusted access enabled and service-managed permissions configured. Which configuration error causes this failure?</h4>
+    <div class="qopt" onclick="answerQ(this,'q4')"><span class="qlabel">A</span><span>The Execution configuration option was set to Active for parallel operations.</span></div>
+    <div class="qopt" onclick="answerQ(this,'q4')"><span class="qlabel">B</span><span>The Deployment targets were set to the full Organization instead of an OU.</span></div>
+    <div class="qopt" data-correct="true" onclick="answerQ(this,'q4')"><span class="qlabel">C</span><span>Multiple AWS regions were selected under the Specify regions setting.</span></div>
+    <div class="qexplain" id="q4-explain">
+      <p><b>正確答案是 C。</b>這題是第 1 章 AWS Org StackSet 附註沒明講的新內容：IAM 是 AWS 的全域服務，不分區域，但 StackSet 是依「帳號 × 區域」建立 stack instance；如果 Specify regions 選了多個區域，樣板會嘗試在多個區域各自建立同名 IAM role，造成衝突，導致部署在任何帳號建好 IAM role 之前就整個失敗。</p>
+      <p>A 錯：Execution configuration 設成 Active（平行執行）只影響部署速度/並行度。B 錯：Deployment targets 設成整個 Organization 而非某個 OU，只是佈署範圍設定，不會導致整個部署失敗。</p>
+    </div>
+  </div>
+
+  <div class="quiz">
+    <div class="qhead">QUESTION 5 OF 10</div>
+    <h4>During investigation of a credential stuffing security signal, an analyst needs to identify other signals that originated from the same source IP address or involved the same user identity. Which capability within the signal's investigation panel surfaces these connections?</h4>
+    <div class="qopt" onclick="answerQ(this,'q5')"><span class="qlabel">A</span><span>The What Happened section, which displays matched log entries and query configuration details.</span></div>
+    <div class="qopt" data-correct="true" onclick="answerQ(this,'q5')"><span class="qlabel">B</span><span>The Related Signals tab, which reveals signals sharing common fields and attribute values.</span></div>
+    <div class="qopt" onclick="answerQ(this,'q5')"><span class="qlabel">C</span><span>The Workflows tab, which shows triggered and suggested automated investigation workflows.</span></div>
+    <div class="qexplain" id="q5-explain">
+      <p><b>正確答案是 B。</b>呼應第 5 章 signal 側邊面板的 Related Signals 欄位：靠比對欄位/屬性值是否相同（例如 source IP、使用者身分）找出關聯 signal，讓分析師從一個 signal 出發抓出同一個攻擊者牽涉到的其他活動。</p>
+      <p>A 錯：What Happened（也就是 Related Logs）顯示的是這個 signal 自己觸發的 log，不是其他 signal 之間的關聯。C 錯：Workflows tab 顯示的是自動化回應流程，跟找關聯 signal 無關。</p>
+    </div>
+  </div>
+
+  <div class="quiz">
+    <div class="qhead">QUESTION 6 OF 10</div>
+    <h4>Which statement accurately describes the relationship between OOTB detection rules and custom detection rules in Cloud SIEM?</h4>
+    <div class="qopt" data-correct="true" onclick="answerQ(this,'q6')"><span class="qlabel">A</span><span>OOTB rules receive automatic updates from Datadog, while custom rules require manual changes.</span></div>
+    <div class="qopt" onclick="answerQ(this,'q6')"><span class="qlabel">B</span><span>Custom rules automatically take priority over OOTB rules targeting the same log activity.</span></div>
+    <div class="qopt" onclick="answerQ(this,'q6')"><span class="qlabel">C</span><span>OOTB rules are automatically removed when a user creates an equivalent custom detection rule.</span></div>
+    <div class="qexplain" id="q6-explain">
+      <p><b>正確答案是 A。</b>OOTB 規則由 Datadog 持續開發，更新自動匯入帳號；自訂規則是使用者自己建立維護的，不會收到自動更新（見第 3 章）。</p>
+      <p>B 錯：兩者互相獨立，不存在優先權機制，不會互相取代。C 錯：建立功能類似的自訂規則不會讓對應的 OOTB 規則自動被移除，兩者會一起繼續運作。</p>
+    </div>
+  </div>
+
+  <div class="quiz">
+    <div class="qhead">QUESTION 7 OF 10</div>
+    <h4>After a Cloud SIEM detection rule triggers a security signal, an analyst needs to see the logs that caused the alert. Where in the signal's details panel is this information available?</h4>
+    <div class="qopt" onclick="answerQ(this,'q7')"><span class="qlabel">A</span><span>The Activity section showing related user actions and login attempts.</span></div>
+    <div class="qopt" data-correct="true" onclick="answerQ(this,'q7')"><span class="qlabel">B</span><span>The Related Logs tab showing logs that matched the rule query.</span></div>
+    <div class="qopt" onclick="answerQ(this,'q7')"><span class="qlabel">C</span><span>The Related Signals tab showing related alerts from other rules.</span></div>
+    <div class="qexplain" id="q7-explain">
+      <p><b>正確答案是 B。</b>呼應第 5 章 signal 側邊面板的 Related Logs 欄位（也稱 What Happened 區塊）：顯示符合規則查詢條件、實際觸發這個 signal 的 log，含時間戳記和相關屬性。</p>
+      <p>A 錯：Activity 顯示的是使用者操作/登入紀錄，不是「符合規則查詢條件的 log」這個精確定義。C 錯：Related Signals 顯示的是其他 signal，不是這個 signal 自己觸發的 log。</p>
+    </div>
+  </div>
+
+  <div class="quiz">
+    <div class="qhead">QUESTION 8 OF 10</div>
+    <h4>Cloud SIEM suppression rules support two query types: a suppression query and a data exclusion query. What distinguishes these two query types?</h4>
+    <div class="qopt" data-correct="true" onclick="answerQ(this,'q8')"><span class="qlabel">A</span><span>The suppression query matches signal attributes while the data exclusion query matches input data attributes.</span></div>
+    <div class="qopt" onclick="answerQ(this,'q8')"><span class="qlabel">B</span><span>The suppression query applies to a single detection rule while the data exclusion query applies across multiple rules.</span></div>
+    <div class="qopt" onclick="answerQ(this,'q8')"><span class="qlabel">C</span><span>The suppression query uses log search syntax while the data exclusion query uses signal explorer syntax.</span></div>
+    <div class="qexplain" id="q8-explain">
+      <p><b>正確答案是 A。</b>Suppression query 比對 signal 的屬性，Data exclusion query 比對進來的原始資料屬性（見第 4 章的對照表）。</p>
+      <p>B 錯：兩種 query 都只對「這一條」規則生效，跟單一規則/多規則的範圍大小無關。C 錯：兩者用同一套查詢語法，差別在比對對象，不是語法系統不同。</p>
+    </div>
+  </div>
+
+  <div class="quiz">
+    <div class="qhead">QUESTION 9 OF 10</div>
+    <h4>After a detection rule's query scope was expanded from one environment to multiple environments, the security team needs to compare the exact configuration differences between the current and previous versions of the rule side by side. Which feature provides this capability directly within the rule editor?</h4>
+    <div class="qopt" onclick="answerQ(this,'q9')"><span class="qlabel">A</span><span>The audit trail's event log filtered by Cloud Security Platform actions.</span></div>
+    <div class="qopt" data-correct="true" onclick="answerQ(this,'q9')"><span class="qlabel">B</span><span>The rule's version history with the Open Version Comparison option.</span></div>
+    <div class="qopt" onclick="answerQ(this,'q9')"><span class="qlabel">C</span><span>The JSON configuration export compared against a previous backup.</span></div>
+    <div class="qexplain" id="q9-explain">
+      <p><b>正確答案是 B。</b>這題是第 4 章沒明講的新內容：規則編輯器內建 Rule Version History，用 Open Version Comparison 選項把目前版本和先前版本並排比較，紅色代表移除、綠色代表新增。</p>
+      <p>A 錯：Datadog Audit Trail 記錄的是「誰在什麼時候改了規則」這種平台層級操作事件，不是並排比較設定內容，也不是規則編輯器裡的功能。C 錯：沒有「匯出 JSON 對照備份」這種官方工作流程，規則編輯器直接內建版本比較。</p>
+    </div>
+  </div>
+
+  <div class="quiz">
+    <div class="qhead">QUESTION 10 OF 10</div>
+    <h4>An organization subject to industry regulations needs to retain security logs for 15 months while maintaining the ability to immediately search and analyze those logs within Datadog. What is the BEST approach to meet this requirement cost-effectively?</h4>
+    <div class="qopt" data-correct="true" onclick="answerQ(this,'q10')"><span class="qlabel">A</span><span>Enable Flex Logs with 15-month retention on security log indexes.</span></div>
+    <div class="qopt" onclick="answerQ(this,'q10')"><span class="qlabel">B</span><span>Configure Log Archives to forward logs to customer-owned cloud storage buckets.</span></div>
+    <div class="qopt" onclick="answerQ(this,'q10')"><span class="qlabel">C</span><span>Configure standard indexes with 15-month retention and apply exclusion filters.</span></div>
+    <div class="qexplain" id="q10-explain">
+      <p><b>正確答案是 A。</b>完全對應第 2 章「Log 保留分層」：Flex Logs 最長可保留 15 個月，同時保持可搜尋（不用還原），定位就是「查得到、存得久」又比 Standard indexing 便宜。</p>
+      <p>B 錯：Log Archives 轉存到客戶自己的雲端儲存，查詢前需要先還原（rehydration），不符合「立即搜尋」的要求。C 錯：Standard indexing 保留 15 個月成本遠高於 Flex Logs，不符合「cost-effectively」，且題目沒有要排除任何資料，加 exclusion filter 是不相關的干擾選項。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== ARCHITECTURE OVERVIEW ===================== -->
+<section class="chapter" data-chapter="9" style="--accent:var(--c9);--accent-bg:var(--c9-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Architecture Overview · One Log, Start to Finish</div>
+    <h2>架構總覽：跟著一筆 log，從 raw log 走到被判定為威脅</h2>
+    <p class="lead">這就是完整的 Cloud SIEM 架構圖——不是抽象的概念清單，而是跟著<b>同一筆真實的 log</b> 一路往下，每一站都看它實際變成什麼樣子、經過什麼判斷。情境：攻擊者對 IAM 使用者 <code>admin</code> 發動暴力破解，最後被分析師確認為真實攻擊。每個「關卡」旁邊都用分支盒子畫出「另一種可能性」。</p>
+  </div>
+
+  <div class="factory-legend">
+    <div class="lgi"><span class="sw" style="background:var(--c1);"></span>資料來源</div>
+    <div class="lgi"><span class="sw" style="background:var(--c2);"></span>Log Pipeline 處理</div>
+    <div class="lgi"><span class="sw" style="background:var(--c3);"></span>Detection Rule</div>
+    <div class="lgi"><span class="sw" style="background:var(--c4);"></span>MITRE / Suppression</div>
+    <div class="lgi"><span class="sw" style="background:var(--c5);"></span>Signal 產生</div>
+    <div class="lgi"><span class="sw" style="background:var(--c8);"></span>分析師人工判斷</div>
+    <div class="lgi"><span class="sw" style="background:var(--c6);"></span>結案與衡量</div>
+    <div class="lgi"><span class="sw" style="background:var(--c7);"></span>回饋改善</div>
+  </div>
+
+  <div class="trace">
+
+    <div class="card trace-step" style="--accent:var(--c1);">
+      <h3><span class="dot"></span>STEP 01 · Raw log 送達</h3>
+      <p>攻擊者在 5 分鐘內對 IAM 使用者 <code>admin</code> 重複發送失敗登入，這是第 12 次。log 剛送到 Datadog 時是一串未結構化文字：</p>
+      <div class="example"><pre><code>2026-07-23 03:14:02 aws console login failed by admin from 203.0.113.44</code></pre></div>
+      <p class="trace-note">團隊已經啟用 <b>AWS CloudTrail Content Pack</b>，這個來源本來就對應好 OOTB pipeline 和登入失敗偵測規則，不用臨時現接。</p>
+      <button class="reveal-btn" onclick="openNodePanel('content-pack')">Content Pack 實際打包了什麼？點開看完整內容</button>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c2);">
+      <h3><span class="dot"></span>STEP 02 · Grok Processor 解析</h3>
+      <p>Grok 用預先定義的樣式，把非結構化文字拆成可查詢的欄位：</p>
+      <div class="example"><pre><code>{
+  "usr.id": "admin",
+  "evt.category": "authentication",
+  "evt.name": "aws console login",
+  "evt.outcome": "failure",
+  "network.client.ip": "203.0.113.44"
+}</code></pre></div>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c2);">
+      <h3><span class="dot"></span>STEP 03 · OCSF Processor 正規化</h3>
+      <p>把來源特有欄位 remap 成跨來源一致的標準欄位：</p>
+      <div class="example"><pre><code>{
+  "actor.user.name": "admin",
+  "class_uid": "Authentication",
+  "activity_id": "Logon",
+  "status_id": "Failure",
+  "src_endpoint.ip": "203.0.113.44"
+}</code></pre></div>
+      <p class="trace-note">不管以後這個來源換成 CloudTrail、Okta 還是別的系統，只要對應到這幾個標準欄位，同一條規則都抓得到。</p>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c2);">
+      <h3><span class="dot"></span>STEP 04 · GeoIP Processor 豐富化</h3>
+      <p>根據 <code>203.0.113.44</code> 查 IP 地理資料庫，補上地理位置：</p>
+      <div class="example"><pre><code>{
+  ...
+  "country": "海外，admin 從未登入過的地區",
+  "city": "未知"
+}</code></pre></div>
+    </div>
+
+    <div class="card trace-step gate" style="--accent:var(--c2);">
+      <h3><span class="dot"></span>STEP 05 · 威脅情資比對</h3>
+      <p>Cloud SIEM 拿這個 IP 去比對已知 IOC feed（malware / tor / residential proxy…）。</p>
+      <div class="branch-wrap">
+        <div class="branch-main">✓ 這次<b>沒有命中</b>，不加註屬性，log 照常繼續往下走 ▼</div>
+        <div class="branch-arrow">⇢</div>
+        <div class="branch-box"><span class="bb-lbl">✗ 另一種可能：命中已知 IOC</span>log 會被加上 <code>threat_intel.category</code>（例如 tor、malware），之後規則可以直接拿這個屬性當查詢條件，但不影響這筆 log 繼續往下走。</div>
+      </div>
+    </div>
+
+    <div class="card trace-step gate" style="--accent:var(--c2);">
+      <h3><span class="dot"></span>STEP 06 · SIEM Index Filter</h3>
+      <p>Filter 條件是 <code>source:(cloudtrail OR okta OR github OR guardduty)</code>，這筆 log 的 <code>source</code> 是 <code>cloudtrail</code>。</p>
+      <div class="branch-wrap">
+        <div class="branch-main">✓ 符合條件，放行進 SIEM index ▼</div>
+        <div class="branch-arrow">⇢</div>
+        <div class="branch-box"><span class="bb-lbl">✗ 另一種可能：未通過</span>這筆 log 完全不會進 SIEM index，後面所有步驟都不會發生——這次攻擊會被整個漏掉，任何規則都看不到它。</div>
+      </div>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c2);">
+      <h3><span class="dot"></span>STEP 07 · 存進 SIEM Index</h3>
+      <p>存進 <b>Standard indexing</b>（近期熱資料，隨時可查）。之後超過 30 天會依保留策略轉存到 Flex Logs，最長可保留 15 個月，這一步不影響即時分析，即時分析發生在剛剛的 ingestion 當下。</p>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c3);">
+      <h3><span class="dot"></span>STEP 08 · Detection Rule 比對：命中 Threshold</h3>
+      <p>規則「5 分鐘內登入失敗超過 10 次」用的是 <b>Threshold 偵測方法</b>。這是第 12 次失敗。</p>
+      <div class="branch-wrap">
+        <div class="branch-main">✓ 超過門檻，規則邏輯判定「這裡要產生 signal」 ▼</div>
+        <div class="branch-arrow">⇢</div>
+        <div class="branch-box"><span class="bb-lbl">✗ 另一種可能：次數還沒到門檻</span>規則持續累計失敗次數，<b>不會有任何動作</b>，直到累計到 10 次以上或時間窗口重置，這條規則就一直安靜地在背景計數。</div>
+      </div>
+    </div>
+
+    <div class="card trace-step gate" style="--accent:var(--c3);">
+      <h3><span class="dot"></span>STEP 09 · Data Exclusion Query 檢查</h3>
+      <p>這條規則有沒有設定要排除 <code>admin</code>？</p>
+      <div class="branch-wrap">
+        <div class="branch-main">✓ 沒有（admin 不是已知的排程機器人帳號），繼續往下走 ▼</div>
+        <div class="branch-arrow">⇢</div>
+        <div class="branch-box"><span class="bb-lbl">✗ 另一種可能：admin 被設成排除</span>這筆資料對這條規則來說從一開始就不存在，不計入次數累計，後面步驟都不會發生——但其他規則不受影響，log 本身還在 SIEM index。</div>
+      </div>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c4);">
+      <h3><span class="dot"></span>STEP 10 · 貼上 MITRE ATT&amp;CK Tag</h3>
+      <p>這條規則本身已經預先貼好對應標籤：</p>
+      <div class="example"><pre><code>tactic:credential-access
+technique:brute-force
+security:attack</code></pre></div>
+      <p class="trace-note">三個 tag 配對出現，等一下產生的 signal 會直接帶著這些標籤，也會被 MITRE ATT&amp;CK Map 這張熱圖納入計算。</p>
+    </div>
+
+    <div class="card trace-step gate" style="--accent:var(--c4);">
+      <h3><span class="dot"></span>STEP 11 · Suppression Query 檢查</h3>
+      <p>有沒有 suppression rule 要靜音這個 signal？</p>
+      <div class="branch-wrap">
+        <div class="branch-main">✓ 沒有，繼續產生 ▼</div>
+        <div class="branch-arrow">⇢</div>
+        <div class="branch-box"><span class="bb-lbl">✗ 另一種可能：命中 suppression</span>例如這個 IP 剛好是已知的內部滲透測試來源，signal 會被靜音、不出現在 Signal Explorer，但底層 log 完全沒被動到，之後仍可回頭查。</div>
+      </div>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c5);">
+      <h3><span class="dot"></span>STEP 12 · Signal 產生</h3>
+      <div class="panel-mock">
+        <div class="ph">SIGNAL DETAIL</div>
+        <div class="pr"><div class="pk">Severity</div><div class="pv">High</div></div>
+        <div class="pr"><div class="pk">Status</div><div class="pv">Open</div></div>
+        <div class="pr"><div class="pk">Overview</div><div class="pv">使用者 admin 在 5 分鐘內登入失敗 12 次</div></div>
+        <div class="pr"><div class="pk">Related Logs</div><div class="pv">12 筆失敗登入（含這一筆）</div></div>
+        <div class="pr"><div class="pk">Entities</div><div class="pv">admin, 203.0.113.44</div></div>
+      </div>
+    </div>
+
+    <div class="card trace-step analyst" style="--accent:var(--c8);">
+      <h3><span class="dot"></span>STEP 13 · 分析師分流</h3>
+      <p>分析師在 <b>Signals Explorer</b> 看到這個 High severity 的 signal，因為 severity 高、又是 credential-access 的攻擊手法，決定優先處理，把狀態從 <code>Open</code> 標記成 <code>Under Review</code>，正式進入調查。這一段反應時間就是 <b>MTTA</b> 在衡量的東西。</p>
+    </div>
+
+    <div class="card trace-step analyst" style="--accent:var(--c8);">
+      <h3><span class="dot"></span>STEP 14 · 深入調查</h3>
+      <ul>
+        <li>用 <b>Investigator</b> 追蹤 <code>admin</code> 這個身分還做了什麼、跟哪些服務互動過，確認攻擊者沒有成功登入。</li>
+        <li><b>Risk Insights</b> 顯示 <code>admin</code> 這個 IAM 使用者的風險分數因為這次事件大幅上升。</li>
+        <li><b>Bits AI</b> 分析後給出結論：SUSPICIOUS，關鍵證據包含來源 IP 在過去 24 小時對其他帳號也有嘗試（呼應 Signal Correlation）。</li>
+      </ul>
+      <p class="trace-note">Bits AI 只是加速這一步的初步評估，最終判斷仍然是分析師自己做。</p>
+    </div>
+
+    <div class="card trace-step analyst" style="--accent:var(--c8);">
+      <h3><span class="dot"></span>STEP 15 · 判定與回應：確認為真實攻擊</h3>
+      <p>綜合證據後，分析師判定這<b>不是誤判</b>，是一次真實的暴力破解攻擊。觸發 <b>Workflow Automation（SOAR）</b>：撤銷 <code>admin</code> 的憑證、隔離相關存取；同時 <b>Notification rule</b> 依 severity=High 已經把這個 signal 路由到 PagerDuty，通知值班人員。</p>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c6);">
+      <h3><span class="dot"></span>STEP 16 · 結案與衡量</h3>
+      <p>處理完畢，signal 標記為 <code>Archived</code>。整段時間被記錄成三個指標：<b>MTTD</b>（log 送入到 signal 產生）、<b>MTTA</b>（signal 產生到 Under Review）、<b>MTTR</b>（產生到 Archived），會出現在週報和 Cloud SIEM Overview 儀表板上，也是 SOC 2 / PCI DSS 這類合規稽核要求「事件有沒有被追蹤解決」的證據。</p>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c7);">
+      <h3><span class="dot"></span>STEP 17 · 回饋進持續改善循環</h3>
+      <p>這起事件會變成下一輪持續改善的輸入：分析師可能因此新增一條 Suppression rule 排除已知的滲透測試來源、或重新檢視 MITRE ATT&amp;CK Map 確認 credential-access 這條技術的規則涵蓋是否足夠——回頭影響的正是 STEP 08～11 這幾個判斷關卡。</p>
+    </div>
+
+  </div>
+</section>
+
+
+</main>
+
+<div class="node-panel" id="nodePanel">
+  <div class="node-panel-backdrop" onclick="closeNodePanel()"></div>
+  <div class="node-panel-content" id="nodePanelContent">
+    <button class="node-panel-close" onclick="closeNodePanel()" aria-label="關閉">✕</button>
+    <div class="node-panel-tag" id="nodePanelTag"></div>
+    <div class="node-panel-title" id="nodePanelTitle"></div>
+    <div class="node-panel-body" id="nodePanelBody"></div>
+  </div>
+</div>
+
+<footer>CLOUD SIEM STUDY MAP · 依 Yuan 的 Obsidian Study Notes 整理 · 10 章節互相對應</footer>
+
+<script>
+function setActiveChapter(ch){
+  document.querySelectorAll('.chapter').forEach(function(s){
+    s.classList.toggle('active', s.dataset.chapter === ch);
+  });
+  document.querySelectorAll('nav.tabs button').forEach(function(b){
+    b.classList.toggle('active', b.dataset.ch === ch);
+  });
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+document.querySelectorAll('nav.tabs button').forEach(function(b){
+  b.addEventListener('click', function(){ setActiveChapter(b.dataset.ch); });
+});
+setActiveChapter('1');
+
+function toggleAcc(head){
+  var item = head.parentElement;
+  var body = item.querySelector('.acc-body');
+  var isOpen = item.classList.contains('open');
+  if(isOpen){
+    item.classList.remove('open');
+    body.style.maxHeight = null;
+  } else {
+    item.classList.add('open');
+    body.style.maxHeight = body.scrollHeight + 40 + 'px';
+  }
+}
+
+function toggleMini(el){
+  el.classList.toggle('open');
+}
+
+function setStep(btn, group){
+  var nav = btn.parentElement;
+  nav.querySelectorAll('button').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  var step = btn.dataset.step;
+  document.querySelectorAll('.'+group+'-step').forEach(function(p){
+    p.classList.toggle('active', p.dataset.step === step);
+  });
+}
+
+function toggleP(btn, id){
+  var row = btn.parentElement;
+  row.querySelectorAll('button').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.querySelectorAll('.toggle-panel').forEach(function(p){
+    p.classList.toggle('active', p.id === id);
+  });
+}
+
+function answerQ(opt, qid){
+  var quiz = opt.closest('.quiz');
+  var opts = quiz.querySelectorAll('.qopt');
+  var picked = opt.dataset.correct === 'true';
+  opts.forEach(function(o){
+    o.classList.add('disabled');
+    if(o.dataset.correct === 'true'){ o.classList.add('correct'); }
+    else if(o === opt){ o.classList.add('wrong'); }
+  });
+  quiz.classList.add(picked ? 'victory' : 'defeat');
+  if(!picked){ quiz.classList.add('shake'); }
+  document.getElementById(qid+'-explain').classList.add('show');
+}
+
+// heatmap mock — illustrative only, seeded pattern (not random, keeps output stable)
+(function(){
+  var seedPattern = [3,1,2,4,1,3,2,1, 2,4,1,3,2,1,4,2, 1,2,3,1,4,2,1,3, 4,1,2,3,1,4,2,1, 2,3,1,2,4,1,3,2];
+  var hm = document.getElementById('heatmap');
+  seedPattern.forEach(function(v){
+    var d = document.createElement('div');
+    d.className = 'hcell';
+    var alpha = v===1?0.14:v===2?0.34:v===3?0.6:0.95;
+    d.style.background = 'rgba(201,45,143,'+alpha+')';
+    hm.appendChild(d);
+  });
+})();
+
+// ---------- Content Pack detail panel (used by the architecture-overview trace) ----------
+var NODE_DATA = {
+  'content-pack': { tag:'見第 1 章', accent:'var(--c1)', title:'Content Pack：把「從零開始」變成「插電即用」', body:
+    '<p>啟用一個 Content Pack，等於一次觸發下面這整條裝配線：</p>'+
+    '<div class="pk-diagram">'+
+      '<div class="pk-hub">啟用 Content Pack<br><small style="font-weight:400;color:var(--text-faint);">例如 AWS CloudTrail Content Pack</small></div>'+
+      '<div class="pk-arrow">▼</div>'+
+      '<div class="pk-branch-grid">'+
+        '<div class="pk-item">Detection Rules<small>預寫好的偵測規則<br>例如異常 AssumeRole</small></div>'+
+        '<div class="pk-item">Dashboards<small>該來源的活動儀表板</small></div>'+
+        '<div class="pk-item">Investigator Widgets<small>調查用視覺化元件</small></div>'+
+        '<div class="pk-item">SOAR Blueprint<small>預建自動回應流程</small></div>'+
+        '<div class="pk-item pk-branch-single">Parser（解析器）<small>有時包含，補上這個來源特有的解析邏輯</small></div>'+
+      '</div>'+
+      '<div class="pk-arrow">▼</div>'+
+      '<div class="pk-hub small">自動更新 SIEM Index Filter<br><small style="font-weight:400;color:var(--text-faint);">把這個來源加進 filter，不用手動設定（見第 2 章）</small></div>'+
+    '</div>'+
+    '<p><b>考試重點</b>：核心價值是縮短 <b>time-to-value</b>（從裝好到真正產生價值的時間）——上面這五樣東西 + 自動更新 filter，全部在「啟用」這個動作裡一次到位，不用分開手動設定。</p>'+
+    '<p><b>另一條路：AWS Organization 帳號串接</b>（不是 Content Pack 本身，而是搭配它的大規模上線方式）——走 CloudFormation StackSet：trusted access + service-managed permissions 讓管理帳號自動把 IAM role 部署到每個成員帳號。<b>Specify regions 只能選一個區域</b>，因為 IAM 是全域資源，選多個區域會在多個地方各自建立同名 IAM role 造成衝突，導致部署整個失敗；Execution configuration 平行執行、Deployment targets 選整個 Organization 而非 OU，都不是這個失敗的原因。</p>' },
+
+};
+
+function openNodePanel(id){
+  var data = NODE_DATA[id];
+  if(!data) return;
+  document.getElementById('nodePanelTag').textContent = data.tag;
+  document.getElementById('nodePanelTitle').textContent = data.title;
+  document.getElementById('nodePanelBody').innerHTML = data.body;
+  document.getElementById('nodePanelContent').style.setProperty('--panel-accent', data.accent);
+  document.getElementById('nodePanel').classList.add('open');
+}
+function closeNodePanel(){
+  document.getElementById('nodePanel').classList.remove('open');
+}
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape'){ closeNodePanel(); }
+});
+</script>
+
+</body>
+</html>

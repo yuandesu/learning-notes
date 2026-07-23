@@ -1,0 +1,1968 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cloud SIEM 完全理解マップ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f2ecd9;
+  --surface:#fffdf6;
+  --surface2:#e8e0c5;
+  --border:#2a2a45;
+  --text:#201f33;
+  --text-dim:#4a4864;
+  --text-faint:#8a87a0;
+  --on-accent:#201f33;
+
+  --c1:#b8860c; /* Foundation - dark goldenrod */
+  --c1-bg:rgba(184,134,12,0.14);
+  --c2:#0e8fa3; /* Pipeline - deep teal-cyan */
+  --c2-bg:rgba(14,143,163,0.14);
+  --c3:#7c3fd8; /* Rule Basics - violet */
+  --c3-bg:rgba(124,63,216,0.14);
+  --c4:#c92d8f; /* MITRE & Advanced Tuning - raspberry magenta */
+  --c4-bg:rgba(201,45,143,0.14);
+  --c5:#0f9668; /* Investigation - deep emerald */
+  --c5-bg:rgba(15,150,104,0.14);
+  --c6:#1f5fd6; /* Ops/Metrics - royal blue */
+  --c6-bg:rgba(31,95,214,0.14);
+  --c7:#a06a00; /* Summary - burnt bronze */
+  --c7-bg:rgba(160,106,0,0.14);
+  --c8:#5c4fc4; /* Practice/Quiz - deep indigo */
+  --c8-bg:rgba(92,79,196,0.14);
+  --c9:#b8541f; /* Architecture Overview - terracotta */
+  --c9-bg:rgba(184,84,31,0.14);
+
+  --danger:#cc3520;
+  --ok:#148a34;
+}
+
+*{box-sizing:border-box;border-radius:0 !important;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Noto Sans TC','IBM Plex Sans',sans-serif;
+  line-height:1.75;
+  -webkit-font-smoothing:antialiased;
+}
+header.top .eyebrow, .chapter-head .kicker, .lbl, .qlabel, .qhead, th, .fb,
+.stepper-nav button, .cmp .col h4, .panel-mock .ph, .stbadge, footer{
+  font-family:'JetBrains Mono',monospace;
+}
+code, .mono{
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.88em;
+  background:#efe6ff;
+  color:#5b3fae;
+  padding:0.1em 0.45em;
+  border:1px solid #c9b3f0;
+}
+pre code{
+  display:block;
+  padding:14px 16px;
+  overflow-x:auto;
+  line-height:1.6;
+  white-space:pre;
+}
+
+/* ---------- Header ---------- */
+header.top{
+  padding:48px 24px 32px;
+  text-align:center;
+  border-bottom:4px solid var(--text);
+  background:var(--bg);
+}
+header.top .eyebrow{
+  letter-spacing:0.14em;
+  font-size:10px;
+  color:var(--text-faint);
+  margin-bottom:18px;
+}
+header.top h1{
+  font-family:'IBM Plex Sans',sans-serif;
+  font-weight:700;
+  font-size:clamp(28px,4.2vw,42px);
+  margin:0 0 20px;
+  letter-spacing:-0.01em;
+  line-height:1.3;
+  color:var(--c1);
+  text-shadow:3px 3px 0 rgba(32,31,51,0.16);
+}
+header.top p.sub{
+  color:var(--text-dim);
+  max-width:640px;
+  margin:0 auto;
+  font-size:14.5px;
+}
+
+/* ---------- Nav / world map ---------- */
+nav.tabs{
+  position:sticky;
+  top:0;
+  z-index:50;
+  padding:16px;
+  background:var(--bg);
+  border-bottom:4px solid var(--text);
+}
+nav.tabs .tabs-inner.worldmap{
+  display:grid;
+  grid-template-columns:minmax(90px,1fr) 32px minmax(90px,1fr) 32px minmax(90px,1fr) 32px minmax(90px,1fr);
+  grid-auto-rows:auto;
+  align-items:center;
+  gap:6px;
+  max-width:1120px;
+  margin:0 auto;
+  overflow-x:auto;
+  overflow-y:visible;
+  padding-top:22px;
+  scrollbar-width:none;
+}
+nav.tabs .tabs-inner.worldmap::-webkit-scrollbar{display:none;}
+.wpath-h{
+  height:4px;
+  align-self:center;
+  background:repeating-linear-gradient(to right, var(--text-faint) 0 6px, transparent 6px 12px);
+}
+.wpath-v{
+  width:4px;
+  height:100%;
+  min-height:24px;
+  justify-self:center;
+  background:repeating-linear-gradient(to bottom, var(--text-faint) 0 6px, transparent 6px 12px);
+}
+nav.tabs button{
+  position:relative;
+  flex:0 0 auto;
+  font-family:'Noto Sans TC','IBM Plex Sans',sans-serif;
+  font-size:12px;
+  font-weight:600;
+  line-height:1.4;
+  color:var(--text-dim);
+  background:var(--surface);
+  border:3px solid var(--border);
+  padding:8px 6px;
+  min-width:86px;
+  cursor:pointer;
+  transition:transform 0.1s linear;
+  white-space:normal;
+  text-align:center;
+}
+nav.tabs button .num{
+  display:block;
+  font-size:9px;
+  margin-bottom:4px;
+  opacity:0.7;
+}
+nav.tabs button:hover{color:var(--text);border-color:var(--text-faint);}
+nav.tabs button:active{transform:translate(2px,2px);}
+nav.tabs button.active{
+  color:var(--on-accent);
+  background:var(--accent);
+  border-color:var(--text);
+  box-shadow:3px 3px 0 0 rgba(32,31,51,0.30);
+}
+nav.tabs button.active::before{
+  content:'▲';
+  position:absolute;
+  top:-20px;
+  left:50%;
+  transform:translateX(-50%);
+  color:var(--c1);
+  font-size:13px;
+  animation:blink 0.7s steps(2) infinite;
+}
+@keyframes blink{50%{opacity:0;}}
+@media (max-width:820px){
+  nav.tabs .tabs-inner.worldmap{display:flex;flex-direction:column;gap:8px;padding-top:20px;}
+  .wpath-h, .wpath-v{display:none;}
+  nav.tabs button{width:100%;min-width:0;}
+}
+
+.overview-divider{
+  max-width:1120px;
+  margin:14px auto 10px;
+  text-align:center;
+  color:var(--text-faint);
+  font-size:11px;
+  position:relative;
+}
+.overview-divider::before, .overview-divider::after{
+  content:'';
+  position:absolute;
+  top:50%;
+  width:38%;
+  border-top:2px dashed var(--border);
+}
+.overview-divider::before{left:0;}
+.overview-divider::after{right:0;}
+.overview-wrap{max-width:1120px;margin:0 auto;text-align:center;}
+nav.tabs button.overview-tab{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-size:11.5px;
+  font-weight:600;
+  padding:8px 16px;
+  border:2px solid var(--c9);
+  background:var(--surface);
+  color:var(--c9);
+  box-shadow:2px 2px 0 0 rgba(32,31,51,0.15);
+}
+nav.tabs button.overview-tab:hover{transform:translate(-2px,-2px);box-shadow:3px 3px 0 0 rgba(32,31,51,0.2);}
+nav.tabs button.overview-tab.active{
+  background:var(--c9);
+  color:var(--on-accent);
+  box-shadow:2px 2px 0 0 rgba(32,31,51,0.30);
+}
+
+/* ---------- Main / chapters ---------- */
+main{max-width:1120px;margin:0 auto;padding:44px 24px 100px;}
+.chapter{display:none;}
+.chapter.active{display:block;animation:fadeUp 0.25s steps(3) both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+@media (prefers-reduced-motion: reduce){
+  .chapter.active{animation:none;}
+  *{transition:none !important;animation:none !important;}
+}
+
+.chapter-head{margin-bottom:36px;}
+.chapter-head .kicker{
+  font-size:11px;
+  letter-spacing:0.08em;
+  color:var(--accent);
+  margin-bottom:14px;
+}
+.chapter-head h2{
+  font-size:clamp(24px,3.2vw,32px);
+  margin:0 0 16px;
+  font-weight:700;
+  line-height:1.4;
+  color:var(--text);
+}
+.chapter-head .lead{
+  color:var(--text-dim);
+  font-size:15.5px;
+  max-width:760px;
+}
+
+.card{
+  position:relative;
+  background:var(--surface);
+  border:3px solid var(--border);
+  border-top:5px solid var(--accent);
+  padding:26px 28px;
+  margin-bottom:24px;
+  box-shadow:5px 5px 0 0 rgba(32,31,51,0.22);
+}
+.card::before{
+  content:'';
+  position:absolute;top:-3px;left:-3px;
+  width:9px;height:9px;
+  background:var(--bg);
+}
+.card::after{
+  content:'';
+  position:absolute;bottom:-3px;right:-3px;
+  width:9px;height:9px;
+  background:var(--bg);
+}
+.card h3{
+  font-size:18px;
+  font-weight:700;
+  line-height:1.5;
+  margin:0 0 16px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  color:var(--text);
+}
+.card h3 .dot{
+  width:9px;height:9px;
+  margin-top:6px;
+  background:var(--accent);
+  flex:0 0 auto;
+}
+.card p{margin:0 0 12px;color:var(--text);}
+.card p:last-child{margin-bottom:0;}
+.card ul, .card ol{margin:0 0 12px;padding-left:22px;}
+.card li{margin-bottom:8px;}
+
+.term{
+  display:inline-block;
+  font-weight:700;
+  color:var(--accent);
+}
+
+.analogy{
+  background:var(--accent-bg);
+  border:3px solid var(--accent);
+  padding:16px 18px;
+  margin:14px 0;
+  font-size:14.5px;
+}
+.analogy .lbl{
+  font-size:10px;
+  letter-spacing:0.06em;
+  color:var(--accent);
+  margin-bottom:10px;
+  display:block;
+}
+
+.example{
+  background:var(--surface2);
+  border:3px solid var(--border);
+  padding:14px 18px;
+  margin:14px 0;
+  font-size:14px;
+}
+.example .lbl{
+  font-size:10px;
+  letter-spacing:0.06em;
+  color:var(--text-faint);
+  margin-bottom:10px;
+  display:block;
+}
+
+.examtip{
+  background:rgba(204,53,32,0.10);
+  border:3px solid var(--danger);
+  padding:14px 18px;
+  margin:14px 0;
+  font-size:14px;
+}
+.examtip .lbl{
+  font-size:10px;
+  letter-spacing:0.06em;
+  color:var(--danger);
+  margin-bottom:10px;
+  display:block;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin:14px 0;
+  font-size:14px;
+}
+th,td{
+  padding:10px 12px;
+  border-bottom:2px solid var(--border);
+  text-align:left;
+  vertical-align:top;
+}
+th{
+  font-size:10px;
+  letter-spacing:0.02em;
+  color:var(--accent);
+  border-bottom:3px solid var(--accent);
+}
+tr:last-child td{border-bottom:none;}
+.table-wrap{overflow-x:auto;margin:14px 0;}
+
+/* accordion */
+.acc-item{
+  border:3px solid var(--border);
+  margin-bottom:10px;
+  overflow:hidden;
+  background:var(--surface2);
+}
+.acc-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:14px 18px;
+  cursor:pointer;
+  font-size:12.5px;
+  line-height:1.7;
+  color:var(--text);
+  user-select:none;
+}
+.acc-head:hover{background:rgba(32,31,51,0.05);}
+.acc-head .chev{
+  color:var(--accent);
+  font-family:'JetBrains Mono',monospace;
+  transition:transform 0.15s linear;
+  flex:0 0 auto;
+  margin-left:12px;
+}
+.acc-item.open .chev{transform:rotate(90deg);}
+.acc-body{
+  max-height:0;
+  overflow:hidden;
+  transition:max-height 0.25s linear;
+  padding:0 18px;
+  font-size:14px;
+  color:var(--text-dim);
+}
+.acc-item.open .acc-body{padding:0 18px 16px;}
+
+/* grid of mini cards */
+.grid{display:grid;gap:14px;}
+.grid.g4{grid-template-columns:repeat(4,1fr);}
+.grid.g3{grid-template-columns:repeat(3,1fr);}
+.grid.g2{grid-template-columns:repeat(2,1fr);}
+@media (max-width:820px){
+  .grid.g4{grid-template-columns:repeat(2,1fr);}
+  .grid.g3{grid-template-columns:1fr;}
+  .grid.g2{grid-template-columns:1fr;}
+}
+@media (max-width:480px){
+  .grid.g4{grid-template-columns:1fr;}
+}
+.mini{
+  border:3px solid var(--border);
+  padding:14px 16px;
+  background:var(--surface2);
+  cursor:pointer;
+  transition:border-color 0.1s linear, transform 0.1s linear;
+}
+.mini:hover{border-color:var(--accent);transform:translate(-2px,-2px);box-shadow:2px 2px 0 0 var(--accent);}
+.mini .mt{font-size:12.5px;margin-bottom:8px;color:var(--accent);}
+.mini .md{font-size:12.5px;color:var(--text-dim);}
+.mini .full{display:none;font-size:13px;color:var(--text);margin-top:10px;padding-top:10px;border-top:2px solid var(--border);}
+.mini.open .full{display:block;}
+
+/* step simulator */
+.stepper-nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
+.stepper-nav button{
+  font-size:10.5px;
+  padding:9px 14px;
+  border:3px solid var(--border);
+  background:var(--surface2);
+  color:var(--text-dim);
+  cursor:pointer;
+  transition:transform 0.1s linear;
+}
+.stepper-nav button:active{transform:translate(2px,2px);}
+.stepper-nav button.active{
+  background:var(--accent);
+  color:var(--on-accent);
+  border-color:var(--text);
+  box-shadow:3px 3px 0 0 rgba(32,31,51,0.30);
+}
+.step-panel{display:none;}
+.step-panel.active{display:block;animation:fadeUp 0.2s steps(3) both;}
+.flowbox{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  margin:14px 0;
+}
+.fb{
+  padding:12px 16px;
+  border:3px solid var(--accent);
+  background:var(--accent-bg);
+  font-size:11px;
+  line-height:1.7;
+  color:var(--text);
+}
+.farrow{color:var(--accent);font-size:16px;}
+
+/* comparison columns */
+.cmp{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:14px 0;}
+@media (max-width:820px){.cmp{grid-template-columns:1fr;}}
+.cmp .col{
+  border:3px solid var(--border);
+  padding:16px;
+  background:var(--surface2);
+}
+.cmp .col h4{
+  margin:0 0 12px;
+  font-size:11px;
+  color:var(--accent);
+  letter-spacing:0.02em;
+}
+.cmp .col p{font-size:13.5px;color:var(--text-dim);margin:0;}
+
+/* toggle */
+.toggle-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.toggle-row button{
+  font-size:11px;
+  padding:9px 16px;
+  border:3px solid var(--border);
+  background:var(--surface2);color:var(--text-dim);
+  cursor:pointer;transition:transform 0.1s linear;
+}
+.toggle-row button:active{transform:translate(2px,2px);}
+.toggle-row button.active{background:var(--accent);border-color:var(--text);color:var(--on-accent);box-shadow:3px 3px 0 0 rgba(32,31,51,0.30);}
+.toggle-panel{display:none;}
+.toggle-panel.active{display:block;animation:fadeUp 0.2s steps(3) both;}
+
+/* stepper timeline (chapter 6 mttd) */
+.timeline{display:flex;align-items:stretch;margin:20px 0;overflow-x:auto;}
+.tseg{
+  flex:1;min-width:150px;
+  padding:16px 14px;
+  border-top:4px solid var(--accent);
+  position:relative;
+}
+.tseg:not(:last-child)::after{
+  content:'→';
+  position:absolute;right:-4px;top:10px;
+  color:var(--text-faint);
+}
+.tseg .tt{font-size:9.5px;color:var(--text-faint);margin-bottom:8px;}
+.tseg .tm{color:var(--accent);font-size:12px;margin-bottom:8px;line-height:1.6;}
+.tseg .td{font-size:12.5px;color:var(--text-dim);}
+
+/* signal side panel mock */
+.panel-mock{
+  border:3px solid var(--border);
+  background:var(--surface2);
+  overflow:hidden;
+  margin:14px 0;
+}
+.panel-mock .ph{
+  padding:12px 16px;
+  background:var(--accent);
+  border-bottom:3px solid var(--border);
+  font-size:11px;
+  color:var(--on-accent);
+}
+.panel-mock .pr{
+  padding:12px 16px;
+  border-bottom:2px solid var(--border);
+  display:flex;
+  gap:14px;
+}
+.panel-mock .pr:last-child{border-bottom:none;}
+.panel-mock .pr .pk{
+  flex:0 0 130px;
+  font-size:12.5px;
+  color:var(--text-faint);
+  font-weight:600;
+}
+.panel-mock .pr .pv{font-size:13px;color:var(--text);}
+
+/* status stepper */
+.status-flow{display:flex;align-items:center;gap:0;margin:16px 0;flex-wrap:wrap;}
+.stbadge{
+  padding:8px 14px;font-size:11px;
+}
+.stbadge.open{background:rgba(204,53,32,0.14);color:var(--danger);border:3px solid var(--danger);}
+.stbadge.review{background:rgba(160,106,0,0.14);color:var(--c7);border:3px solid var(--c7);}
+.stbadge.archived{background:rgba(20,138,52,0.12);color:var(--ok);border:3px solid var(--ok);}
+.status-flow .sarrow{margin:0 12px;color:var(--text-faint);}
+
+/* heatmap mock */
+.heatmap{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;margin:16px 0;}
+.hcell{aspect-ratio:1;background:var(--c4);}
+.heat-legend{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--text-dim);margin-top:6px;}
+.heat-legend .lg{width:14px;height:14px;}
+
+/* summary table chapter7 */
+.bigtable td:first-child{font-weight:700;color:var(--text);}
+
+/* quiz / battle encounter */
+.quiz{
+  border:3px solid var(--border);
+  border-top:5px solid var(--accent);
+  padding:26px 28px;
+  margin-bottom:26px;
+  background:var(--surface);
+  position:relative;
+}
+.quiz.shake{animation:shake 0.4s linear;}
+@keyframes shake{
+  10%,90%{transform:translateX(-3px);}
+  20%,80%{transform:translateX(4px);}
+  30%,50%,70%{transform:translateX(-6px);}
+  40%,60%{transform:translateX(6px);}
+}
+.quiz .qhead{
+  font-size:11px;
+  color:var(--text-faint);
+  margin-bottom:14px;
+  letter-spacing:0.04em;
+}
+.quiz .qhead::before{content:'◆ ';color:var(--accent);}
+.quiz h4{font-size:16px;line-height:1.7;margin:0 0 20px;color:var(--text);font-weight:600;}
+.qopt{
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
+  padding:13px 16px;
+  border:3px solid var(--border);
+  margin-bottom:10px;
+  cursor:pointer;
+  transition:transform 0.08s linear;
+  font-size:14.5px;
+}
+.qopt::before{content:'▶';color:var(--accent);opacity:0;flex:0 0 auto;}
+.qopt:hover::before, .qopt:focus-visible::before{opacity:1;}
+.qopt:hover:not(.disabled){border-color:var(--text-faint);transform:translate(-2px,-2px);}
+.qopt .qlabel{
+  font-weight:700;
+  color:var(--accent);
+  flex:0 0 auto;
+}
+.qopt.correct{border-color:var(--ok);background:rgba(20,138,52,0.10);}
+.qopt.wrong{border-color:var(--danger);background:rgba(204,53,32,0.12);}
+.qopt.disabled{cursor:default;}
+.qopt.disabled:hover{transform:none;}
+.qexplain{
+  display:none;
+  margin-top:16px;
+  padding:16px 18px;
+  background:var(--surface2);
+  border:3px solid var(--border);
+  font-size:14px;
+  color:var(--text-dim);
+}
+.qexplain.show{display:block;animation:fadeUp 0.25s steps(3) both;}
+.qexplain b{color:var(--text);}
+.qexplain::before{
+  display:block;
+  font-size:12px;
+  letter-spacing:0.04em;
+  margin-bottom:12px;
+}
+.quiz.victory .qexplain::before{content:'◆ CORRECT！ 過關';color:var(--ok);}
+.quiz.defeat .qexplain::before{content:'✕ MISS... 再試一次';color:var(--danger);}
+
+/* ---------- One-log trace (Chapter 9) ---------- */
+.factory-legend{
+  display:flex;
+  flex-wrap:wrap;
+  gap:14px;
+  margin-bottom:24px;
+  padding:14px 18px;
+  background:var(--surface2);
+  border:3px solid var(--border);
+  font-size:12.5px;
+  color:var(--text-dim);
+}
+.factory-legend .lgi{display:flex;align-items:center;gap:7px;}
+.factory-legend .sw{width:13px;height:13px;flex:0 0 auto;border:2px solid var(--text);}
+
+.trace{display:flex;flex-direction:column;}
+.trace-step{margin-bottom:40px;}
+.trace-step:last-child{margin-bottom:0;}
+.trace-step:not(:last-child)::after{
+  content:'▼';
+  position:absolute;
+  left:28px;
+  bottom:-30px;
+  color:var(--text-faint);
+  font-size:14px;
+}
+.trace-step.gate{border-top-style:dashed;}
+.trace-step.analyst{background:var(--c8-bg);}
+.trace-note{font-size:12.5px;color:var(--text-faint);font-style:italic;margin-top:8px;}
+
+.reveal-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  margin-top:12px;
+  padding:9px 16px;
+  border:3px solid var(--accent);
+  background:var(--accent-bg);
+  color:var(--accent);
+  font-weight:700;
+  font-size:13px;
+  cursor:pointer;
+  transition:transform 0.08s linear;
+}
+.reveal-btn:hover{transform:translate(-2px,-2px);}
+.reveal-btn::before{content:'▶ ';}
+
+.branch-wrap{
+  display:grid;
+  grid-template-columns:1fr 40px minmax(0,260px);
+  align-items:center;
+  gap:0;
+  margin-top:14px;
+}
+.branch-main{font-size:13px;color:var(--text-dim);}
+.branch-arrow{
+  text-align:center;
+  color:var(--text-faint);
+  font-size:16px;
+}
+.branch-box{
+  padding:12px 14px;
+  border:3px dashed var(--border);
+  background:var(--surface2);
+  font-size:12.5px;
+  color:var(--text-dim);
+}
+.branch-box .bb-lbl{
+  display:block;
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;
+  letter-spacing:0.04em;
+  color:var(--text-faint);
+  margin-bottom:6px;
+}
+@media (max-width:640px){
+  .branch-wrap{grid-template-columns:1fr;}
+  .branch-arrow{display:none;}
+  .branch-box{margin-top:8px;}
+}
+
+/* floating node detail panel */
+.node-panel{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:200;
+}
+.node-panel.open{display:block;}
+.node-panel-backdrop{
+  position:absolute;
+  inset:0;
+  background:rgba(32,31,51,0.45);
+}
+.node-panel-content{
+  position:absolute;
+  top:0;right:0;
+  height:100%;
+  width:min(440px, 92vw);
+  background:var(--surface);
+  border-left:5px solid var(--panel-accent, var(--c1));
+  box-shadow:-6px 0 0 0 rgba(32,31,51,0.2);
+  overflow-y:auto;
+  padding:26px 24px 40px;
+  animation:panelSlide 0.18s ease both;
+}
+@keyframes panelSlide{from{transform:translateX(24px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+@media (prefers-reduced-motion: reduce){.node-panel-content{animation:none;}}
+.node-panel-close{
+  position:absolute;
+  top:16px;right:16px;
+  width:32px;height:32px;
+  border:3px solid var(--border);
+  background:var(--surface2);
+  color:var(--text);
+  font-size:14px;
+  cursor:pointer;
+}
+.node-panel-tag{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  letter-spacing:0.04em;
+  color:var(--panel-accent, var(--c1));
+  margin:0 40px 10px 0;
+}
+.node-panel-title{
+  font-size:19px;
+  font-weight:700;
+  margin:0 40px 16px 0;
+  line-height:1.5;
+  color:var(--text);
+}
+.node-panel-body{font-size:14.5px;color:var(--text);}
+.node-panel-body p{margin:0 0 12px;}
+.node-panel-body ul{margin:0 0 12px;padding-left:20px;}
+.node-panel-body li{margin-bottom:6px;}
+.node-panel-body b{color:var(--panel-accent, var(--c1));}
+
+.pk-diagram{margin:6px 0 22px;}
+.pk-hub{
+  padding:13px 14px;
+  text-align:center;
+  font-weight:700;
+  font-size:13px;
+  border:3px solid var(--panel-accent, var(--c1));
+  background:var(--surface2);
+  color:var(--panel-accent, var(--c1));
+}
+.pk-arrow{text-align:center;color:var(--text-faint);font-size:14px;margin:4px 0;}
+.pk-branch-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.pk-item{
+  padding:10px 8px;
+  text-align:center;
+  font-size:11.5px;
+  line-height:1.5;
+  font-weight:600;
+  border:2px solid var(--border);
+  background:var(--surface2);
+  color:var(--text);
+}
+.pk-item small{display:block;font-weight:400;color:var(--text-faint);font-size:10px;margin-top:3px;}
+.pk-hub.small{font-size:11.5px;font-weight:600;padding:10px 12px;}
+.pk-branch-single{grid-column:1 / -1;}
+
+footer{
+  text-align:center;
+  padding:40px 24px 60px;
+  color:var(--text-faint);
+  font-size:11px;
+  line-height:2;
+}
+
+/* focus visibility */
+button:focus-visible, .acc-head:focus-visible, .mini:focus-visible, .qopt:focus-visible{
+  outline:2px solid var(--text);
+  outline-offset:2px;
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="eyebrow">DATADOG CLOUD SIEM · AWS FUNDAMENTALS</div>
+  <p style="margin:0 0 4px;"><a href="../cloud-siem-study-map/" style="font-size:12px;color:var(--text-faint);text-decoration:underline;">繁體中文版 →</a></p>
+  <h1>Cloud SIEM 完全理解マップ</h1>
+  <p class="sub">「クラウドプロバイダーは実際何を守ってくれているのか」から「1 件の log がどうやって解決済みの案件になるのか」まで、同じ 1 本のデータのライフラインで、全体を 1 枚の図につなげます。</p>
+</header>
+
+<nav class="tabs" id="tabs">
+  <div class="tabs-inner worldmap">
+    <button data-ch="1" class="active" style="grid-column:1;grid-row:1;"><span class="num">01</span>なぜ SIEM が必要か</button>
+    <button data-ch="2" style="grid-column:3;grid-row:1;"><span class="num">02</span>データはどうきれいになるか</button>
+    <button data-ch="3" style="grid-column:5;grid-row:1;"><span class="num">03</span>ルールの基礎</button>
+    <button data-ch="4" style="grid-column:7;grid-row:1;"><span class="num">04</span>MITRE と応用チューニング</button>
+    <button data-ch="5" style="grid-column:7;grid-row:3;"><span class="num">05</span>Signal の調査方法</button>
+    <button data-ch="6" style="grid-column:5;grid-row:3;"><span class="num">06</span>測定と継続的改善</button>
+    <button data-ch="7" style="grid-column:3;grid-row:3;"><span class="num">07</span>サマリーマップ</button>
+    <button data-ch="8" style="grid-column:1;grid-row:3;"><span class="num">08</span>模擬問題</button>
+
+    <div class="wpath-h" aria-hidden="true" style="grid-column:2;grid-row:1;"></div>
+    <div class="wpath-h" aria-hidden="true" style="grid-column:4;grid-row:1;"></div>
+    <div class="wpath-h" aria-hidden="true" style="grid-column:6;grid-row:1;"></div>
+    <div class="wpath-v" aria-hidden="true" style="grid-column:7;grid-row:2;"></div>
+    <div class="wpath-h" aria-hidden="true" style="grid-column:6;grid-row:3;"></div>
+    <div class="wpath-h" aria-hidden="true" style="grid-column:4;grid-row:3;"></div>
+    <div class="wpath-h" aria-hidden="true" style="grid-column:2;grid-row:3;"></div>
+  </div>
+
+  <div class="overview-divider" aria-hidden="true"><span>◆</span></div>
+  <div class="overview-wrap">
+    <button class="overview-tab" data-ch="9">◆ アーキテクチャ全体像 · 1 件の Log を完全に追跡</button>
+  </div>
+</nav>
+
+<main>
+
+<!-- ===================== CHAPTER 1 ===================== -->
+<section class="chapter active" data-chapter="1" style="--accent:var(--c1);--accent-bg:var(--c1-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Chapter 01 · Foundation</div>
+    <h2>なぜ SIEM が必要か</h2>
+    <p class="lead">この章では 1 つの問いに答えます。クラウドプロバイダーは実際何を守ってくれていて、どこに自分で埋めるべき穴が残っているのか。この答えが「自分でどのデータを集めるべきか」を決め、それこそが Cloud SIEM の生産ライン全体の原材料になります。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>まず正式名称から：Cloud SIEM とは何か</h3>
+    <p><span class="term">SIEM</span> の正式名称は <b>Security Information and Event Management（セキュリティ情報およびイベント管理）</b>で、セキュリティ分野で長年使われてきたシステムのカテゴリです。中核となる仕事は、各システムに散らばった記録（log/event）を 1 か所に集約し、相関分析を行って潜在的な脅威を見つけ出すことです。Datadog の <b>Cloud SIEM</b> は、このカテゴリのシステムが Datadog プラットフォーム上に実装されたものです。すでに Datadog に送られている log をそのまま活用してリアルタイムに分析するので、別途独立したセキュリティシステムを接続する必要はありません。</p>
+    <div class="analogy">
+      <span class="lbl">Analogy</span>
+      社内に散らばった監視カメラの映像（各システムの log）を、すべて 1 つの監視室（SIEM）に集約し、同じ人員が同じルールで見張るイメージです。各部署がそれぞれ自分の画面だけを見て、異常があるかどうかを個別に判断するのとは違います。
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>共有責任モデル（Shared Responsibility Model）</h3>
+    <p>パブリッククラウドのセキュリティは、決して「プロバイダーが全部引き受ける」でも「顧客が全部引き受ける」でもなく、サービスの形態によって役割が分かれています。しかもサービスが「マネージド」であるほど、その境界線はプロバイダー側に寄っていきます。</p>
+    <div class="analogy">
+      <span class="lbl">Analogy</span>
+      借りているマンションにはオートロックや監視カメラ、消防設備が備わっています（これはプロバイダーの責任）。しかし自分の部屋の鍵をかけるかどうか、貴重品をどこに置くか、合鍵を誰に渡すかは、常に自分自身の責任です。管理人が代わりに管理してくれるわけではありません。
+    </div>
+    <div class="cmp">
+      <div class="col">
+        <h4>IaaS · 例：AWS EC2</h4>
+        <p><span class="term">IaaS</span> の正式名称は <b>Infrastructure as a Service（インフラストラクチャーアズアサービス）</b>で、仮想マシン層にあたります。顧客が OS、アプリケーション、ネットワーク設定を自分で管理し、プロバイダーは物理データセンター、ハードウェア、仮想化層のみを管理します。顧客が負う責任範囲が最も大きい形態です。</p>
+      </div>
+      <div class="col">
+        <h4>PaaS / フルマネージド · 例：RDS、Lambda</h4>
+        <p><span class="term">PaaS</span> の正式名称は <b>Platform as a Service（プラットフォームアズアサービス）</b>で、プロバイダーが OS やパッチ、基盤の運用まですべて引き受けます。顧客は自分のデータとアクセス設定だけを管理すればよくなります。</p>
+      </div>
+      <div class="col">
+        <h4>どの形態でも変わらないこと</h4>
+        <p><span class="term">データ</span>、<span class="term">アイデンティティ（identity）</span>、<span class="term">アクセス権限（access policy）</span>は常に顧客の責任です。従業員のアカウント権限が適切に設定されているかどうかを、プロバイダーが代わりに管理してくれることはありません。</p>
+      </div>
+    </div>
+    <div class="example">
+      <span class="lbl">監視における実際の意味</span>
+      プロバイダーは大量のセキュリティテレメトリデータ（監査 log、トラフィック log、脅威検知結果）を生成しますが、<b>自分から SIEM に送ってはくれません</b>。どの情報源を収集し、どこに送り、どれだけ保持するかは自分で決める必要があります。これこそが「なぜ SIEM が必要か」への答えです。プロバイダーは原材料を提供するだけで、その原材料を集約し、正規化し、分析するツールが必要なのです。
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>主要な Log ソース 5 大分類</h3>
+    <p>Cloud SIEM が効果を発揮するには、環境全体を見渡せる必要があります。各分類をクリックして例を見てみましょう。</p>
+
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">クラウド監査 Log（Cloud audit logs）<span class="chev">▸</span></div>
+      <div class="acc-body"><p>例：AWS CloudTrail、GCP Audit Logs、Azure Activity Logs。「誰がクラウド環境に対してどんな API（<b>Application Programming Interface，アプリケーション間の通信・命令のためのインターフェース</b>）呼び出しや管理操作を行ったか」を記録する、クラウドセキュリティ監視の土台です。<br><b>例：</b>誰かが <span class="term">IAM（Identity and Access Management，アイデンティティとアクセス管理）</span>ユーザーの認証情報で <code>DeleteBucket</code> API を呼び出すと、CloudTrail は誰が、いつ、どの IP から実行したかを記録します。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">アイデンティティおよび認証 Log（Identity and authentication logs）<span class="chev">▸</span></div>
+      <div class="acc-body"><p>例：Okta、Auth0、Azure AD。ログインイベント、<span class="term">MFA（Multi-Factor Authentication，多要素認証）</span>チャレンジ、アカウント活動を追跡します。<br><b>専門用語：<span class="term">Impossible Travel（不可能な移動）</span></b>。同じアカウントが短時間のうちに遠く離れた 2 つの地点からログインする（例：10 分以内に台北でログインした直後にニューヨークでログインする）と、物理的にそれほど速く移動することは不可能なため、アカウントが乗っ取られている可能性を示します。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">ネットワークトラフィック Log（Network flow logs）<span class="chev">▸</span></div>
+      <div class="acc-body"><p>例：AWS <span class="term">VPC（Virtual Private Cloud，仮想プライベートクラウド）</span> Flow Logs、Azure <span class="term">NSG（Network Security Group，ネットワークセキュリティグループ）</span> Flow Logs、GCP VPC Flow Logs。接続のメタデータ（誰が誰に接続したか、どのポートか、通信量はどれくらいか）のみを記録し、パケットの中身は記録しません。<br><b>例：</b>内部ホストが突然外部の見知らぬ IP に大量のデータを送信した場合、<span class="term">データ漏えい（data exfiltration）</span>の兆候かもしれません。内部ホスト間に異常な横方向の接続パターンが現れた場合は<span class="term">横方向移動（lateral movement）</span>の可能性があります。これは攻撃者が 1 台のマシンを乗っ取った後、それを踏み台にして他の内部マシンを攻撃する手法です。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">SaaS およびコラボレーションツール Log<span class="chev">▸</span></div>
+      <div class="acc-body"><p><span class="term">SaaS</span> の正式名称は <b>Software as a Service（ソフトウェアアズアサービス）</b>で、自分でインストール・保守しなくても、ブラウザからログインするだけで使えるクラウドソフトウェアです。例：Microsoft 365、Google Workspace、Slack、GitHub。コラボレーションプラットフォームや開発ツール上のユーザー活動を追跡します。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">エンドポイントおよびサードパーティセキュリティツール Log<span class="chev">▸</span></div>
+      <div class="acc-body"><p>例：CrowdStrike、SentinelOne、Amazon GuardDuty。専門のセキュリティツールがすでに生成したアラートや発見事項（findings）を転送してくることで、Cloud SIEM はこれらの既存の判断結果も相関分析に組み込むことができます。</p></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Content Pack：「ゼロから作る」を「即つながる」に変える</h3>
+    <p><span class="term">Content Pack</span> は特定の log ソース向けにパッケージ化された一式のセキュリティコンテンツです。<b>Detection Rules</b>、<b>Dashboards</b>、<b>Investigator widgets</b>、<b>Workflow Automation / SOAR blueprints</b>（SOAR = Security Orchestration, Automation and Response，セキュリティオーケストレーション・自動化・対応）が含まれ、時には parser も含まれます。</p>
+
+    <div class="toggle-row">
+      <button class="active" onclick="toggleP(this,'nopack')">Content Pack がない場合</button>
+      <button onclick="toggleP(this,'haspack')">Content Pack がある場合</button>
+    </div>
+    <div class="toggle-panel active" id="nopack">
+      <div class="example"><span class="lbl">自分でやるべきこと</span>データソースを探して接続 → Detection Rule を自分で書く → Dashboard を自分で作る → Workflow を自分で構築する。どの項目も正しいかどうか検証する時間が必要です。</div>
+    </div>
+    <div class="toggle-panel" id="haspack">
+      <div class="example"><span class="lbl">例：AWS CloudTrail Content Pack</span>有効化して CloudTrail log を接続するだけで、異常な <code>AssumeRole</code> 動作（ロールの想定が異常なパターンで、権限昇格攻撃でよく見られる）を検知する Detection Rule、CloudTrail アクティビティダッシュボード、IAM user / IP 向けの調査ビュー、自動通知や自動対応の workflow が一度に手に入ります。</div>
+    </div>
+
+    <p>もう 1 つ、脅威インテリジェンス寄りの例として <b>Recorded Future Content Pack</b> があり、事前構築済みの検知ルール、log enrichment（エンリッチメント）、統合ダッシュボードを提供します。</p>
+
+    <div class="examtip">
+      <span class="lbl">試験のポイント</span>
+      <ul style="margin:0;">
+        <li>「この Content Pack はどの情報源に依存するか」がよく問われます。</li>
+        <li><b>Content Pack を有効化すると SIEM Index Filter が自動更新されます</b>（その Content Pack に必要な log ソースが自動的に filter に追加されます、第 2 章参照）。手動で別途設定する必要はありません。</li>
+        <li>Content Pack の中核的な価値は <span class="term">time-to-value</span>（導入してから実際に価値を生むまでの時間）を短縮することです。</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>補足：AWS Org アカウント連携（CloudFormation StackSet）</h3>
+    <p>AWS Organization 配下の複数アカウントを一括で Cloud SIEM に接続するには、Datadog が提供する <span class="term">CloudFormation StackSet</span> を使います。Organization の <b>trusted access（信頼されたアクセス）</b>と <b>service-managed permissions（サービス管理型権限）</b>を利用して、管理アカウントが必要な IAM role を各メンバーアカウントへ自動的にデプロイします。</p>
+    <div class="examtip">
+      <span class="lbl">よくあるデプロイ失敗の原因</span>
+      デプロイ設定の <b>Specify regions（リージョン指定）</b>ステップでは、<b>リージョンを 1 つだけ</b>選択できます。IAM は AWS のグローバル（global）サービスでありリージョンに依存しませんが、StackSet のデプロイ機構は「アカウント × リージョン」ごとに stack instance を作成します。複数リージョンを選択すると、Datadog のテンプレートが複数のリージョンでそれぞれ同名の IAM role を作成しようとして衝突が発生し、どのアカウントにも IAM role を作り終える前にデプロイ全体が失敗します。
+      <br><br>
+      紛らわしいですが原因<b>ではない</b>設定：Execution configuration を Active（並列実行）にすることはデプロイの速度・並列度にのみ影響します。Deployment targets を特定の OU（Organizational Unit，組織単位）ではなく Organization 全体に設定することも、単にデプロイ範囲の大きさの設定にすぎません。どちらもデプロイ全体の失敗には直結せず、原因になるのは「複数リージョンの選択」だけです。
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Datadog Security 製品ラインにおける Cloud SIEM の位置づけ</h3>
+    <p>Cloud SIEM は Datadog Security 製品ラインの一部にすぎず、それぞれがセキュリティスタックの異なるレイヤーを担当しています。</p>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">Cloud Security（クラウドセキュリティポスチャー）<span class="chev">▸</span></div>
+      <div class="acc-body">
+        <p>インフラの「セキュリティポスチャー（posture）」に注目します。重点は<b>設定そのものが安全かどうか</b>で、Cloud SIEM が注目する「攻撃を受けたかどうか」とは別のレイヤーの問題です。以下の 3 つに分かれます。</p>
+        <ul>
+          <li>
+            <b>Misconfigurations（設定ミス）</b>：リソース設定を継続的に監査し、<span class="term">CIS（Center for Internet Security）</span>や <span class="term">PCI DSS（Payment Card Industry Data Security Standard，クレジットカード業界データセキュリティ基準）</span>といったコンプライアンスフレームワークで定められたチェック項目と照合します。
+            <div class="example" style="margin-top:8px;"><span class="lbl">例</span>ある S3 bucket が「誰でも公開読み取り可能」に設定されていた場合、これは設定ミスです。実際にデータを盗む人がいなくても、この設定そのものがすでにリスクであり、Misconfigurations はそれを直接指摘します。</div>
+          </li>
+          <li>
+            <b>Identity Risks（アイデンティティリスク）</b>：IAM（Identity and Access Management）関連のリスクを検知します。
+            <div class="example" style="margin-top:8px;"><span class="lbl">例</span>ある IAM ロールに「管理者（admin）」レベルの権限が付与されているものの、過去 90 日間まったく使われていない場合、これは「権限過剰（excessive permissions）」と「未使用の認証情報（unused credentials）」の組み合わせです。この認証情報が漏えいすれば、攻撃者が得られる権限は実際の必要量をはるかに超えてしまいます。
+            </div>
+          </li>
+          <li>
+            <b>Vulnerabilities（脆弱性スキャン）</b>：コンテナやホストをスキャンし、既知のセキュリティ脆弱性を見つけます。
+            <div class="example" style="margin-top:8px;"><span class="lbl">例</span>ある EC2 ホストで動いているオープンソースパッケージのバージョンが、ある <span class="term">CVE（Common Vulnerabilities and Exposures，共通脆弱性識別子。業界共通の既知脆弱性の番号体系）</span>に該当するとスキャンで判明した場合、Vulnerabilities はまだ実際に攻撃に使われていなくても、そのホストにこの脆弱性があることを一覧に表示します。
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">Workload Protection（ワークロード保護）<span class="chev">▸</span></div>
+      <div class="acc-body"><p>ホストやコンテナ上のファイル、ネットワーク、プロセスの活動を監視し、runtime（プログラムが実際に動いている最中）に発生する脅威を検知します。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">App and API Protection（アプリケーションおよび API 保護）<span class="chev">▸</span></div>
+      <div class="acc-body"><p>アプリケーション層の攻撃を検知・遮断します。例えば <span class="term">SSRF（Server-Side Request Forgery，サーバーサイドリクエストフォージェリ）</span>は、攻撃者がサーバーを騙して代わりにリクエストを発行させ、本来アクセスできない内部リソースにアクセスする手法です。また <span class="term">SQL（Structured Query Language，構造化問い合わせ言語）Injection（SQL インジェクション）</span>は、悪意のある SQL 構文を入力フィールドに混入させてデータベースクエリを操作する手法です。あわせて API のディスカバリーとポスチャー管理も提供します。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">Code Security（コードセキュリティ）<span class="chev">▸</span></div>
+      <div class="acc-body"><p>開発ライフサイクルの中で、自社コードとオープンソース依存パッケージの脆弱性を見つけます。</p></div>
+    </div>
+    <div class="example">
+      <span class="lbl">製品同士がどう価値を高め合うか</span>
+      Cloud SIEM は他のセキュリティ製品の情報を使って、自身の検知結果をより豊かにできます。例えば第 5 章で触れる <b>Risk Insights</b> は、Cloud SIEM の signal に Cloud Security の Misconfigurations と Identity Risks のデータを組み合わせ、統合された「実体リスクスコア」を算出します。これにより「何が起きたか」だけでなく、「この実体自体がどれだけ危険か」まで見えるようになります。
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 2 ===================== -->
+<section class="chapter" data-chapter="2" style="--accent:var(--c2);--accent-bg:var(--c2-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Chapter 02 · Pipeline</div>
+    <h2>データはどうきれいになるか</h2>
+    <p class="lead">log が送られてくるだけでは足りません。この章では、log が届いた後にどんな加工工程を経て、ルールが理解でき検索できるきれいなデータになるのかを分解します。同じ 1 件の log で生産ライン全体を通し、1 ステップずつどう変わっていくかを見ていきます。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>まず Pipeline と Processor の関係を理解する</h3>
+    <p>Datadog の Log Management では、<span class="term">Pipeline（パイプライン）</span>は<b>順番に実行される</b> <span class="term">Processor（プロセッサー）</span>の集まりで、<b>Logs → Configuration → Pipelines</b> ページで設定します。各 processor はごく小さな仕事を 1 つだけ担当し、前の工程で処理された結果はそのまま次の工程に渡されます。工場の生産ラインと同じで、生の log が原材料、processor が 1 つずつの加工ステーションであり、最終的に出力されるのは SIEM が分析できる標準化された log です。</p>
+    <p>以下では同じ 1 件の log を使って、生産ライン全体の 5 つのステップを順番にたどり、各ステップでどの processor を使い、実際にどう変わるかを見ていきます。</p>
+
+    <div class="stepper-nav">
+      <button class="active" data-step="1" onclick="setStep(this,'pipe')">1. 生の log</button>
+      <button data-step="2" onclick="setStep(this,'pipe')">2. Grok 解析</button>
+      <button data-step="3" onclick="setStep(this,'pipe')">3. OCSF 正規化</button>
+      <button data-step="4" onclick="setStep(this,'pipe')">4. GeoIP エンリッチメント</button>
+      <button data-step="5" onclick="setStep(this,'pipe')">5. Index Filter 通過</button>
+    </div>
+
+    <div class="step-panel active pipe-step" data-step="1">
+      <p><span class="term">Grok Processor</span>を通す前の log は、通常ただの非構造化テキストの連なりで、ルールは特定のフィールドに対して照合できません。</p>
+      <div class="example"><span class="lbl">生の log</span><code>2020-01-01 12:00:01 google oauth login success by John Doe from 1.2.3.4</code></div>
+    </div>
+    <div class="step-panel pipe-step" data-step="2">
+      <p><span class="term">Grok Processor</span>：非構造化文字列から必要なフィールドを抜き出します。ぐちゃぐちゃな文章を使える形のフィールドに 1 つずつ切り分けるようなイメージです。</p>
+      <div class="analogy">
+        <span class="lbl">名前の由来</span>
+        <b>Grok</b> という単語は、1961 年の SF 小説『異星の客（Stranger in a Strange Land）』に由来します。著者 Robert Heinlein がこの作品でこの語を創り、「あることの本質を完全に、直感的に理解する」という意味を持たせました。表面的に知っているだけでなく、徹底的に会得することを指します。ログ処理の世界（最初に Logstash がこの呼び方を使い、その後 Splunk や Datadog も同じ慣習を踏襲しました）がこの語を借用したのは、この processor がまさに「本来ごちゃごちゃした文字列を読み解き、各部分が何を意味するかを理解する」ことをしているからで、それで Grok と名付けられました。
+      </div>
+      <p>Grok の実際の仕組みは、<b>あらかじめ定義されたパターン（pattern、実体はラップされた正規表現 regex）</b>で文字列を照合し、パターンに一致した部分を抜き出してフィールド名を付けるというものです。</p>
+      <div class="example"><span class="lbl">生の log と Grok pattern の対応（イメージ）</span><pre><code>%{date("yyyy-MM-dd HH:mm:ss"):timestamp} %{word:evt.name} login %{word:evt.outcome} by %{data:usr.id} from %{ip:network.client.ip}</code></pre>
+      上記のようなパターンを生のテキストに適用すると、次のように解析されます。
+      <pre><code>{
+  "usr.id": "John Doe",
+  "evt.category": "authentication",
+  "evt.name": "google oauth",
+  "evt.outcome": "success",
+  "network.client.ip": "1.2.3.4"
+}</code></pre>これらのフィールドがあって初めて、ルールは <code>evt.outcome:failure</code> のような条件を検索できます。Grok による解析がなければ、この文章全体はルールにとって構造の分からない文字列の連なりでしかなく、「outcome が failure かどうか」を単独で照合することはできません。</div>
+    </div>
+    <div class="step-panel pipe-step" data-step="3">
+      <p><span class="term">OCSF Processor</span>：ソース固有のフィールドを、ソースをまたいで統一された標準フィールドに remap（再マッピング）します。</p>
+      <div class="analogy">
+        <span class="lbl">背景</span>
+        <b>OCSF（Open Cybersecurity Schema Framework）</b>は 2022 年に <b>AWS</b> と <b>Splunk</b> が共同で立ち上げ、オープンソースコミュニティに寄贈した「セキュリティイベントデータスキーマ（schema）」の標準です。その後 Datadog、CrowdStrike、IBM など数百社のセキュリティベンダーが順次採用しました。<span class="term">Schema（スキーマ）</span>とは平たく言えば「データがどんな形であるべきかを定めた仕様書」です。1 つの「ログインイベント」にどんなフィールドが必要か、フィールド名は何と呼ぶべきか、値はどんな型であるべきかを定め、すべてのベンダーが同じ仕様書に沿って出荷することで、各社バラバラに語ることがなくなります。
+      </div>
+      <p>OCSF はイベントを異なる<b>クラス（class）</b>に分類します。例えば第 1 章で触れた <b>Authentication（認証）</b>、<b>API Activity（API アクティビティ）</b>、<b>Account Change（アカウント変更）</b>などで、各クラスの下に標準属性名のセットが定められています。ここでは「ユーザー」という属性を例にとると、OCSF での標準名は <code>actor.user.name</code> です。ソースが CloudTrail であれ Okta であれ、ここでの Google OAuth log であれ、Processor はそれぞれ元のフィールドをこれにマッピングします。</p>
+      <div class="example"><span class="lbl">OCSF 対応表（同じ「ユーザー」の概念でも、各ソースの元フィールド名 → <code>actor.user.name</code> に統一マッピング）</span>
+        <div class="table-wrap"><table>
+          <tr><th>概念</th><th>AWS CloudTrail</th><th>Okta</th><th>GitHub</th><th>OCSF 標準フィールド</th></tr>
+          <tr><td>ユーザー</td><td><code>userIdentity.arn</code></td><td><code>actor.displayName</code></td><td><code>actor</code></td><td rowspan="3"><code>actor.user.name</code><br><code>src_endpoint.ip</code><br><code>class_uid</code> / <code>activity_id</code></td></tr>
+          <tr><td>IP アドレス</td><td><code>sourceIPAddress</code></td><td><code>client.ipAddress</code></td><td><code>actor_ip</code></td></tr>
+          <tr><td>イベントタイプ</td><td><code>eventName</code></td><td><code>eventType</code></td><td><code>action</code></td></tr>
+        </table></div>
+        OCSF がなければ、この 3 つのソースはそれぞれ別々のルールを書き、それぞれ別々のフィールド名を覚える必要があります。OCSF があれば、1 つのルールで 3 つのソースすべてに対応できます。<b>これは非常に頻出の試験ポイントです。</b>
+      </div>
+    </div>
+    <div class="step-panel pipe-step" data-step="4">
+      <p><span class="term">GeoIP Processor</span>：IP アドレスに基づいて地理位置情報を追加します。</p>
+      <div class="analogy">
+        <span class="lbl">実際にどうやって地理位置を調べるか</span>
+        GeoIP Processor の裏側にあるのは<b>IP アドレスと地理的な区画を対応させたデータベース</b>です（業界でよく使われる MaxMind GeoLite2 などで、Datadog 内部でこの種のデータベースを保守しています）。「どの IP 範囲がどの国・都市のネットワーク事業者に割り当てられているか」が記録されています。Processor は IP を受け取ると、そのデータベースでどの範囲に該当するかを調べ、対応する国、都市、緯度経度を返します。これは「この電話番号の市外局番がどの都市か」を調べるのと同じロジックです。誰かにリアルタイムで問い合わせるのではなく、既知の対応表を参照しているだけです。
+      </div>
+      <div class="example"><span class="lbl">エンリッチメント後に追加されるフィールド</span><pre><code>{
+  "network.client.ip": "1.2.3.4",
+  "country": "Japan",
+  "city": "Tokyo"
+}</code></pre>用途：Impossible Travel 検知（各ログインの地理位置を先に知らないと 2 地点間の距離を計算できません）、新しい国からのログイン検知、攻撃元の地図表示。</div>
+    </div>
+    <div class="step-panel pipe-step" data-step="5">
+      <p><span class="term">SIEM Index Filter</span>が、この処理済みの log を Cloud SIEM index に送るかどうかを決定します。</p>
+      <div class="analogy">
+        <span class="lbl">「filter を通過する」とは実際どういう意味か</span>
+        SIEM Index Filter は本質的に<b>クエリ構文（普段 Datadog で log を検索するのと同じ構文）</b>であり、<b>Logs → Configuration → Indexes → 該当する SIEM index → Index filter</b> に設定します。「filter を通過する」とは、この log が持つフィールド/tag がこのクエリ条件に一致することを意味します。
+      </div>
+      <div class="example">
+        <span class="lbl">例：実際の filter query はこんな形になります</span>
+        <pre><code>source:(cloudtrail OR okta OR github OR guardduty)</code></pre>
+        この filter の意味は、この log の <code>source</code> タグが CloudTrail、Okta、GitHub、GuardDuty のいずれかであれば「通過」とみなされ、SIEM index に送られるということです。もし <code>source:my-custom-app</code> という log があり、filter にこのソースが含まれていなければ、この log は SIEM index に<b>入らず</b>、どの Detection Rule からも見えません。
+      </div>
+      <div class="flowbox">
+        <div class="fb">加工済みの log<br><span style="color:var(--text-faint);">source、tag などの属性を持つ</span></div><span class="farrow">→</span>
+        <div class="fb">SIEM Index Filter のクエリ条件と照合</div><span class="farrow">→</span>
+        <div class="fb">属性が条件に一致：SIEM index に送られ、Detection Rule の評価対象になる</div>
+      </div>
+      <p><b>1 件の log を「通過」させる方法：</b>① 手動で Logs Index Configuration ページに行き、そのソースの <code>source</code>（または他のカスタム tag）を filter のクエリ条件に追加する。② より手間が少ない方法は、対応する <b>Content Pack</b>（第 1 章参照）を有効化することです。Datadog がその Content Pack に必要なソースを自動的にこの filter に追加してくれるので、手動でクエリ構文を編集する必要がありません。</p>
+      <p>filter を通過しさえすれば、log は SIEM index に保存されます。<b>たとえどの Detection Rule も発火しなくても、後から遡って調査できるよう残されます。</b> filter に一致しない log は、どの Detection Rule からもまったく見えません。</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>OOTB Pipeline は読み取り専用の出発点</h3>
+    <p><span class="term">OOTB</span>（Out-Of-The-Box，すぐに使える状態）：Datadog はよく使われるソース向けにあらかじめデフォルトの pipeline を用意しています。例えば AWS CloudTrail pipeline、AWS GuardDuty pipeline は、よくあるフィールド（<code>eventName</code>、<code>sourceIPAddress</code>、<code>userIdentity</code>）を自動的に解析します。</p>
+    <div class="examtip"><span class="lbl">重要な詳細</span>この種の OOTB pipeline は通常<b>読み取り専用</b>で直接編集できませんが、その後段に<b>カスタム処理を接続</b>して、組織固有の解析ニーズを補うことができます。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Log の保持階層</h3>
+    <p>データの「温度による階層分け」と考えることができ、背後にあるロジックは<b>検索速度とストレージコストの綱引き</b>です。速く検索できる階層ほどコストが高いため、すべての log を最も高価な階層に無期限に置いておくことはしません。</p>
+    <div class="table-wrap"><table>
+      <tr><th>階層</th><th>適した用途</th><th>検索速度</th></tr>
+      <tr><td><b>Standard indexing</b></td><td>頻繁に検索するホットデータ向け、より多くの計算リソースを許容できる</td><td>最速</td></tr>
+      <tr><td><b>Flex Logs</b></td><td>頻繁には検索しないが保持し検索可能にしておく必要がある、最長 <b>15 か月</b></td><td>中程度</td></tr>
+      <tr><td><b>Log Archives</b></td><td>コンプライアンス/長期保存向け、ほとんど検索しない</td><td>最遅（先に復元が必要）</td></tr>
+    </table></div>
+    <div class="example">
+      <span class="lbl">例：典型的な階層化戦略</span>
+      直近 30 日の log は Standard indexing に置く（アナリストが毎日検索するので速さが必要）。30 日から 15 か月の log は Flex Logs に移す（コンプライアンスや事後調査でたまに検索するが即時性は不要）。15 か月を超え、法規制の保持要件を満たすためだけの log は Log Archives に移す（ほとんど検索せず、検索する際は復元に時間がかかる）。この 3 階層は <b>Logs → Configuration → Indexes</b> で各 index ごとに保持日数・移行ルールを設定します。
+    </div>
+    <p>どの階層を選んでも、Cloud SIEM はデータが<b>入ってきた瞬間にリアルタイムで分析</b>します。安価なストレージ階層を選んだからといって脅威検知が遅れることはありません。リアルタイム分析は log が届いたその瞬間に発生し、その後どの階層にアーカイブするかは「事後のストレージ」の決定であり、両者は別の話です。<span class="term">Security Signal</span> 自体は <b>15 か月</b>保持されます。</p>
+    <div class="examtip">
+      <span class="lbl">Flex Logs の制限（見落としがちな試験ポイント）</span>
+      <p style="margin:0 0 10px;"><b>Flex Logs は Log Monitor をサポートせず、公式に今後もサポートしないと明言されています。</b>理由は 2 つあります。① 検索速度が比較的遅く、Monitor はほぼリアルタイムのスキャンが必要なため、Flex の遅延がアラートの即時性を損なう。② Flex の計算リソース（Query Pool）を大量に消費し、Monitor が繰り返しクエリを実行すると割り当てを使い切ってしまう。<b>Watchdog も Flex Logs をサポートしません</b>（同様に継続的なスキャンが必要なため）。</p>
+      <p style="margin:0;"><b>代替案：</b>先に <span class="term">Metrics from Logs</span> で監視したいパターンを metric に変換し、その metric に対して Monitor を設定します。一言でまとめると、Flex Logs は「残しておいて後で調べる」のに向いており、「リアルタイムで監視してアラートを出す」のには向いていません。</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Index の順序：SIEM index は必ず 1 番目に</h3>
+    <p>Log は pipeline を経た後、どの index に入るかが決まります。1 つのアカウントには通常<b>複数の index</b>があります（例えば一般的なアプリケーション log 用の index、監査用の index など）。Cloud SIEM 専用の index（例：<code>cloud-siem-xxxx</code>）もあり、これらの index は設定画面の中で<b>順序が決まっています</b>。</p>
+    <div class="analogy">
+      <span class="lbl">なぜ順序が「受信できるかどうか」に影響するのか</span>
+      各 index には独自のフィルター条件、1 日あたりの割り当て（quota）、サンプリングルールがあります。log は index の並び順に従って順番にチェックされ、前方に並んでいる index の割り当てを使い切っていたり除外ルールが設定されていたりすると、一部の log を先に遮断・破棄してしまうことがあります。その結果、後方に並んでいる index（SIEM index を含む）はその log を見る機会すら得られません。
+    </div>
+    <div class="examtip"><span class="lbl">試験のポイント</span><b>Cloud SIEM index は必ず 1 番目に置く必要があります。</b>これにより、条件に一致する log を他の index の割り当てや除外ルールに先取りされることなく、優先的に受け取れることが保証されます。画面に「The Cloud SIEM index is not in the first」という警告が出ることがあり、これは index の順序設定が誤っていることを示します。<b>Logs → Configuration → Indexes</b> ページで手動で SIEM index を一番上にドラッグ（reorder）する必要があります。</div>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 3 ===================== -->
+<section class="chapter" data-chapter="3" style="--accent:var(--c3);--accent-bg:var(--c3-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Chapter 03 · Rule Basics</div>
+    <h2>ルールの基礎：種類、コンポーネント、8 つの検知方法</h2>
+    <p class="lead">データがきれいになった後、実際の判定ロジックがここで発生します。signal とは何か、ルールにはいくつ種類があるか、共通コンポーネントは何か、そしてどんな方法で「これは異常だ」と判定するのか。これらは次章の MITRE マッピングと応用チューニングの土台になります。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Signal ≠ 生の log</h3>
+    <p>Detection rule は、Cloud SIEM がリアルタイムで入ってくる log に対してどんなロジックを適用するかを定義し、条件に一致すると <span class="term">Security Signal</span> を生成します。</p>
+    <div class="analogy"><span class="lbl">Analogy</span>log は生の証拠、ルールは探偵の推理ロジック、signal は探偵が事件を解決した後に書く「ここに問題がある」という報告書です。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>3 種類のルールタイプ</h3>
+    <div class="grid g3">
+      <div class="mini" tabindex="0" onclick="toggleMini(this)">
+        <div class="mt">Real-time rules</div>
+        <div class="md">log が入ってきたら継続的に監視し、条件が一致すればすぐに signal を生成</div>
+        <div class="full">例：あるルールが「5 分間のログイン失敗回数」を計算している場合、この集計と監視はリアルタイムで動いています。</div>
+      </div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)">
+        <div class="mt">Scheduled rules</div>
+        <div class="md">一定間隔でクエリを実行、長く続く脅威を捕まえるのに向いている</div>
+        <div class="full">例：<span class="term">DNS（Domain Name System，ドメインネームシステム）</span> tunneling（データを DNS クエリに隠して送信する手法）、low-and-slow brute force（わざと速度を落として試行を分散させ、短時間のしきい値を回避する手法）。この種の攻撃は時間範囲を長く取って定期的に振り返らないと捕まえられません。</div>
+      </div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)">
+        <div class="mt">Historical jobs</div>
+        <div class="md">過去データに対して 1 回限りのクエリを実行、継続的な監視ではない</div>
+        <div class="full">用途：新しいルールの backtesting（バックテスト）。「このルールが 2 か月前から存在していたら、ある既知のインシデントを捕まえられたか」を検証し、ルールに見逃しや過検知がないかを確認します。</div>
+      </div>
+    </div>
+    <p style="margin-top:14px;">Cloud SIEM には数百の <span class="term">OOTB ルール</span>が組み込まれており、Datadog Security Research チームが継続的に保守し、新しいルールは自動的にアカウントに取り込まれます。<b>Rules List</b> では source でフィルターしてルールのカバレッジ状況を確認できます。</p>
+    <div class="examtip">
+      <span class="lbl">OOTB ルールとカスタムルールの関係（誤解しやすい詳細）</span>
+      <ul style="margin:0;">
+        <li>OOTB ルールは Datadog が継続的に開発し、更新は<b>自動的に</b>アカウントへ取り込まれます。カスタムルールはユーザー自身が作成・保守するもので、Datadog からの自動更新を受け取ることは<b>ありません</b>。調整したい場合は自分で手動変更するしかありません。</li>
+        <li>両者は<b>互いに独立した</b>ルールであり、「どちらが優先されるか」という仕組みは存在しません。カスタムルールとある OOTB ルールが同じ種類の活動を対象にしていても、2 つのルールはそれぞれ独立して評価され、それぞれ別々に signal を生成する可能性があります。カスタムルールが OOTB ルールを自動的に置き換えたり上書きしたりすることは<b>ありません</b>。</li>
+        <li>機能が似たカスタムルールを作成しても、対応する OOTB ルールが自動的に削除されることは<b>ありません</b>。ユーザーが手動でどちらかを無効化しない限り、両方とも動き続けます。</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>ルールの 5 つの共通コンポーネント</h3>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">Detection method（検知方法）<span class="chev">▸</span></div>
+      <div class="acc-body"><p>Cloud SIEM がどのように log を評価するかを定義します。全 8 種類あり、下の章を参照してください。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">Search queries（検索クエリ）<span class="chev">▸</span></div>
+      <div class="acc-body"><p>どの log 条件に一致させるかを指定します。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">Conditions（トリガー条件）<span class="chev">▸</span></div>
+      <div class="acc-body"><p>いつ signal を生成するか、また重大度（severity）のレベルを決定します。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">Playbook（対応手順書）<span class="chev">▸</span></div>
+      <div class="acc-body"><p>ルール名、調査用の説明文、タグ（tag）を含み、その中に MITRE ATT&amp;CK 対応タグも含まれます（次章冒頭を参照）。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">Suppressions（抑制条件）<span class="chev">▸</span></div>
+      <div class="acc-body">
+        <p>どんな状況で<b>signal を生成しないか</b>を定義し、既知の誤検知を除外して alert fatigue（アラート疲れ）を減らします。抑制されるのは「signal のレイヤー」であり、log 自体はまったく削除されず、後から遡って検索できます。</p>
+        <div class="table-wrap"><table>
+          <tr><th>Query の種類</th><th>照合対象</th><th>作用するタイミング</th></tr>
+          <tr><td><b>Suppression query</b></td><td>signal の属性</td><td>ルール条件が一致し、signal を生成しようとした<b>後</b></td></tr>
+          <tr><td><b>Data exclusion query</b></td><td>生データ（log/event）の属性</td><td>ルールがこのデータを評価する<b>前</b></td></tr>
+        </table></div>
+        <p>両者は同じクエリ構文を使い、違いは純粋に照合対象だけです。どちらも<b>このルール 1 つ</b>にのみ適用され、複数のルールにまたがるかどうかとは無関係です。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>8 つの検知方法</h3>
+    <p>各カードをクリックすると例が見られます。</p>
+    <div class="grid g4">
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">Threshold</div><div class="md">回数がしきい値を超える</div><div class="full">例：5 分間で 10 回を超えるログイン失敗。全員が同じ固定のしきい値ラインを共有します。</div></div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">New Value</div><div class="md">これまで出現したことのない値</div><div class="full">例：あるユーザーが初めて「これまでログインしたことのない国」からログインする。</div></div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">Anomaly</div><div class="md">動的なしきい値、自分自身の履歴と比較</div><div class="full">例：普段は 1 時間に 50 回の API 呼び出しが、突然 500 回になる。各実体は自分自身のベースラインを持ち、Threshold の固定しきい値とは異なります。</div></div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">Content Anomaly</div><div class="md">内容の異常であり、回数ではない</div><div class="full">例：ある API 呼び出しの普段のパラメータパターンは固定なのに、ある回だけ内容の構造が急に大きく変わる。回数自体は増えていなくても該当します。</div></div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">Impossible Travel</div><div class="md">地理的位置が不合理</div><div class="full">同一アカウントのアクセスイベントが 2 つの地点で発生し、その距離が経過時間内に人間が移動できる範囲を超えている。</div></div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">Third Party</div><div class="md">外部ツールのアラートを転送</div><div class="full">例：Amazon GuardDuty がすでに生成したアラートを Datadog に転送し、signal として表示します。</div></div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">Signal Correlation</div><div class="md">複数の signal を 1 つに統合</div><div class="full">例：「新しいデバイスからのログイン」と「大量のファイルダウンロード」を個別に見ると低重大度の注意喚起にすぎませんが、関連付けると信頼度が大きく高まります。</div></div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">Sequence</div><div class="md">順序のある一連のイベント</div><div class="full">例：ロールの想定 → 権限昇格 → データアクセスが、順番どおりかつ妥当な時間内に発生して初めて、完全な攻撃シーケンスと判定されます。</div></div>
+    </div>
+  </div>
+
+</section>
+
+<!-- ===================== CHAPTER 4 ===================== -->
+<section class="chapter" data-chapter="4" style="--accent:var(--c4);--accent-bg:var(--c4-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Chapter 04 · MITRE &amp; Advanced Tuning</div>
+    <h2>MITRE ATT&amp;CK と応用チューニング</h2>
+    <p class="lead">ルールの基礎が分かったところで、ルールが業界共通の攻撃手法言語（MITRE ATT&amp;CK）とどう対応するかを見ていきます。続いて混同しやすい 3 つの「せき止める」仕組みを見て、最後にルールのチューニングとバージョン比較を扱います。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>MITRE ATT&amp;CK はどこから来て、何を解決するか</h3>
+    <p><span class="term">MITRE ATT&amp;CK</span> の正式名称は <b>Adversarial Tactics, Techniques, and Common Knowledge（対手の戦術・技術・共通知識）</b>です。</p>
+    <div class="analogy">
+      <span class="lbl">背景</span>
+      <b>MITRE Corporation</b> はアメリカの非営利研究機関で、長年アメリカ政府のために国防・セキュリティ関連の研究開発センターを運営してきました。2013 年、MITRE 内部の FMX という研究プロジェクトが「実際の攻撃者が具体的に何をしているのか」を体系的に整理し始めました。手法としては、大量の実際の侵入事件と APT（Advanced Persistent Threat，高度で持続的な脅威組織）の活動記録を分析し、観測された手口を分類してまとめ、2015 年に ATT&amp;CK フレームワークとして公開しました。解決しようとした問題は、<b>セキュリティ業界に長らく共通言語が存在しなかったこと</b>です。同じ攻撃手法でも、ベンダーやアナリストによってまったく異なる言い方で説明されることがあり、経験の蓄積やルールの相互運用ができませんでした。ATT&amp;CK 以降、「T1110 はブルートフォース」というのが業界の共通認識になり、どこの会社のアナリストでも、この番号を見れば何を指しているか分かるようになりました。
+    </div>
+    <p>フレームワークは 2 層に分かれます。</p>
+    <ul>
+      <li><b>Tactic（戦術）</b>：攻撃者の高次の目標、つまり「なぜ」それをするのかです。Enterprise Matrix はおおよそ攻撃のライフサイクルに沿って並んでおり、Initial Access（初期アクセス）、Execution（実行）、Persistence（永続化）、Privilege Escalation（権限昇格）、Defense Evasion（防御回避）、Credential Access（認証情報アクセス）、Discovery（探索）、Lateral Movement（横方向移動）、Collection（収集）、Exfiltration（データ持ち出し）、Impact（影響）など十数種類があります。</li>
+      <li><b>Technique（技術）</b>：その戦術の目標を達成するための具体的な手法、つまり「どうやって」です。各技術には固定の番号が付けられており、形式は <code>T####</code>、より細かいサブ技術は <code>T####.###</code> です。</li>
+    </ul>
+    <p>Tactic を章のタイトル、Technique をその章の中の具体的な技だと考えると分かりやすく、1 つの Tactic には通常複数の Technique が対応します。</p>
+
+    <div class="example">
+      <span class="lbl">例：1 回の完全な攻撃が、複数の Tactic にどう対応するか</span>
+      単一の Technique は攻撃チェーンの中の 1 ステップにすぎず、実際の攻撃は通常複数の Tactic にまたがって初めて完全なストーリーになります。
+      <div class="flowbox" style="margin-top:10px;">
+        <div class="fb">Initial Access<br><span style="color:var(--text-faint);">T1566 フィッシングメール</span></div><span class="farrow">→</span>
+        <div class="fb">Execution<br><span style="color:var(--text-faint);">T1059 悪意あるスクリプトの実行</span></div><span class="farrow">→</span>
+        <div class="fb">Persistence<br><span style="color:var(--text-faint);">T1078 正規アカウントの悪用</span></div><span class="farrow">→</span>
+        <div class="fb">Credential Access<br><span style="color:var(--text-faint);">T1110 ブルートフォース</span></div><span class="farrow">→</span>
+        <div class="fb">Exfiltration<br><span style="color:var(--text-faint);">データの持ち出し</span></div>
+      </div>
+      これは前章で紹介した <b>Sequence 検知方法</b>にも通じます。ロールの想定 → 権限昇格 → データアクセスというシーケンスルールは、本質的に攻撃者がこの Tactic チェーンを進んでいく過程を検知しているのです。
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Cloud SIEM はどう活用するか：追加モジュールではなく tag による対応</h3>
+    <div class="examtip">
+      <span class="lbl">試験の落とし穴ポイント</span>
+      Detection Rule と MITRE ATT&amp;CK の対応は<b>ルールに tag を追加する</b>ことで実現されており、別の独立したモジュールによるものではありません。
+      <pre><code>tactic:credential-access
+technique:brute-force
+security:attack</code></pre>
+      signal が生成されると、ルールが持つこれらの tag がそのまま signal 上に表示されます。「MITRE mapping はどう実現されているか」と問われたら、正解は「Detection Rule の tags」です。
+    </div>
+    <div class="examtip">
+      <span class="lbl">見落としがちな詳細：3 つの tag がセットで揃う必要がある</span>
+      <code>tactic:</code> と <code>technique:</code> を追加するだけでは不十分で、ルールには<b>同時に</b> <code>security:attack</code> という tag も必要です。これが揃って初めて MITRE ATT&amp;CK Map にそのルールが可視化されます。カスタムルールに <code>tactic:</code>/<code>technique:</code> だけ設定して <code>security:attack</code> を付け忘れた場合、ルール自体は普通に動作し普通に signal を生成しますが、マップには表示されません。これはルールが OOTB かどうか、どの検知方法を使っているかとは無関係で、純粋にこの tag が漏れているだけの問題です。
+    </div>
+    <p><span class="term">MITRE ATT&amp;CK Map</span>：アカウント内のすべての検知ルールを、tactic（横軸）/technique（縦軸、または逆）を座標としたヒートマップとして描画したものです。色が濃いほど、その technique に対応するルール数が多くカバレッジが密であることを示します。色が薄い、あるいは空白の場合は「攻撃者が本当にこの技術を使ったら、対応するルールが 1 つもないかもしれない」ことを意味します。以下はイメージです（あくまでイメージであり、実データではありません）。</p>
+    <div class="heatmap" id="heatmap"></div>
+    <div class="heat-legend"><span class="lg" style="background:rgba(201,45,143,0.15);"></span>カバレッジ低（ギャップ、カスタムルールの追加を検討）<span class="lg" style="background:rgba(201,45,143,0.55);margin-left:14px;"></span>カバレッジ中<span class="lg" style="background:rgba(201,45,143,1);margin-left:14px;"></span>カバレッジ高</div>
+    <p style="margin-top:12px;">このマップが答える重要な問いは「攻撃者が技術 X を使ったら、それを捕まえられるルールがあるか？」です。カバレッジのギャップを見つけ、どのカスタムルールを優先的に書くべきかを決めるのに使います。この動作は第 6 章で学ぶ<b>継続的改善サイクル</b>に直結しており、定期的にこのマップを見直すことは「最新情報を追う」具体的な方法の 1 つです。</p>
+    <p style="margin-top:12px;color:var(--text-dim);">この業界共通言語を検知方法の後に置いているのは、前章の 3 種類のルールタイプ、5 つの共通コンポーネント、8 つの検知方法が、最終的にはすべてここで説明する tactic/technique タグで分類されるからです。前章を振り返ることで、各検知方法が実際にはどの攻撃手法を防いでいるのかが分かります。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>混同しやすい 3 つの仕組み：Filter / Rule / Suppression</h3>
+    <p>この 3 つはよくシナリオ判断問題として出題され、「これはどの仕組みが働いているのか」を見分けさせます。</p>
+    <div class="table-wrap"><table>
+      <tr><th>仕組み</th><th>作用するタイミング</th><th>作用する範囲</th><th>効果</th></tr>
+      <tr><td><b>SIEM Index Filter</b></td><td>log が SIEM index に入る<b>前</b></td><td>アカウント / index レベル、<b>すべての</b>ルールに影響</td><td>条件に一致しない log はどのルールからも評価されない</td></tr>
+      <tr><td><b>Detection Rule の Data Exclusion Query</b></td><td>log はすでに SIEM index にあるが、このルールが評価する<b>前</b></td><td><b>単一ルール</b>レベル</td><td>このデータは「このルール」にとって存在しないのと同じ</td></tr>
+      <tr><td><b>Suppression Query</b></td><td>signal が生成されようとする瞬間</td><td>単一ルールレベル</td><td>signal がミュートされるが、下層の log はまったく影響を受けない</td></tr>
+    </table></div>
+    <div class="examtip"><span class="lbl">覚え方</span>Filter は「SIEM に入れるかどうか」を管理し、Rule（Data Exclusion を含む）は「このルールが見えるかどうか」を管理し、Suppression は「条件に一致した後、通知するかどうか」を管理します。</div>
+
+    <p style="margin-top:18px;"><b>タイムライン：同じ 1 件の log が順番にこの 3 つの関門を通過する</b></p>
+    <div class="timeline">
+      <div class="tseg"><div class="tt">CHECKPOINT 1</div><div class="tm">SIEM Index Filter</div><div class="td">アカウントレベルの関門。log の <code>source</code>/tag と照合。<br><b>不通過</b> → log はまったく SIEM index に入らず、以降の 2 つの関門にすら回らず、どのルールからも見えません。</div></div>
+      <div class="tseg"><div class="tt">CHECKPOINT 2</div><div class="tm">Data Exclusion Query</div><div class="td">単一ルールの関門。入ってきた生データの属性と照合。<br><b>不通過</b> → このルールはこのデータを完全にスキップし、回数の集計にも含めません。ただし log は SIEM index に残り、他のルールからは普通に見えます。</div></div>
+      <div class="tseg"><div class="tt">CHECKPOINT 3</div><div class="tm">Suppression Query</div><div class="td">単一ルールの最後の関門。<b>生成されようとしている signal</b> の属性と照合。<br><b>一致</b> → signal がミュートされ Signal Explorer に表示されない。<b>不一致</b> → signal は通常どおり生成される。</div></div>
+    </div>
+
+    <div class="example">
+      <span class="lbl">例：同じ「既知の誤検知」でも、どの関門で処理するかで結果が大きく変わる</span>
+      シナリオ：サービスアカウント <code>backup-bot</code> が毎日スケジュールバックアップを実行し、決まって最初のログインが失敗してから再試行で成功します。これはチームが既知の誤検知源として把握しており、ルールは「5 分間で 10 回を超えるログイン失敗」の Threshold ルールです。
+      <div class="cmp" style="margin-top:12px;grid-template-columns:1fr 1fr;">
+        <div class="col">
+          <h4>ルールに Data Exclusion Query を設定した場合</h4>
+          <p><code>-usr.id:backup-bot</code> と設定します。<code>backup-bot</code> のログイン失敗 log は「このルール」にとって最初から<b>存在しない</b>ことになり、回数の集計にはまったくカウントされません。たとえ 1 日に 100 回ログインに失敗しても、このルールがそれによってトリガーされることは永遠にありません。他のルール（例えば Impossible Travel）は影響を受けず、この log を普通に評価し続けます。</p>
+        </div>
+        <div class="col">
+          <h4>Suppression Query に変更した場合</h4>
+          <p>signal の属性 <code>usr.id:backup-bot</code> に一致させる設定をします。ルールは<b>通常どおり回数を集計</b>し、10 回のしきい値に達するとルールロジックは「ここで signal を生成すべき」と判定します。ただ最後の瞬間に Suppression Query がそれを止め、この signal は Signal Explorer に表示されません。下層の log と「あわや発火するところだった」という経緯はまったく影響を受けず、後からいつでも遡って検索できます。</p>
+        </div>
+      </div>
+      <p style="margin-top:12px;">2 つのやり方は最終的に「ユーザーにアラートが見えない」という結果は同じですが、それが起きる<b>段階</b>はまったく異なります。Data Exclusion はルールに最初から最後までこのデータが存在しないと思わせるものであり、Suppression はルールに判定プロセス全体を最後まで進めさせ、本当にアラートを出すと判定した後で、ゴール直前で止めるものです。</p>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>ルールのチューニング、カスタムルール、バージョン比較</h3>
+    <p>検知方法を理解したところで、次はルールを自分の環境に合った形に育てる方法です。OOTB ルールは良い出発点ですが、通常は自分の環境に合わせたチューニングが必要です。OOTB ルールに対して、既知の誤検知の suppression を直接追加したり、severity レベルを調整したり、playbook に組織固有の調査手順を追記したりできます。OOTB ルールがカバーしていない、組織特有の脅威に対しては、同じコンポーネントと検知方法を使って<b>完全なカスタムルール</b>を作成できます。OCSF による正規化のおかげで、OCSF 属性に対して書かれたカスタムルールは複数の log ソースに同時に適用できるため、うまく書かれた 1 つのカスタムルールで広いカバレッジを提供できます。</p>
+    <div class="example">
+      <span class="lbl">Rule Version History：ルールの新旧バージョンの設定差分を比較する</span>
+      ルールエディターにはバージョン履歴機能が組み込まれています。ルールをチューニングした後（例えばクエリの範囲を単一の environment から複数の environment に拡大した場合）、<b>Open Version Comparison</b> オプションを使って、現在のバージョンと以前のバージョンの設定を<b>並べて比較</b>でき、差分は色で示されます（赤は削除された設定、緑は追加された設定）。
+      <br><br>
+      これは第 6 章で触れる <b>Datadog Audit Trail</b> とは異なります。Audit Trail が記録するのは「誰がいつルールを変更したか」というプラットフォームレベルの操作イベントであり、Rule Version History はルールエディター内で 2 つのバージョンの設定内容の差分を直接比較するツールです。
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 5 ===================== -->
+<section class="chapter" data-chapter="5" style="--accent:var(--c5);--accent-bg:var(--c5-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Chapter 05 · Investigation</div>
+    <h2>Signal が生成された後、どう調査するか</h2>
+    <p class="lead">ルールが発火した後、あなたが手にするのは雑然とした log の山ではなく、すでに整理された signal です。この章では 4 つのツールが「何が起きたか」から「この実体はどれくらい危険か」まで、どうたどり着くのかを見ていきます。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Signal は生の log ではない</h3>
+    <div class="analogy"><span class="lbl">Analogy</span>log は散らばった証拠の断片で、signal はすでにその断片をつなぎ合わせ、探偵のメモを添えた事件記録です。</div>
+    <p><b>基本的な生成フロー：</b>log が入ってくる → SIEM Index Filter を通過する → Detection Rule を適用 → 条件に一致 → signal を生成。</p>
+    <p>Signal には 2 つの重要な状態フィールドがあります。<b>Severity</b>（Critical / High / Medium / Low / Info）と<b>トリアージ状態</b>です。</p>
+    <div class="status-flow">
+      <span class="stbadge open">Open</span><span class="sarrow">→</span>
+      <span class="stbadge review">Under Review</span><span class="sarrow">→</span>
+      <span class="stbadge archived">Archived</span>
+    </div>
+    <p>特定のユーザーに担当者として割り当てることができ、<b>15 か月</b>保持されます。任意の signal をクリックするとサイドパネルが開きます。</p>
+    <div class="panel-mock">
+      <div class="ph">SIGNAL DETAIL PANEL</div>
+      <div class="pr"><div class="pk">Overview</div><div class="pv">何が起きたかの概要</div></div>
+      <div class="pr"><div class="pk">Playbook</div><div class="pv">どう調査・対応すべきかの提案</div></div>
+      <div class="pr"><div class="pk">Related Logs<br><span style="font-weight:400;color:var(--text-faint);">(別名 What Happened)</span></div><div class="pv">ルールのクエリ条件に一致し、実際にこの signal をトリガーした生の log を表示します。タイムスタンプと関連属性を含みます。「この signal がどの log によってトリガーされたか」を見たいときはここを探します。</div></div>
+      <div class="pr"><div class="pk">Related Signals</div><div class="pv">フィールド/属性値が同じかどうか（例：source IP、ユーザー ID）を照合して見つけ出した<b>他の</b> signal です。アナリストは 1 つの signal を起点に、同じ攻撃者が関与した他の活動を洗い出せます。</div></div>
+      <div class="pr"><div class="pk">Entities</div><div class="pv">関与するユーザー、IP、IAM 実体など</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>4 つの調査ツール、浅いものから深いものへ</h3>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">Signals Explorer<span class="chev">▸</span></div>
+      <div class="acc-body"><p>signal を閲覧・検索・フィルター・関連付けするインターフェースで、severity、source、rule、tag、時間範囲、その他任意の属性でフィルターできます。調査の出発点です。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">Investigator<span class="chev">▸</span></div>
+      <div class="acc-body"><p>グラフ形式のインターフェースで、実体間の関係と<span class="term">攻撃経路（Attack Path）</span>を追跡します。攻撃者がある足がかりから一連の行動を経て、最終的に目的を達成するまでの経路全体です。「このアイデンティティは何をしたか？どのサービスとやり取りしたか？ロールが想定された後何が起きたか？成功したか？」に答えます。AWS、GCP、Azure、Datadog、Kubernetes に対応しています。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">Risk Insights<span class="chev">▸</span></div>
+      <div class="acc-body"><p>セキュリティデータを「個々の実体」（IAM ユーザー、S3 bucket、EC2 instance、GitHub repo など）ごとの統合リスクプロファイルにまとめます。リスクスコアはその実体に関連する過去 <b>14 日間</b>の signal の重大度と頻度から算出され、Cloud Security も有効化していれば Misconfigurations と Identity Risks もスコアに組み込まれます。「今、自分の環境でどの実体のリスクが最も高いか？」に答えます。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">Bits AI Security Analyst<span class="chev">▸</span></div>
+      <div class="acc-body"><p>AI による自動初期トリアージ：トリガーとなった log と文脈を分析し、重要な証拠を要約し、「良性か疑わしいか」の判断の推論を説明し、次のステップを提案します。MITRE ATT&amp;CK を土台にしており、複数の IOC を横断的に確認し、過去のデータを検索できます。<b>アナリストの判断に取って代わるものではなく</b>、初期評価を加速するもので、実際の効果はより速い MTTA です。<br><b>例：</b>Amazon SNS enumeration の signal に対して、Bits AI は SUSPICIOUS と判断し、証拠にはアカウント乗っ取りの兆候、匿名プロキシインフラ、AWS サービスに対する組織的な偵察が含まれていました。</p></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>脅威インテリジェンス（Threat Intelligence）と IOC</h3>
+    <p><span class="term">IOC（Indicators of Compromise，侵害指標）</span>：観測可能な具体的な証拠で、例えば IP、ドメイン、ファイルハッシュ値、URL などがあり、あるシステムがすでに侵害されているか、標的にされている可能性を示唆します。</p>
+
+    <div class="analogy">
+      <span class="lbl">まず Feed とは何かを理解する</span>
+      <span class="term">Feed（インテリジェンスフィード）</span>は<b>継続的に更新される「既知の悪者リスト」の購読</b>のようなものだと考えられます。セキュリティ研究機関やベンダーは日々世界中の攻撃活動を観測し、発見した悪意のある IP やドメインをリストにまとめ、購読を通じて絶え間なく届けてくれます。あなたのシステムはそのリストを使って自分のデータと照合できます。ニュースの購読と同じで、feed の価値は「継続的に更新される」ことにあり、1 度調べたら終わりの静的なリストではありません。
+    </div>
+
+    <div class="example">
+      <span class="lbl">仕組み：threat_intel 属性とは何か</span>
+      <p style="margin:0 0 10px;">入ってきた log の IP やドメインが、feed の中のある既知の IOC と一致すると、Cloud SIEM は<b>その log 自体</b>に <code>threat_intel</code> 属性を追加し、「この IP は既知の脅威で、どのカテゴリに属するか」という判定結果をデータに直接書き込みます。</p>
+      <pre><code>{
+  "network.client.ip": "185.220.101.42",
+  "threat_intel": {
+    "category": "residential_proxy"
+  }
+}</code></pre>
+      <p style="margin:10px 0 0;">この属性は表示用のラベルというだけではありません。他のフィールドと同様に検索可能なデータなので、<b>Detection Rule はこれを直接クエリ条件として使えます</b>。例えば <code>@threat_intel.category:(malware OR tor)</code> に一致するルールを書けば、「接続先自体が既知の悪意あるソースである」イベントに絞って signal を生成でき、自分で IP ブラックリストを保守する必要がありません。よくあるカテゴリ：malware（マルウェア）、cryptomining（暗号資産マイニング）、tor（Tor 匿名ネットワーク）、residential proxy（住宅用プロキシサーバー。一般家庭のネットワークに見せかけて悪意のあるトラフィックを隠すのによく使われます）、scanner（スキャンツール）。</p>
+    </div>
+
+    <div class="cmp">
+      <div class="col"><h4>組み込みのキュレーション済み feed</h4><p>IPinfo、GreyNoise などのパートナーから提供され、すべての log に自動的に適用されます。<b>設定は一切不要</b>です。</p></div>
+      <div class="col"><h4>自前の feed（Bring your own）</h4><p>商用ベンダー、業界の情報共有組織である<span class="term">ISAC（Information Sharing and Analysis Center，情報共有分析センター。同業界の企業同士で脅威インテリジェンスを交換する組織）</span>、あるいは社内のパイプラインから取り込み、<b>reference table</b> として保存します。<span class="term">CSV（Comma-Separated Values，カンマ区切り値）</span>ファイルを手動でアップロードするか、クラウドストレージから定期的に自動更新できます。</p></div>
+    </div>
+    <div class="examtip">
+      <span class="lbl">見落としがちな詳細：指標タイプごとに 1 つの表</span>
+      指標のタイプごとに、それぞれ独立した reference table が 1 つ必要です。例えば IP アドレス用に 1 つの表、ドメイン用に別の表というように、異なるタイプの指標を同じ表に混ぜてアップロードすることはできません。現在サポートされているカスタム IOC の取り込み方法は「CSV を Reference Table に取り込む」という 1 つの経路だけで、JSON を直接送信できる独立した Threat Intelligence API は<b>存在せず</b>、<b>STIX（Structured Threat Information eXpression，構造化脅威情報表現）</b>/<b>TAXII（Trusted Automated Exchange of Intelligence Information，信頼できる自動化された情報交換）</b>を経由するものでもありません。これらは業界の別の脅威インテリジェンス交換の標準プロトコルであり、Datadog がカスタム IOC を取り込む方式ではありません。
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 6 ===================== -->
+<section class="chapter" data-chapter="6" style="--accent:var(--c6);--accent-bg:var(--c6-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Chapter 06 · Metrics &amp; Continuous Improvement</div>
+    <h2>どう測定し、継続的に改善するか</h2>
+    <p class="lead">検知と調査は半分にすぎません。もう半分は、運用全体を追跡可能で、上司に報告でき、コンプライアンスの証拠として使えるものに数値化することです。そしてそれが継続的に良くなっていくループを形成します。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>1 つの signal のライフライン：MTTD / MTTA / MTTR</h3>
+    <p>3 つの指標はすべて「Mean Time to ___（あることを成し遂げるのに平均でどれだけ時間がかかるか）」の略で、それぞれライフラインの異なる区間を測定します。</p>
+    <ul>
+      <li><span class="term">MTTD</span> の正式名称は <b>Mean Time to Detect（平均検知時間）</b></li>
+      <li><span class="term">MTTA</span> の正式名称は <b>Mean Time to Acknowledge（平均確認時間）</b></li>
+      <li><span class="term">MTTR</span> の正式名称は <b>Mean Time to Resolve（平均解決時間）</b></li>
+    </ul>
+    <div class="timeline">
+      <div class="tseg"><div class="tt">STAGE 1</div><div class="tm">log が送信される</div><div class="td">ルール条件に一致する log が ingestion に入る</div></div>
+      <div class="tseg"><div class="tt">STAGE 2 · MTTD</div><div class="tm">signal 生成</div><div class="td">Mean Time to Detect：<code>time_to_detect</code>、log の送信から signal 生成までの時間</div></div>
+      <div class="tseg"><div class="tt">STAGE 3 · MTTA</div><div class="tm">Under Review</div><div class="td">Mean Time to Acknowledge：<code>time_to_acknowledge</code>、signal 生成からアナリストが確認マークを付けるまでの時間</div></div>
+      <div class="tseg"><div class="tt">STAGE 4 · MTTR</div><div class="tm">Archived</div><div class="td">Mean Time to Resolve：<code>time_to_resolve</code>、signal 生成からアーカイブまでの総解決時間</div></div>
+    </div>
+    <div class="examtip"><span class="lbl">推論の例</span>MTTD は低いのに MTTA が上がり続けている場合、<b>検知パイプラインは正常に機能している</b>ことを示しており、問題は<b>アナリストのトリアージが十分速くない</b>ことにあります。やるべきことは通知のルーティングを調整するか、Bits AI を活用して初期トリアージを自動化することであり、検知ルールを変更することではありません。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>ダッシュボードと週次ダイジェスト：数字を見える化する</h3>
+    <p><b>Cloud SIEM Overview</b> ページには次のものが表示されます。重要な signal、高リスクの実体、Content Pack の健全性とオンボーディング状況、地理/MITRE tactic 別の上位 signal、MTTD と誤検知率、最新の Security Research Feed。</p>
+    <p>OOTB ダッシュボード（例えば CloudTrail ダッシュボード）は複製してカスタマイズできます。対象読者に応じて、経営層向け、検知エンジニア向け、運用チーム向けのダッシュボードも作成できます。</p>
+    <p><b>週次ダイジェスト</b>：過去 7 日間のアラート量、対応時間、重要な新しい問題をまとめたものです。各ユーザーが<b>個別に購読</b>する必要があり、<code>security_monitoring_signals_read</code> 権限が必要です。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>通知ルールと Workflow Automation（SOAR）</h3>
+    <p><span class="term">Notification rules</span> は severity / tag / 属性に基づいて signal を適切な場所にルーティングします。</p>
+    <div class="table-wrap"><table>
+      <tr><th>Severity</th><th>ルーティング先</th></tr>
+      <tr><td>Critical</td><td>PagerDuty、即座のオンコール対応を起動</td></tr>
+      <tr><td>High</td><td>専用のセキュリティチーム Slack チャンネル</td></tr>
+      <tr><td>Medium</td><td>営業時間内に確認するチャンネル</td></tr>
+    </table></div>
+    <p><span class="term">Workflow Automation</span> は Cloud SIEM の SOAR レイヤーで、認証情報の失効、リソースの隔離、チケットの作成、signal のエンリッチメントを行えます。Datadog は事前構築済みの workflow <b>blueprint</b> を提供しており、各 Content Pack にもその統合固有の blueprint が付属します。</p>
+    <div class="examtip"><span class="lbl">試験に出やすい詳細：blueprint とは何か</span>blueprint は<b>カスタマイズ可能な出発点のテンプレート</b>であり、チームのプロセスに合わせて変更しなければ使えません。signal の内容に応じて<b>自動的に</b>設定が変わることは<b>なく</b>、導入すればそのまま本番環境で使えるというもの<b>でもありません</b>。これはまさに「blueprint（設計図）」という言葉どおりの意味で、出発点であって完成品ではないということです。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>コンプライアンス整合（Compliance Alignment）</h3>
+    <p>Cloud SIEM の出力はそのままコンプライアンスの証拠として使えます。security signal、運用指標、signal のトリアージ履歴、ダッシュボード、log 保持記録などです。</p>
+    <div class="table-wrap"><table>
+      <tr><th>出力</th><th>対応するコンプライアンス領域</th></tr>
+      <tr><td>Signal のトリアージ履歴（Open→Under Review→Archived、タイムスタンプと担当者を含む）</td><td>インシデント検知・対応能力の証明</td></tr>
+      <tr><td>MTTD / MTTA / MTTR</td><td>検知・対応の効果を定量化</td></tr>
+      <tr><td>Log 保持記録（Standard / Flex / Archives）</td><td>監査 log 管理</td></tr>
+      <tr><td>認証/権限昇格/不正アクセスの検知ルール</td><td>アクセス制御の能動的な監視</td></tr>
+    </table></div>
+    <div class="table-wrap"><table>
+      <tr><th>フレームワーク</th><th>正式名称</th></tr>
+      <tr><td><b>SOC 2</b></td><td>System and Organization Controls 2。サービス組織の内部統制とセキュリティ管理に関する監査報告</td></tr>
+      <tr><td><b>PCI DSS</b></td><td>Payment Card Industry Data Security Standard。クレジットカード業界データセキュリティ基準</td></tr>
+      <tr><td><b>HIPAA</b></td><td>Health Insurance Portability and Accountability Act。アメリカの医療保険の携行性と責任に関する法律で、患者の医療データ保護を規定</td></tr>
+      <tr><td><b>CCSP</b></td><td>Certified Cloud Security Professional。クラウドセキュリティの専門資格で、一連のクラウドセキュリティ管理領域（domains）を定義</td></tr>
+    </table></div>
+    <p>これらの出力が提供するのは<b>継続的な証拠</b>であり、ある一時点のスナップショットではありません。<b>Datadog Audit Trail</b> はさらに「Datadog プラットフォーム自体」の操作（ルールが変更された、signal の状態が更新されたなど）を記録し、アカウンタビリティの記録を補完します。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>継続的改善サイクル</h3>
+    <div class="flowbox">
+      <div class="fb">① KPI を確認する<br><span style="color:var(--text-faint);">MTTD/MTTA/MTTR、誤検知率、signal 量の傾向</span></div><span class="farrow">→</span>
+      <div class="fb">② 学んだことを反映してチューニング<br><span style="color:var(--text-faint);">データ収集 / ルール / プロセス</span></div><span class="farrow">→</span>
+      <div class="fb">③ 最新情報を追う<br><span style="color:var(--text-faint);">Research Feed、Release Notes、MITRE Map を見直す</span></div><span class="farrow">→</span>
+      <div class="fb">① に戻る</div>
+    </div>
+    <p>このサイクルを 1 周するごとにノイズが減り、対応時間が短くなり、検知カバレッジも環境と脅威の様相に合わせて進化していきます。</p>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 7 ===================== -->
+<section class="chapter" data-chapter="7" style="--accent:var(--c7);--accent-bg:var(--c7-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Chapter 07 · Summary</div>
+    <h2>サマリーマップ</h2>
+    <p class="lead">データのライフライン全体を一巡しました。ここで概念の総まとめ表に収束させ、続いて pipeline の全景を振り返って七つの章を 1 本の線につなげます。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>概念総まとめ表</h3>
+    <div class="table-wrap"><table class="bigtable">
+      <tr><th>概念</th><th>正式名称</th><th>掲載章</th><th>一言定義</th></tr>
+      <tr><td>SIEM</td><td>Security Information and Event Management</td><td>01</td><td>各システムの log を集約分析し、脅威を見つけ出すシステムカテゴリ。Cloud SIEM は Datadog による実装</td></tr>
+      <tr><td>Shared Responsibility Model</td><td>—</td><td>01</td><td>データ/アイデンティティ/アクセス権限は常に顧客の責任であり、プロバイダーは自分から log を送ってこない</td></tr>
+      <tr><td>IaaS / PaaS / SaaS</td><td>Infrastructure / Platform / Software as a Service</td><td>01</td><td>サービスのマネージド度合いによる分類で、責任の境界がどちらに寄るかを決める</td></tr>
+      <tr><td>Content Pack</td><td>—</td><td>01</td><td>事前パッケージ化されたルール+ダッシュボード+SOAR blueprint。有効化時に Index Filter を自動更新</td></tr>
+      <tr><td>Cloud Security / Workload Protection / App &amp; API Protection / Code Security</td><td>—</td><td>01</td><td>Datadog Security 製品ラインで Cloud SIEM と役割分担する他の 4 分野。それぞれポスチャー、実行時脅威、アプリ層攻撃、コードの脆弱性を担当</td></tr>
+      <tr><td>Grok Processor</td><td>—</td><td>02</td><td>非構造化文字列の log を検索可能なフィールドに分解する</td></tr>
+      <tr><td>OCSF</td><td>Open Cybersecurity Schema Framework</td><td>02</td><td>異なるソースのフィールドを統一標準属性に remap し、ルールを 1 度書けばどこでも使える</td></tr>
+      <tr><td>GeoIP Processor</td><td>—</td><td>02</td><td>IP に基づいて地理位置を補完し、Impossible Travel などの検知をサポート</td></tr>
+      <tr><td>Flex Logs</td><td>—</td><td>02</td><td>中間の保持層、最長 15 か月、Monitor / Watchdog は非対応</td></tr>
+      <tr><td>SIEM Index Filter</td><td>—</td><td>02 / 04</td><td>アカウントレベルで、log が SIEM index に入れるかを決め、すべてのルールに影響する</td></tr>
+      <tr><td>Data Exclusion Query</td><td>—</td><td>03 / 04</td><td>ルールレベルで、「このルール」がある生データを見えなくする</td></tr>
+      <tr><td>Suppression Query</td><td>—</td><td>03 / 04</td><td>signal が生成されようとする瞬間にミュートする。log 自体は影響を受けない</td></tr>
+      <tr><td>MITRE ATT&amp;CK</td><td>Adversarial Tactics, Techniques, and Common Knowledge</td><td>04</td><td>Tactic/Technique の対応はルール上の tag によるもので、追加モジュールではない</td></tr>
+      <tr><td>Signal</td><td>—</td><td>03 / 05</td><td>ルール発火後に生成される調査可能な発見事項。Overview/Playbook/Related Logs などを含む</td></tr>
+      <tr><td>Investigator</td><td>—</td><td>05</td><td>実体の関係と攻撃経路をグラフで追跡する</td></tr>
+      <tr><td>Risk Insights</td><td>—</td><td>05</td><td>過去 14 日間の signal から実体のリスクスコアを算出する</td></tr>
+      <tr><td>IOC / Threat Intel</td><td>Indicators of Compromise</td><td>05</td><td>既知の悪意ある IP/ドメインと照合し、<code>threat_intel</code> 属性を付与する</td></tr>
+      <tr><td>MTTD / MTTA / MTTR</td><td>Mean Time to Detect / Acknowledge / Resolve</td><td>06</td><td>検知/確認/解決の 3 段階の時間指標で、ライフライン全体を定量化する</td></tr>
+      <tr><td>Workflow Blueprint (SOAR)</td><td>Security Orchestration, Automation and Response</td><td>06</td><td>カスタマイズ可能な出発点のテンプレートで、カスタマイズして初めて使えるようになり、自動的に設定が変わることはない</td></tr>
+    </table></div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>全体像の振り返り</h3>
+    <p>カーソルを一番上のフローバーに戻すと、各ノードが前の六つの章のそれぞれの一部分に対応しています。この線こそが、このノート全体の本当の骨格です。</p>
+    <div class="flowbox">
+      <div class="fb">Log ソース</div><span class="farrow">→</span>
+      <div class="fb">Content Pack</div><span class="farrow">→</span>
+      <div class="fb">Grok→OCSF→GeoIP</div><span class="farrow">→</span>
+      <div class="fb">Index Filter</div><span class="farrow">→</span>
+      <div class="fb">Detection Rule</div><span class="farrow">→</span>
+      <div class="fb">MITRE Tag</div><span class="farrow">→</span>
+      <div class="fb">Suppression チェック</div><span class="farrow">→</span>
+      <div class="fb">Signal</div><span class="farrow">→</span>
+      <div class="fb">調査ツール</div><span class="farrow">→</span>
+      <div class="fb">MTTD/MTTA/MTTR</div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 8 ===================== -->
+<section class="chapter" data-chapter="8" style="--accent:var(--c8);--accent-bg:var(--c8-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Chapter 08 · Practice</div>
+    <h2>模擬問題</h2>
+    <p class="lead">実際の模擬試験問題を全 10 問、問題番号順に並べています。前の七つの章の理解度を確認しましょう。選択肢をクリックすると正解・不正解が表示され、解説ロジックが表示されます。</p>
+  </div>
+
+  <div class="quiz">
+    <div class="qhead">QUESTION 1 OF 10</div>
+    <h4>After creating a custom log detection rule for identifying privilege escalation attempts, the rule does not appear on the MITRE ATT&amp;CK Map despite being enabled. What is the most likely cause?</h4>
+    <div class="qopt" onclick="answerQ(this,'q1')"><span class="qlabel">A</span><span>The rule uses a log detection type, which is incompatible with the MITRE ATT&amp;CK Map visualization.</span></div>
+    <div class="qopt" data-correct="true" onclick="answerQ(this,'q1')"><span class="qlabel">B</span><span>The rule is missing the required <code>tactic:</code> and <code>technique:</code> tags paired with the <code>security:attack</code> tag.</span></div>
+    <div class="qopt" onclick="answerQ(this,'q1')"><span class="qlabel">C</span><span>The rule must be converted from a custom rule to an out-of-the-box rule to appear on the map.</span></div>
+    <div class="qexplain" id="q1-explain">
+      <p><b>正解は B。</b>MITRE への対応はルール上の tag によって行われます（第 4 章参照）が、<code>tactic:</code>/<code>technique:</code> を追加するだけでは不十分で、ルールには<b>同時に</b> <code>security:attack</code> という tag も必要です。この 3 つが揃って初めて、MITRE ATT&amp;CK Map にこのルールが可視化されます。</p>
+      <p>A は誤り：log detection type（Threshold、New Value などの検知方法で書かれたルール）は問題なく MITRE Map に対応でき、両者は矛盾しません。C は誤り：カスタムルールはもともとマップに表示され得るもので、OOTB ルールに変換する必要も、変換できるわけでもありません。tag さえ揃えれば十分です。</p>
+    </div>
+  </div>
+
+  <div class="quiz">
+    <div class="qhead">QUESTION 2 OF 10</div>
+    <h4>Custom threat intelligence indicators need to be imported into Cloud SIEM for log enrichment. Which format is supported for uploading custom Indicators of Compromise?</h4>
+    <div class="qopt" onclick="answerQ(this,'q2')"><span class="qlabel">A</span><span>STIX 2.0 bundles uploaded through a TAXII server integration.</span></div>
+    <div class="qopt" data-correct="true" onclick="answerQ(this,'q2')"><span class="qlabel">B</span><span>CSV files uploaded to or imported into Datadog Reference Tables.</span></div>
+    <div class="qopt" onclick="answerQ(this,'q2')"><span class="qlabel">C</span><span>JSON objects submitted directly through the Threat Intelligence API.</span></div>
+    <div class="qexplain" id="q2-explain">
+      <p><b>正解は B。</b>第 5 章の脅威インテリジェンスの仕組みに対応しています。自前の feed は <b>Reference Table</b> として保存され、<b>CSV</b> ファイルを手動でアップロードできます。補足：指標のタイプ（IP、ドメインなど）ごとにそれぞれ独立した reference table が必要で、同じ表に混在させることはできません。</p>
+      <p>A は誤り：STIX/TAXII は業界の別の脅威インテリジェンス交換標準プロトコルであり、Datadog Cloud SIEM がカスタム IOC を取り込む方式ではありません。C は誤り：現状 JSON を直接送信できる独立した Threat Intelligence API はなく、取り込みは Reference Table の経路のみです。</p>
+    </div>
+  </div>
+
+  <div class="quiz">
+    <div class="qhead">QUESTION 3 OF 10</div>
+    <h4>Which statement accurately describes how SOAR workflow blueprints function in Datadog?</h4>
+    <div class="qopt" data-correct="true" onclick="answerQ(this,'q3')"><span class="qlabel">A</span><span>Blueprints provide customizable starting templates that can be modified to match team-specific processes.</span></div>
+    <div class="qopt" onclick="answerQ(this,'q3')"><span class="qlabel">B</span><span>Blueprints automatically adapt their configuration based on the security signals that trigger them.</span></div>
+    <div class="qopt" onclick="answerQ(this,'q3')"><span class="qlabel">C</span><span>Blueprints generate fully configured workflows that are immediately ready for production deployment.</span></div>
+    <div class="qexplain" id="q3-explain">
+      <p><b>正解は A。</b>「Blueprint（設計図）」という言葉自体が鍵です。blueprint はカスタマイズ可能な出発点のテンプレートであり、完成品ではありません。チームのプロセスに合わせて変更して初めて本番で使えるようになります（第 6 章参照）。</p>
+      <p>B は誤り：「workflow が実行時に signal に応じて分岐する」ことを「blueprint 自体が自動的に設定を変える」と混同しています。C は誤り：「カスタマイズが必要」という前提と矛盾しており、そのまま本番投入できるものは blueprint とは呼ばれません。</p>
+    </div>
+  </div>
+
+  <div class="quiz">
+    <div class="qhead">QUESTION 4 OF 10</div>
+    <h4>After launching the Datadog CloudFormation StackSet to onboard AWS accounts under an Organization, the deployment fails before creating IAM roles in any target account. The Organization has trusted access enabled and service-managed permissions configured. Which configuration error causes this failure?</h4>
+    <div class="qopt" onclick="answerQ(this,'q4')"><span class="qlabel">A</span><span>The Execution configuration option was set to Active for parallel operations.</span></div>
+    <div class="qopt" onclick="answerQ(this,'q4')"><span class="qlabel">B</span><span>The Deployment targets were set to the full Organization instead of an OU.</span></div>
+    <div class="qopt" data-correct="true" onclick="answerQ(this,'q4')"><span class="qlabel">C</span><span>Multiple AWS regions were selected under the Specify regions setting.</span></div>
+    <div class="qexplain" id="q4-explain">
+      <p><b>正解は C。</b>この問題は第 1 章の AWS Org StackSet の補足では明示していなかった内容です。IAM は AWS のグローバルサービスでリージョンに依存しませんが、StackSet は「アカウント × リージョン」ごとに stack instance を作成します。Specify regions で複数リージョンを選択すると、テンプレートは複数のリージョンでそれぞれ同名の IAM role を作成しようとして衝突が発生し、どのアカウントでも IAM role を作り終える前にデプロイ全体が失敗します。</p>
+      <p>A は誤り：Execution configuration を Active（並列実行）にすることはデプロイの速度/並列度にのみ影響します。B は誤り：Deployment targets を特定の OU ではなく Organization 全体に設定することは、単にデプロイ範囲の設定であり、デプロイ全体の失敗にはつながりません。</p>
+    </div>
+  </div>
+
+  <div class="quiz">
+    <div class="qhead">QUESTION 5 OF 10</div>
+    <h4>During investigation of a credential stuffing security signal, an analyst needs to identify other signals that originated from the same source IP address or involved the same user identity. Which capability within the signal's investigation panel surfaces these connections?</h4>
+    <div class="qopt" onclick="answerQ(this,'q5')"><span class="qlabel">A</span><span>The What Happened section, which displays matched log entries and query configuration details.</span></div>
+    <div class="qopt" data-correct="true" onclick="answerQ(this,'q5')"><span class="qlabel">B</span><span>The Related Signals tab, which reveals signals sharing common fields and attribute values.</span></div>
+    <div class="qopt" onclick="answerQ(this,'q5')"><span class="qlabel">C</span><span>The Workflows tab, which shows triggered and suggested automated investigation workflows.</span></div>
+    <div class="qexplain" id="q5-explain">
+      <p><b>正解は B。</b>第 5 章の signal サイドパネルにある Related Signals フィールドに対応しています。フィールド/属性値が同じかどうか（例：source IP、ユーザー ID）を照合して関連する signal を見つけ出し、アナリストが 1 つの signal から同じ攻撃者が関与した他の活動を洗い出せるようにします。</p>
+      <p>A は誤り：What Happened（つまり Related Logs）が表示するのは、この signal 自体をトリガーした log であり、他の signal との関連ではありません。C は誤り：Workflows tab が表示するのは自動対応フローであり、関連する signal を探すこととは無関係です。</p>
+    </div>
+  </div>
+
+  <div class="quiz">
+    <div class="qhead">QUESTION 6 OF 10</div>
+    <h4>Which statement accurately describes the relationship between OOTB detection rules and custom detection rules in Cloud SIEM?</h4>
+    <div class="qopt" data-correct="true" onclick="answerQ(this,'q6')"><span class="qlabel">A</span><span>OOTB rules receive automatic updates from Datadog, while custom rules require manual changes.</span></div>
+    <div class="qopt" onclick="answerQ(this,'q6')"><span class="qlabel">B</span><span>Custom rules automatically take priority over OOTB rules targeting the same log activity.</span></div>
+    <div class="qopt" onclick="answerQ(this,'q6')"><span class="qlabel">C</span><span>OOTB rules are automatically removed when a user creates an equivalent custom detection rule.</span></div>
+    <div class="qexplain" id="q6-explain">
+      <p><b>正解は A。</b>OOTB ルールは Datadog が継続的に開発し、更新は自動的にアカウントへ取り込まれます。カスタムルールはユーザー自身が作成・保守するもので、自動更新を受け取ることはありません（第 3 章参照）。</p>
+      <p>B は誤り：両者は互いに独立しており、優先順位の仕組みは存在せず、互いに置き換わることはありません。C は誤り：機能が似たカスタムルールを作成しても、対応する OOTB ルールが自動的に削除されることはなく、両方とも動き続けます。</p>
+    </div>
+  </div>
+
+  <div class="quiz">
+    <div class="qhead">QUESTION 7 OF 10</div>
+    <h4>After a Cloud SIEM detection rule triggers a security signal, an analyst needs to see the logs that caused the alert. Where in the signal's details panel is this information available?</h4>
+    <div class="qopt" onclick="answerQ(this,'q7')"><span class="qlabel">A</span><span>The Activity section showing related user actions and login attempts.</span></div>
+    <div class="qopt" data-correct="true" onclick="answerQ(this,'q7')"><span class="qlabel">B</span><span>The Related Logs tab showing logs that matched the rule query.</span></div>
+    <div class="qopt" onclick="answerQ(this,'q7')"><span class="qlabel">C</span><span>The Related Signals tab showing related alerts from other rules.</span></div>
+    <div class="qexplain" id="q7-explain">
+      <p><b>正解は B。</b>第 5 章の signal サイドパネルにある Related Logs フィールド（別名 What Happened セクション）に対応しています。ルールのクエリ条件に一致し、実際にこの signal をトリガーした log を、タイムスタンプと関連属性とともに表示します。</p>
+      <p>A は誤り：Activity が表示するのはユーザー操作/ログイン記録であり、「ルールのクエリ条件に一致する log」という正確な定義とは異なります。C は誤り：Related Signals が表示するのは他の signal であり、この signal 自身がトリガーした log ではありません。</p>
+    </div>
+  </div>
+
+  <div class="quiz">
+    <div class="qhead">QUESTION 8 OF 10</div>
+    <h4>Cloud SIEM suppression rules support two query types: a suppression query and a data exclusion query. What distinguishes these two query types?</h4>
+    <div class="qopt" data-correct="true" onclick="answerQ(this,'q8')"><span class="qlabel">A</span><span>The suppression query matches signal attributes while the data exclusion query matches input data attributes.</span></div>
+    <div class="qopt" onclick="answerQ(this,'q8')"><span class="qlabel">B</span><span>The suppression query applies to a single detection rule while the data exclusion query applies across multiple rules.</span></div>
+    <div class="qopt" onclick="answerQ(this,'q8')"><span class="qlabel">C</span><span>The suppression query uses log search syntax while the data exclusion query uses signal explorer syntax.</span></div>
+    <div class="qexplain" id="q8-explain">
+      <p><b>正解は A。</b>Suppression query は signal の属性と照合し、Data exclusion query は入ってくる生データの属性と照合します（第 4 章の対照表を参照）。</p>
+      <p>B は誤り：どちらの query も「このルール 1 つ」にのみ適用され、単一ルールか複数ルールかという範囲の大小とは無関係です。C は誤り：両者は同じクエリ構文を使い、違いは照合対象であって、構文システムが異なるわけではありません。</p>
+    </div>
+  </div>
+
+  <div class="quiz">
+    <div class="qhead">QUESTION 9 OF 10</div>
+    <h4>After a detection rule's query scope was expanded from one environment to multiple environments, the security team needs to compare the exact configuration differences between the current and previous versions of the rule side by side. Which feature provides this capability directly within the rule editor?</h4>
+    <div class="qopt" onclick="answerQ(this,'q9')"><span class="qlabel">A</span><span>The audit trail's event log filtered by Cloud Security Platform actions.</span></div>
+    <div class="qopt" data-correct="true" onclick="answerQ(this,'q9')"><span class="qlabel">B</span><span>The rule's version history with the Open Version Comparison option.</span></div>
+    <div class="qopt" onclick="answerQ(this,'q9')"><span class="qlabel">C</span><span>The JSON configuration export compared against a previous backup.</span></div>
+    <div class="qexplain" id="q9-explain">
+      <p><b>正解は B。</b>この問題は第 4 章では明示していなかった内容です。ルールエディターには Rule Version History が組み込まれており、Open Version Comparison オプションを使って現在のバージョンと以前のバージョンを並べて比較でき、赤は削除、緑は追加を表します。</p>
+      <p>A は誤り：Datadog Audit Trail が記録するのは「誰がいつルールを変更したか」というプラットフォームレベルの操作イベントであり、設定内容を並べて比較するものでも、ルールエディター内の機能でもありません。C は誤り：「JSON をエクスポートしてバックアップと照合する」という公式なワークフローは存在せず、ルールエディターに直接バージョン比較機能が組み込まれています。</p>
+    </div>
+  </div>
+
+  <div class="quiz">
+    <div class="qhead">QUESTION 10 OF 10</div>
+    <h4>An organization subject to industry regulations needs to retain security logs for 15 months while maintaining the ability to immediately search and analyze those logs within Datadog. What is the BEST approach to meet this requirement cost-effectively?</h4>
+    <div class="qopt" data-correct="true" onclick="answerQ(this,'q10')"><span class="qlabel">A</span><span>Enable Flex Logs with 15-month retention on security log indexes.</span></div>
+    <div class="qopt" onclick="answerQ(this,'q10')"><span class="qlabel">B</span><span>Configure Log Archives to forward logs to customer-owned cloud storage buckets.</span></div>
+    <div class="qopt" onclick="answerQ(this,'q10')"><span class="qlabel">C</span><span>Configure standard indexes with 15-month retention and apply exclusion filters.</span></div>
+    <div class="qexplain" id="q10-explain">
+      <p><b>正解は A。</b>第 2 章の「Log の保持階層」に完全に対応しています。Flex Logs は最長 15 か月保持でき、同時に検索可能な状態を保てます（復元不要）。「検索でき、長く保持でき」、しかも Standard indexing より安いという位置づけです。</p>
+      <p>B は誤り：Log Archives は顧客自身のクラウドストレージに移すもので、検索前に復元（rehydration）が必要になり、「即座に検索できる」という要件を満たしません。C は誤り：Standard indexing で 15 か月保持するコストは Flex Logs よりはるかに高く、「cost-effectively（コスト効率よく）」に合致しません。また問題文には何かを除外する要件はなく、exclusion filter を追加するのは無関係な誤誘導の選択肢です。</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== ARCHITECTURE OVERVIEW ===================== -->
+<section class="chapter" data-chapter="9" style="--accent:var(--c9);--accent-bg:var(--c9-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Architecture Overview · One Log, Start to Finish</div>
+    <h2>アーキテクチャ全体像：1 件の log を追って、raw log から脅威判定までをたどる</h2>
+    <p class="lead">これが Cloud SIEM の完全なアーキテクチャ図です。抽象的な概念のリストではなく、<b>実際の 1 件の log</b> を最後まで追いかけ、各ステーションで実際にどう変化し、どんな判断を経るのかを見ていきます。シナリオ：攻撃者が IAM ユーザー <code>admin</code> に対してブルートフォース攻撃を仕掛け、最終的にアナリストによって実際の攻撃であると確認されます。各「関門」の横には分岐ボックスで「もう 1 つの可能性」が描かれています。</p>
+  </div>
+
+  <div class="factory-legend">
+    <div class="lgi"><span class="sw" style="background:var(--c1);"></span>データソース</div>
+    <div class="lgi"><span class="sw" style="background:var(--c2);"></span>Log Pipeline 処理</div>
+    <div class="lgi"><span class="sw" style="background:var(--c3);"></span>Detection Rule</div>
+    <div class="lgi"><span class="sw" style="background:var(--c4);"></span>MITRE / Suppression</div>
+    <div class="lgi"><span class="sw" style="background:var(--c5);"></span>Signal 生成</div>
+    <div class="lgi"><span class="sw" style="background:var(--c8);"></span>アナリストによる人的判断</div>
+    <div class="lgi"><span class="sw" style="background:var(--c6);"></span>クローズと測定</div>
+    <div class="lgi"><span class="sw" style="background:var(--c7);"></span>フィードバックと改善</div>
+  </div>
+
+  <div class="trace">
+
+    <div class="card trace-step" style="--accent:var(--c1);">
+      <h3><span class="dot"></span>STEP 01 · Raw log の到着</h3>
+      <p>攻撃者が 5 分間のうちに IAM ユーザー <code>admin</code> に対して繰り返しログイン失敗を送信しており、これが 12 回目です。log が Datadog に届いた直後は、まだ非構造化テキストの連なりです。</p>
+      <div class="example"><pre><code>2026-07-23 03:14:02 aws console login failed by admin from 203.0.113.44</code></pre></div>
+      <p class="trace-note">チームはすでに <b>AWS CloudTrail Content Pack</b> を有効化しており、このソースはもともと OOTB pipeline とログイン失敗検知ルールに対応済みなので、その場で接続作業をする必要はありません。</p>
+      <button class="reveal-btn" onclick="openNodePanel('content-pack')">Content Pack は実際に何をパッケージしているのか？クリックして詳細を見る</button>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c2);">
+      <h3><span class="dot"></span>STEP 02 · Grok Processor による解析</h3>
+      <p>Grok があらかじめ定義されたパターンを使って、非構造化テキストを検索可能なフィールドに分解します。</p>
+      <div class="example"><pre><code>{
+  "usr.id": "admin",
+  "evt.category": "authentication",
+  "evt.name": "aws console login",
+  "evt.outcome": "failure",
+  "network.client.ip": "203.0.113.44"
+}</code></pre></div>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c2);">
+      <h3><span class="dot"></span>STEP 03 · OCSF Processor による正規化</h3>
+      <p>ソース固有のフィールドを、ソースをまたいで統一された標準フィールドに remap します。</p>
+      <div class="example"><pre><code>{
+  "actor.user.name": "admin",
+  "class_uid": "Authentication",
+  "activity_id": "Logon",
+  "status_id": "Failure",
+  "src_endpoint.ip": "203.0.113.44"
+}</code></pre></div>
+      <p class="trace-note">今後このソースが CloudTrail から Okta や他のシステムに変わったとしても、この標準フィールドに対応してさえいれば、同じルールで捕捉できます。</p>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c2);">
+      <h3><span class="dot"></span>STEP 04 · GeoIP Processor によるエンリッチメント</h3>
+      <p><code>203.0.113.44</code> を IP 地理データベースで調べ、地理位置を補完します。</p>
+      <div class="example"><pre><code>{
+  ...
+  "country": "海外、admin がこれまで一度もログインしたことのない地域",
+  "city": "不明"
+}</code></pre></div>
+    </div>
+
+    <div class="card trace-step gate" style="--accent:var(--c2);">
+      <h3><span class="dot"></span>STEP 05 · 脅威インテリジェンス照合</h3>
+      <p>Cloud SIEM がこの IP を既知の IOC feed（malware / tor / residential proxy など）と照合します。</p>
+      <div class="branch-wrap">
+        <div class="branch-main">✓ 今回は<b>ヒットなし</b>、属性は付与されず、log はそのまま次へ進みます ▼</div>
+        <div class="branch-arrow">⇢</div>
+        <div class="branch-box"><span class="bb-lbl">✗ もう 1 つの可能性：既知の IOC にヒット</span>log に <code>threat_intel.category</code>（例えば tor、malware）が付与され、以降ルールはこの属性をそのままクエリ条件として使えますが、この log 自体の進行には影響しません。</div>
+      </div>
+    </div>
+
+    <div class="card trace-step gate" style="--accent:var(--c2);">
+      <h3><span class="dot"></span>STEP 06 · SIEM Index Filter</h3>
+      <p>Filter の条件は <code>source:(cloudtrail OR okta OR github OR guardduty)</code> で、この log の <code>source</code> は <code>cloudtrail</code> です。</p>
+      <div class="branch-wrap">
+        <div class="branch-main">✓ 条件に合致、SIEM index への通過を許可 ▼</div>
+        <div class="branch-arrow">⇢</div>
+        <div class="branch-box"><span class="bb-lbl">✗ もう 1 つの可能性：通過しなかった場合</span>この log は SIEM index にまったく入らず、以降のすべてのステップは発生しません。この攻撃はまるごと見逃され、どのルールにも捕捉されません。</div>
+      </div>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c2);">
+      <h3><span class="dot"></span>STEP 07 · SIEM Index への保存</h3>
+      <p><b>Standard indexing</b>（直近のホットデータ、いつでも検索可能）に保存されます。30 日を超えると保持ポリシーに従って Flex Logs に移され、最長 15 か月保持できますが、このステップはリアルタイム分析には影響しません。リアルタイム分析はすでに直前の ingestion 時点で行われています。</p>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c3);">
+      <h3><span class="dot"></span>STEP 08 · Detection Rule による照合：Threshold にヒット</h3>
+      <p>「5 分間で 10 回を超えるログイン失敗」というルールは <b>Threshold 検知方法</b>を使っています。これが 12 回目の失敗です。</p>
+      <div class="branch-wrap">
+        <div class="branch-main">✓ 閾値を超え、ルールロジックが「ここで signal を生成する」と判定 ▼</div>
+        <div class="branch-arrow">⇢</div>
+        <div class="branch-box"><span class="bb-lbl">✗ もう 1 つの可能性：まだ閾値に達していない場合</span>ルールは失敗回数を累積し続けるだけで、<b>何のアクションも起きません</b>。累積が 10 回を超えるか時間ウィンドウがリセットされるまで、このルールは静かに背後でカウントを続けます。</div>
+      </div>
+    </div>
+
+    <div class="card trace-step gate" style="--accent:var(--c3);">
+      <h3><span class="dot"></span>STEP 09 · Data Exclusion Query の確認</h3>
+      <p>このルールに <code>admin</code> を除外する設定はあるか？</p>
+      <div class="branch-wrap">
+        <div class="branch-main">✓ ない（admin は既知の定期実行ボットアカウントではない）ので、そのまま進みます ▼</div>
+        <div class="branch-arrow">⇢</div>
+        <div class="branch-box"><span class="bb-lbl">✗ もう 1 つの可能性：admin が除外設定されている場合</span>このデータはこのルールにとって最初から存在しないことになり、回数の累積にも数えられず、以降のステップは発生しません。ただし他のルールには影響せず、log 自体は引き続き SIEM index に残ります。</div>
+      </div>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c4);">
+      <h3><span class="dot"></span>STEP 10 · MITRE ATT&amp;CK Tag の付与</h3>
+      <p>このルール自体にあらかじめ対応するタグが設定されています。</p>
+      <div class="example"><pre><code>tactic:credential-access
+technique:brute-force
+security:attack</code></pre></div>
+      <p class="trace-note">3 つの tag がセットで現れ、これから生成される signal にはこれらのタグがそのまま付与され、MITRE ATT&amp;CK Map のヒートマップにも集計されます。</p>
+    </div>
+
+    <div class="card trace-step gate" style="--accent:var(--c4);">
+      <h3><span class="dot"></span>STEP 11 · Suppression Query の確認</h3>
+      <p>この signal をミュートする suppression rule はあるか？</p>
+      <div class="branch-wrap">
+        <div class="branch-main">✓ ない、そのまま生成 ▼</div>
+        <div class="branch-arrow">⇢</div>
+        <div class="branch-box"><span class="bb-lbl">✗ もう 1 つの可能性：suppression にヒット</span>例えばこの IP がたまたま既知の社内ペネトレーションテストの送信元だった場合、signal はミュートされ Signal Explorer には表示されませんが、元の log はまったく手を加えられておらず、後からでも遡って調査できます。</div>
+      </div>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c5);">
+      <h3><span class="dot"></span>STEP 12 · Signal の生成</h3>
+      <div class="panel-mock">
+        <div class="ph">SIGNAL DETAIL</div>
+        <div class="pr"><div class="pk">Severity</div><div class="pv">High</div></div>
+        <div class="pr"><div class="pk">Status</div><div class="pv">Open</div></div>
+        <div class="pr"><div class="pk">Overview</div><div class="pv">ユーザー admin が 5 分間に 12 回ログインに失敗</div></div>
+        <div class="pr"><div class="pk">Related Logs</div><div class="pv">失敗ログイン 12 件（この log を含む）</div></div>
+        <div class="pr"><div class="pk">Entities</div><div class="pv">admin, 203.0.113.44</div></div>
+      </div>
+    </div>
+
+    <div class="card trace-step analyst" style="--accent:var(--c8);">
+      <h3><span class="dot"></span>STEP 13 · アナリストによるトリアージ</h3>
+      <p>アナリストが <b>Signals Explorer</b> でこの High severity の signal を確認し、severity が高く credential-access の攻撃手法であることから優先対応と判断、状態を <code>Open</code> から <code>Under Review</code> に変更し、正式に調査を開始します。この反応時間こそが <b>MTTA</b> が測定しているものです。</p>
+    </div>
+
+    <div class="card trace-step analyst" style="--accent:var(--c8);">
+      <h3><span class="dot"></span>STEP 14 · 詳細調査</h3>
+      <ul>
+        <li><b>Investigator</b> を使って <code>admin</code> というアイデンティティが他に何をしたか、どのサービスとやり取りしたかを追跡し、攻撃者がログインに成功していないことを確認します。</li>
+        <li><b>Risk Insights</b> では、この事件によって IAM ユーザー <code>admin</code> のリスクスコアが大きく上昇していることが表示されます。</li>
+        <li><b>Bits AI</b> の分析結果は SUSPICIOUS。主要な証拠として、過去 24 時間で同じ送信元 IP が他のアカウントに対しても試行していたことが挙げられます（Signal Correlation と呼応）。</li>
+      </ul>
+      <p class="trace-note">Bits AI はこのステップの初期評価を加速するだけであり、最終判断はあくまでアナリスト自身が行います。</p>
+    </div>
+
+    <div class="card trace-step analyst" style="--accent:var(--c8);">
+      <h3><span class="dot"></span>STEP 15 · 判定と対応：実際の攻撃と確認</h3>
+      <p>証拠を総合し、アナリストはこれが<b>誤検知ではない</b>、実際のブルートフォース攻撃であると判定します。<b>Workflow Automation（SOAR）</b>を発動して <code>admin</code> の認証情報を無効化し、関連アクセスを隔離します。同時に <b>Notification rule</b> が severity=High に基づいてこの signal をすでに PagerDuty にルーティングしており、当番担当者に通知が届いています。</p>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c6);">
+      <h3><span class="dot"></span>STEP 16 · クローズと測定</h3>
+      <p>対応完了、signal は <code>Archived</code> とマークされます。この一連の時間は 3 つの指標として記録されます。<b>MTTD</b>（log の取り込みから signal 生成まで）、<b>MTTA</b>（signal 生成から Under Review まで）、<b>MTTR</b>（生成から Archived まで）で、週報や Cloud SIEM Overview ダッシュボードに表示され、SOC 2 / PCI DSS といったコンプライアンス監査が求める「インシデントが追跡・解決されたか」の証拠にもなります。</p>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c7);">
+      <h3><span class="dot"></span>STEP 17 · フィードバックが継続的改善サイクルへ</h3>
+      <p>この事件は次回の継続的改善の入力になります。アナリストはこれを機に既知のペネトレーションテスト送信元を除外する Suppression rule を追加したり、MITRE ATT&amp;CK Map を見直して credential-access というテクニックのルール網羅性が十分かを確認したりするかもしれません。これはまさに STEP 08 から STEP 11 までの判断ゲートに影響を及ぼします。</p>
+    </div>
+
+  </div>
+</section>
+
+
+</main>
+
+<div class="node-panel" id="nodePanel">
+  <div class="node-panel-backdrop" onclick="closeNodePanel()"></div>
+  <div class="node-panel-content" id="nodePanelContent">
+    <button class="node-panel-close" onclick="closeNodePanel()" aria-label="閉じる">✕</button>
+    <div class="node-panel-tag" id="nodePanelTag"></div>
+    <div class="node-panel-title" id="nodePanelTitle"></div>
+    <div class="node-panel-body" id="nodePanelBody"></div>
+  </div>
+</div>
+
+<footer>CLOUD SIEM STUDY MAP · Yuan の Obsidian Study Notes をもとに整理 · 10 章相互対応</footer>
+
+<script>
+function setActiveChapter(ch){
+  document.querySelectorAll('.chapter').forEach(function(s){
+    s.classList.toggle('active', s.dataset.chapter === ch);
+  });
+  document.querySelectorAll('nav.tabs button').forEach(function(b){
+    b.classList.toggle('active', b.dataset.ch === ch);
+  });
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+document.querySelectorAll('nav.tabs button').forEach(function(b){
+  b.addEventListener('click', function(){ setActiveChapter(b.dataset.ch); });
+});
+setActiveChapter('1');
+
+function toggleAcc(head){
+  var item = head.parentElement;
+  var body = item.querySelector('.acc-body');
+  var isOpen = item.classList.contains('open');
+  if(isOpen){
+    item.classList.remove('open');
+    body.style.maxHeight = null;
+  } else {
+    item.classList.add('open');
+    body.style.maxHeight = body.scrollHeight + 40 + 'px';
+  }
+}
+
+function toggleMini(el){
+  el.classList.toggle('open');
+}
+
+function setStep(btn, group){
+  var nav = btn.parentElement;
+  nav.querySelectorAll('button').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  var step = btn.dataset.step;
+  document.querySelectorAll('.'+group+'-step').forEach(function(p){
+    p.classList.toggle('active', p.dataset.step === step);
+  });
+}
+
+function toggleP(btn, id){
+  var row = btn.parentElement;
+  row.querySelectorAll('button').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.querySelectorAll('.toggle-panel').forEach(function(p){
+    p.classList.toggle('active', p.id === id);
+  });
+}
+
+function answerQ(opt, qid){
+  var quiz = opt.closest('.quiz');
+  var opts = quiz.querySelectorAll('.qopt');
+  var picked = opt.dataset.correct === 'true';
+  opts.forEach(function(o){
+    o.classList.add('disabled');
+    if(o.dataset.correct === 'true'){ o.classList.add('correct'); }
+    else if(o === opt){ o.classList.add('wrong'); }
+  });
+  quiz.classList.add(picked ? 'victory' : 'defeat');
+  if(!picked){ quiz.classList.add('shake'); }
+  document.getElementById(qid+'-explain').classList.add('show');
+}
+
+// heatmap mock — illustrative only, seeded pattern (not random, keeps output stable)
+(function(){
+  var seedPattern = [3,1,2,4,1,3,2,1, 2,4,1,3,2,1,4,2, 1,2,3,1,4,2,1,3, 4,1,2,3,1,4,2,1, 2,3,1,2,4,1,3,2];
+  var hm = document.getElementById('heatmap');
+  seedPattern.forEach(function(v){
+    var d = document.createElement('div');
+    d.className = 'hcell';
+    var alpha = v===1?0.14:v===2?0.34:v===3?0.6:0.95;
+    d.style.background = 'rgba(201,45,143,'+alpha+')';
+    hm.appendChild(d);
+  });
+})();
+
+// ---------- Content Pack detail panel (used by the architecture-overview trace) ----------
+var NODE_DATA = {
+  'content-pack': { tag:'第 1 章参照', accent:'var(--c1)', title:'Content Pack：「ゼロから」を「電源を入れるだけ」に変える', body:
+    '<p>1 つの Content Pack を有効化することは、下記の組み立てライン全体を一度に起動することと同じです。</p>'+
+    '<div class="pk-diagram">'+
+      '<div class="pk-hub">Content Pack を有効化<br><small style="font-weight:400;color:var(--text-faint);">例：AWS CloudTrail Content Pack</small></div>'+
+      '<div class="pk-arrow">▼</div>'+
+      '<div class="pk-branch-grid">'+
+        '<div class="pk-item">Detection Rules<small>あらかじめ用意された検知ルール<br>例：異常な AssumeRole</small></div>'+
+        '<div class="pk-item">Dashboards<small>そのソースの活動ダッシュボード</small></div>'+
+        '<div class="pk-item">Investigator Widgets<small>調査用の可視化コンポーネント</small></div>'+
+        '<div class="pk-item">SOAR Blueprint<small>あらかじめ用意された自動対応フロー</small></div>'+
+        '<div class="pk-item pk-branch-single">Parser（パーサー）<small>含まれる場合もあり、そのソース固有の解析ロジックを補完する</small></div>'+
+      '</div>'+
+      '<div class="pk-arrow">▼</div>'+
+      '<div class="pk-hub small">SIEM Index Filter を自動更新<br><small style="font-weight:400;color:var(--text-faint);">このソースを filter に自動で追加、手動設定不要（第 2 章参照）</small></div>'+
+    '</div>'+
+    '<p><b>試験のポイント</b>：核心的な価値は <b>time-to-value</b>（導入から実際に価値を生み出すまでの時間）の短縮です。上記の 5 つの要素と filter の自動更新は、すべて「有効化する」という 1 つの操作の中で一度に揃い、個別に手動設定する必要はありません。</p>'+
+    '<p><b>もう 1 つの道：AWS Organization アカウント連携</b>（Content Pack 自体ではなく、それと組み合わせる大規模導入方式）は CloudFormation StackSet を使います。trusted access と service-managed permissions により、管理アカウントが各メンバーアカウントへ自動的に IAM role をデプロイします。<b>Specify regions はリージョンを 1 つだけ選択する必要があります。</b>IAM はグローバルリソースであるため、複数リージョンを選ぶとそれぞれの場所で同名の IAM role が作成されようとして衝突が起き、デプロイ全体が失敗します。Execution configuration の並列実行や、Deployment targets を OU ではなく Organization 全体にすることは、この失敗の原因ではありません。</p>' },
+
+};
+
+function openNodePanel(id){
+  var data = NODE_DATA[id];
+  if(!data) return;
+  document.getElementById('nodePanelTag').textContent = data.tag;
+  document.getElementById('nodePanelTitle').textContent = data.title;
+  document.getElementById('nodePanelBody').innerHTML = data.body;
+  document.getElementById('nodePanelContent').style.setProperty('--panel-accent', data.accent);
+  document.getElementById('nodePanel').classList.add('open');
+}
+function closeNodePanel(){
+  document.getElementById('nodePanel').classList.remove('open');
+}
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape'){ closeNodePanel(); }
+});
+</script>
+
+</body>
+</html>
