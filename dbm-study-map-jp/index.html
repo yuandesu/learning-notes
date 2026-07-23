@@ -1,0 +1,1748 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Datadog Database Monitoring 完全理解マップ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f2ecd9;
+  --surface:#fffdf6;
+  --surface2:#e8e0c5;
+  --border:#2a2a45;
+  --text:#201f33;
+  --text-dim:#4a4864;
+  --text-faint:#8a87a0;
+  --on-accent:#201f33;
+
+  --c1:#b8860c; /* 遙測概念與健康指標 - dark goldenrod */
+  --c1-bg:rgba(184,134,12,0.14);
+  --c2:#0e8fa3; /* 基礎架構整合與設定 - deep teal-cyan */
+  --c2-bg:rgba(14,143,163,0.14);
+  --c3:#7c3fd8; /* APM 與 DBM 關聯 - violet */
+  --c3-bg:rgba(124,63,216,0.14);
+  --c4:#c92d8f; /* 查詢分析與問題診斷 - raspberry magenta */
+  --c4-bg:rgba(201,45,143,0.14);
+  --c5:#0f9668; /* 儀表板與告警設計 - deep emerald */
+  --c5-bg:rgba(15,150,104,0.14);
+  --c6:#1f5fd6; /* 資料庫基礎知識附錄 - royal blue */
+  --c6-bg:rgba(31,95,214,0.14);
+  --c9:#b8541f; /* 架構全覽 - terracotta */
+  --c9-bg:rgba(184,84,31,0.14);
+
+  --danger:#cc3520;
+  --ok:#148a34;
+}
+
+*{box-sizing:border-box;border-radius:0 !important;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Noto Sans TC','IBM Plex Sans',sans-serif;
+  line-height:1.75;
+  -webkit-font-smoothing:antialiased;
+}
+header.top .eyebrow, .chapter-head .kicker, .lbl, th, .fb,
+.stepper-nav button, .cmp .col h4, .panel-mock .ph, .stbadge, footer{
+  font-family:'JetBrains Mono',monospace;
+}
+code, .mono{
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.88em;
+  background:#efe6ff;
+  color:#5b3fae;
+  padding:0.1em 0.45em;
+  border:1px solid #c9b3f0;
+}
+pre code{
+  display:block;
+  padding:14px 16px;
+  overflow-x:auto;
+  line-height:1.6;
+  white-space:pre;
+}
+
+/* ---------- Header ---------- */
+header.top{
+  padding:48px 24px 32px;
+  text-align:center;
+  border-bottom:4px solid var(--text);
+  background:var(--bg);
+}
+header.top .eyebrow{
+  letter-spacing:0.14em;
+  font-size:10px;
+  color:var(--text-faint);
+  margin-bottom:18px;
+}
+header.top h1{
+  font-family:'IBM Plex Sans',sans-serif;
+  font-weight:700;
+  font-size:clamp(28px,4.2vw,42px);
+  margin:0 0 20px;
+  letter-spacing:-0.01em;
+  line-height:1.3;
+  color:var(--c1);
+  text-shadow:3px 3px 0 rgba(32,31,51,0.16);
+}
+header.top p.sub{
+  color:var(--text-dim);
+  max-width:640px;
+  margin:0 auto;
+  font-size:14.5px;
+}
+
+/* ---------- Nav / world map ---------- */
+nav.tabs{
+  position:sticky;
+  top:0;
+  z-index:50;
+  padding:16px;
+  background:var(--bg);
+  border-bottom:4px solid var(--text);
+}
+nav.tabs .tabs-inner.worldmap{
+  display:grid;
+  grid-template-columns:minmax(90px,1fr) 32px minmax(90px,1fr) 32px minmax(90px,1fr);
+  grid-auto-rows:auto;
+  align-items:center;
+  gap:6px;
+  max-width:900px;
+  margin:0 auto;
+  overflow-x:auto;
+  overflow-y:visible;
+  padding-top:22px;
+  scrollbar-width:none;
+}
+nav.tabs .tabs-inner.worldmap::-webkit-scrollbar{display:none;}
+.wpath-h{
+  height:4px;
+  align-self:center;
+  background:repeating-linear-gradient(to right, var(--text-faint) 0 6px, transparent 6px 12px);
+}
+.wpath-v{
+  width:4px;
+  height:100%;
+  min-height:24px;
+  justify-self:center;
+  background:repeating-linear-gradient(to bottom, var(--text-faint) 0 6px, transparent 6px 12px);
+}
+nav.tabs button{
+  position:relative;
+  flex:0 0 auto;
+  font-family:'Noto Sans TC','IBM Plex Sans',sans-serif;
+  font-size:12px;
+  font-weight:600;
+  line-height:1.4;
+  color:var(--text-dim);
+  background:var(--surface);
+  border:3px solid var(--border);
+  padding:8px 6px;
+  min-width:86px;
+  cursor:pointer;
+  transition:transform 0.1s linear;
+  white-space:normal;
+  text-align:center;
+}
+nav.tabs button .num{
+  display:block;
+  font-size:9px;
+  margin-bottom:4px;
+  opacity:0.7;
+}
+nav.tabs button:hover{color:var(--text);border-color:var(--text-faint);}
+nav.tabs button:active{transform:translate(2px,2px);}
+nav.tabs button.active{
+  color:var(--on-accent);
+  background:var(--accent);
+  border-color:var(--text);
+  box-shadow:3px 3px 0 0 rgba(32,31,51,0.30);
+}
+nav.tabs button.active::before{
+  content:'▲';
+  position:absolute;
+  top:-20px;
+  left:50%;
+  transform:translateX(-50%);
+  color:var(--c1);
+  font-size:13px;
+  animation:blink 0.7s steps(2) infinite;
+}
+@keyframes blink{50%{opacity:0;}}
+@media (max-width:820px){
+  nav.tabs .tabs-inner.worldmap{display:flex;flex-direction:column;gap:8px;padding-top:20px;}
+  .wpath-h, .wpath-v{display:none;}
+  nav.tabs button{width:100%;min-width:0;}
+}
+
+.overview-divider{
+  max-width:900px;
+  margin:14px auto 10px;
+  text-align:center;
+  color:var(--text-faint);
+  font-size:11px;
+  position:relative;
+}
+.overview-divider::before, .overview-divider::after{
+  content:'';
+  position:absolute;
+  top:50%;
+  width:38%;
+  border-top:2px dashed var(--border);
+}
+.overview-divider::before{left:0;}
+.overview-divider::after{right:0;}
+.overview-wrap{max-width:900px;margin:0 auto;text-align:center;}
+nav.tabs button.overview-tab{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-size:11.5px;
+  font-weight:600;
+  padding:8px 16px;
+  border:2px solid var(--c9);
+  background:var(--surface);
+  color:var(--c9);
+  box-shadow:2px 2px 0 0 rgba(32,31,51,0.15);
+}
+nav.tabs button.overview-tab:hover{transform:translate(-2px,-2px);box-shadow:3px 3px 0 0 rgba(32,31,51,0.2);}
+nav.tabs button.overview-tab.active{
+  background:var(--c9);
+  color:var(--on-accent);
+  box-shadow:2px 2px 0 0 rgba(32,31,51,0.30);
+}
+
+/* ---------- Main / chapters ---------- */
+main{max-width:1120px;margin:0 auto;padding:44px 24px 100px;}
+.chapter{display:none;}
+.chapter.active{display:block;animation:fadeUp 0.25s steps(3) both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+@media (prefers-reduced-motion: reduce){
+  .chapter.active{animation:none;}
+  *{transition:none !important;animation:none !important;}
+}
+
+.chapter-head{margin-bottom:36px;}
+.chapter-head .kicker{
+  font-size:11px;
+  letter-spacing:0.08em;
+  color:var(--accent);
+  margin-bottom:14px;
+}
+.chapter-head h2{
+  font-size:clamp(24px,3.2vw,32px);
+  margin:0 0 16px;
+  font-weight:700;
+  line-height:1.4;
+  color:var(--text);
+}
+.chapter-head .lead{
+  color:var(--text-dim);
+  font-size:15.5px;
+  max-width:760px;
+}
+
+.card{
+  position:relative;
+  background:var(--surface);
+  border:3px solid var(--border);
+  border-top:5px solid var(--accent);
+  padding:26px 28px;
+  margin-bottom:24px;
+  box-shadow:5px 5px 0 0 rgba(32,31,51,0.22);
+}
+.card::before{
+  content:'';
+  position:absolute;top:-3px;left:-3px;
+  width:9px;height:9px;
+  background:var(--bg);
+}
+.card::after{
+  content:'';
+  position:absolute;bottom:-3px;right:-3px;
+  width:9px;height:9px;
+  background:var(--bg);
+}
+.card h3{
+  font-size:18px;
+  font-weight:700;
+  line-height:1.5;
+  margin:0 0 16px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  color:var(--text);
+}
+.card h3 .dot{
+  width:9px;height:9px;
+  margin-top:6px;
+  background:var(--accent);
+  flex:0 0 auto;
+}
+.card p{margin:0 0 12px;color:var(--text);}
+.card p:last-child{margin-bottom:0;}
+.card ul, .card ol{margin:0 0 12px;padding-left:22px;}
+.card li{margin-bottom:8px;}
+
+.term{
+  display:inline-block;
+  font-weight:700;
+  color:var(--accent);
+}
+
+.analogy{
+  background:var(--accent-bg);
+  border:3px solid var(--accent);
+  padding:16px 18px;
+  margin:14px 0;
+  font-size:14.5px;
+}
+.analogy .lbl{
+  font-size:10px;
+  letter-spacing:0.06em;
+  color:var(--accent);
+  margin-bottom:10px;
+  display:block;
+}
+
+.example{
+  background:var(--surface2);
+  border:3px solid var(--border);
+  padding:14px 18px;
+  margin:14px 0;
+  font-size:14px;
+}
+.example .lbl{
+  font-size:10px;
+  letter-spacing:0.06em;
+  color:var(--text-faint);
+  margin-bottom:10px;
+  display:block;
+}
+
+.examtip{
+  background:rgba(204,53,32,0.10);
+  border:3px solid var(--danger);
+  padding:14px 18px;
+  margin:14px 0;
+  font-size:14px;
+}
+.examtip .lbl{
+  font-size:10px;
+  letter-spacing:0.06em;
+  color:var(--danger);
+  margin-bottom:10px;
+  display:block;
+}
+
+.honest{
+  background:rgba(160,106,0,0.10);
+  border:3px dashed #a06a00;
+  padding:14px 18px;
+  margin:14px 0;
+  font-size:14px;
+  color:var(--text-dim);
+}
+.honest .lbl{
+  font-size:10px;
+  letter-spacing:0.06em;
+  color:#a06a00;
+  margin-bottom:10px;
+  display:block;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin:14px 0;
+  font-size:14px;
+}
+th,td{
+  padding:10px 12px;
+  border-bottom:2px solid var(--border);
+  text-align:left;
+  vertical-align:top;
+}
+th{
+  font-size:10px;
+  letter-spacing:0.02em;
+  color:var(--accent);
+  border-bottom:3px solid var(--accent);
+}
+tr:last-child td{border-bottom:none;}
+.table-wrap{overflow-x:auto;margin:14px 0;}
+
+/* accordion */
+.acc-item{
+  border:3px solid var(--border);
+  margin-bottom:10px;
+  overflow:hidden;
+  background:var(--surface2);
+}
+.acc-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:14px 18px;
+  cursor:pointer;
+  font-size:12.5px;
+  line-height:1.7;
+  color:var(--text);
+  user-select:none;
+}
+.acc-head:hover{background:rgba(32,31,51,0.05);}
+.acc-head .chev{
+  color:var(--accent);
+  font-family:'JetBrains Mono',monospace;
+  transition:transform 0.15s linear;
+  flex:0 0 auto;
+  margin-left:12px;
+}
+.acc-item.open .chev{transform:rotate(90deg);}
+.acc-body{
+  max-height:0;
+  overflow:hidden;
+  transition:max-height 0.25s linear;
+  padding:0 18px;
+  font-size:14px;
+  color:var(--text-dim);
+}
+.acc-item.open .acc-body{padding:0 18px 16px;}
+
+/* grid of mini cards */
+.grid{display:grid;gap:14px;}
+.grid.g4{grid-template-columns:repeat(4,1fr);}
+.grid.g3{grid-template-columns:repeat(3,1fr);}
+.grid.g2{grid-template-columns:repeat(2,1fr);}
+@media (max-width:820px){
+  .grid.g4{grid-template-columns:repeat(2,1fr);}
+  .grid.g3{grid-template-columns:1fr;}
+  .grid.g2{grid-template-columns:1fr;}
+}
+@media (max-width:480px){
+  .grid.g4{grid-template-columns:1fr;}
+}
+.mini{
+  border:3px solid var(--border);
+  padding:14px 16px;
+  background:var(--surface2);
+  cursor:pointer;
+  transition:border-color 0.1s linear, transform 0.1s linear;
+}
+.mini:hover{border-color:var(--accent);transform:translate(-2px,-2px);box-shadow:2px 2px 0 0 var(--accent);}
+.mini .mt{font-size:12.5px;margin-bottom:8px;color:var(--accent);}
+.mini .md{font-size:12.5px;color:var(--text-dim);}
+.mini .full{display:none;font-size:13px;color:var(--text);margin-top:10px;padding-top:10px;border-top:2px solid var(--border);}
+.mini.open .full{display:block;}
+
+/* step simulator */
+.stepper-nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
+.stepper-nav button{
+  font-size:10.5px;
+  padding:9px 14px;
+  border:3px solid var(--border);
+  background:var(--surface2);
+  color:var(--text-dim);
+  cursor:pointer;
+  transition:transform 0.1s linear;
+}
+.stepper-nav button:active{transform:translate(2px,2px);}
+.stepper-nav button.active{
+  background:var(--accent);
+  color:var(--on-accent);
+  border-color:var(--text);
+  box-shadow:3px 3px 0 0 rgba(32,31,51,0.30);
+}
+.step-panel{display:none;}
+.step-panel.active{display:block;animation:fadeUp 0.2s steps(3) both;}
+.flowbox{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  margin:14px 0;
+}
+.fb{
+  padding:12px 16px;
+  border:3px solid var(--accent);
+  background:var(--accent-bg);
+  font-size:11px;
+  line-height:1.7;
+  color:var(--text);
+}
+.farrow{color:var(--accent);font-size:16px;}
+
+/* comparison columns */
+.cmp{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:14px 0;}
+.cmp.c2{grid-template-columns:repeat(2,1fr);}
+@media (max-width:820px){.cmp{grid-template-columns:1fr;}}
+.cmp .col{
+  border:3px solid var(--border);
+  padding:16px;
+  background:var(--surface2);
+}
+.cmp .col.good{border-color:var(--ok);}
+.cmp .col.bad{border-color:var(--danger);}
+.cmp .col h4{
+  margin:0 0 12px;
+  font-size:11px;
+  color:var(--accent);
+  letter-spacing:0.02em;
+}
+.cmp .col.good h4{color:var(--ok);}
+.cmp .col.bad h4{color:var(--danger);}
+.cmp .col p{font-size:13.5px;color:var(--text-dim);margin:0;}
+
+/* toggle */
+.toggle-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.toggle-row button{
+  font-size:11px;
+  padding:9px 16px;
+  border:3px solid var(--border);
+  background:var(--surface2);color:var(--text-dim);
+  cursor:pointer;transition:transform 0.1s linear;
+}
+.toggle-row button:active{transform:translate(2px,2px);}
+.toggle-row button.active{background:var(--accent);border-color:var(--text);color:var(--on-accent);box-shadow:3px 3px 0 0 rgba(32,31,51,0.30);}
+.toggle-panel{display:none;}
+.toggle-panel.active{display:block;animation:fadeUp 0.2s steps(3) both;}
+
+/* signal / detail panel mock */
+.panel-mock{
+  border:3px solid var(--border);
+  background:var(--surface2);
+  overflow:hidden;
+  margin:14px 0;
+}
+.panel-mock .ph{
+  padding:12px 16px;
+  background:var(--accent);
+  border-bottom:3px solid var(--border);
+  font-size:11px;
+  color:var(--on-accent);
+}
+.panel-mock .pr{
+  padding:12px 16px;
+  border-bottom:2px solid var(--border);
+  display:flex;
+  gap:14px;
+}
+.panel-mock .pr:last-child{border-bottom:none;}
+.panel-mock .pr .pk{
+  flex:0 0 150px;
+  font-size:12.5px;
+  color:var(--text-faint);
+  font-weight:600;
+}
+.panel-mock .pr .pv{font-size:13px;color:var(--text);}
+
+/* one-trace (architecture overview) */
+.factory-legend{
+  display:flex;
+  flex-wrap:wrap;
+  gap:14px;
+  margin-bottom:24px;
+  padding:14px 18px;
+  background:var(--surface2);
+  border:3px solid var(--border);
+  font-size:12.5px;
+  color:var(--text-dim);
+}
+.factory-legend .lgi{display:flex;align-items:center;gap:7px;}
+.factory-legend .sw{width:13px;height:13px;flex:0 0 auto;border:2px solid var(--text);}
+
+.trace{display:flex;flex-direction:column;}
+.trace-step{margin-bottom:40px;}
+.trace-step:last-child{margin-bottom:0;}
+.trace-step.gate{border-top-style:dashed;}
+.trace-note{font-size:12.5px;color:var(--text-faint);font-style:italic;margin-top:8px;}
+
+.reveal-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  margin-top:12px;
+  padding:9px 16px;
+  border:3px solid var(--accent);
+  background:var(--accent-bg);
+  color:var(--accent);
+  font-weight:700;
+  font-size:13px;
+  cursor:pointer;
+  transition:transform 0.08s linear;
+}
+.reveal-btn:hover{transform:translate(-2px,-2px);}
+.reveal-btn::before{content:'▶ ';}
+
+.branch-wrap{
+  display:grid;
+  grid-template-columns:1fr 40px minmax(0,280px);
+  align-items:center;
+  gap:0;
+  margin-top:14px;
+}
+.branch-main{font-size:13px;color:var(--text-dim);}
+.branch-arrow{
+  text-align:center;
+  color:var(--text-faint);
+  font-size:16px;
+}
+.branch-box{
+  padding:12px 14px;
+  border:3px dashed var(--border);
+  background:var(--surface2);
+  font-size:12.5px;
+  color:var(--text-dim);
+}
+.branch-box .bb-lbl{
+  display:block;
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;
+  letter-spacing:0.04em;
+  color:var(--text-faint);
+  margin-bottom:6px;
+}
+@media (max-width:640px){
+  .branch-wrap{grid-template-columns:1fr;}
+  .branch-arrow{display:none;}
+  .branch-box{margin-top:8px;}
+}
+
+/* floating node detail panel */
+.node-panel{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:200;
+}
+.node-panel.open{display:block;}
+.node-panel-backdrop{
+  position:absolute;
+  inset:0;
+  background:rgba(32,31,51,0.45);
+}
+.node-panel-content{
+  position:absolute;
+  top:0;right:0;
+  height:100%;
+  width:min(460px, 92vw);
+  background:var(--surface);
+  border-left:5px solid var(--panel-accent, var(--c1));
+  box-shadow:-6px 0 0 0 rgba(32,31,51,0.2);
+  overflow-y:auto;
+  padding:26px 24px 40px;
+  animation:panelSlide 0.18s ease both;
+}
+@keyframes panelSlide{from{transform:translateX(24px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+@media (prefers-reduced-motion: reduce){.node-panel-content{animation:none;}}
+.node-panel-close{
+  position:absolute;
+  top:16px;right:16px;
+  width:32px;height:32px;
+  border:3px solid var(--border);
+  background:var(--surface2);
+  color:var(--text);
+  font-size:14px;
+  cursor:pointer;
+}
+.node-panel-tag{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  letter-spacing:0.04em;
+  color:var(--panel-accent, var(--c1));
+  margin:0 40px 10px 0;
+}
+.node-panel-title{
+  font-size:19px;
+  font-weight:700;
+  margin:0 40px 16px 0;
+  line-height:1.5;
+  color:var(--text);
+}
+.node-panel-body{font-size:14.5px;color:var(--text);}
+.node-panel-body p{margin:0 0 12px;}
+.node-panel-body ul{margin:0 0 12px;padding-left:20px;}
+.node-panel-body li{margin-bottom:6px;}
+.node-panel-body b{color:var(--panel-accent, var(--c1));}
+
+.pk-diagram{margin:6px 0 22px;}
+.pk-hub{
+  padding:13px 14px;
+  text-align:center;
+  font-weight:700;
+  font-size:13px;
+  border:3px solid var(--panel-accent, var(--c1));
+  background:var(--surface2);
+  color:var(--panel-accent, var(--c1));
+}
+.pk-arrow{text-align:center;color:var(--text-faint);font-size:14px;margin:4px 0;}
+.pk-branch-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.pk-item{
+  padding:10px 8px;
+  text-align:center;
+  font-size:11.5px;
+  line-height:1.5;
+  font-weight:600;
+  border:2px solid var(--border);
+  background:var(--surface2);
+  color:var(--text);
+}
+.pk-item small{display:block;font-weight:400;color:var(--text-faint);font-size:10px;margin-top:3px;}
+.pk-hub.small{font-size:11.5px;font-weight:600;padding:10px 12px;}
+.pk-branch-single{grid-column:1 / -1;}
+
+footer{
+  text-align:center;
+  padding:40px 24px 60px;
+  color:var(--text-faint);
+  font-size:11px;
+  line-height:2;
+}
+
+/* focus visibility */
+button:focus-visible, .acc-head:focus-visible, .mini:focus-visible{
+  outline:2px solid var(--text);
+  outline-offset:2px;
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="eyebrow">DATADOG DATABASE MONITORING · DBM FUNDAMENTALS</div>
+  <p style="margin:0 0 4px;"><a href="../dbm-study-map/" style="font-size:12px;color:var(--text-faint);text-decoration:underline;">中文版はこちら →</a></p>
+  <h1>DBM 完全理解マップ</h1>
+  <p class="sub">「標準統合で見えるもの、DBM でさらに見えるもの」から「実際のロック事件がどう調査され、最後まで最適化されたか」まで、同じ Storedog 環境を使って 6 本のノートを 1 枚の地図につなげます。</p>
+</header>
+
+<nav class="tabs" id="tabs">
+  <div class="tabs-inner worldmap">
+    <button data-ch="1" class="active" style="grid-column:1;grid-row:1;"><span class="num">01</span>テレメトリー概念と健康指標</button>
+    <button data-ch="2" style="grid-column:3;grid-row:1;"><span class="num">02</span>インフラ統合とセットアップ</button>
+    <button data-ch="3" style="grid-column:5;grid-row:1;"><span class="num">03</span>APM と DBM の関連付け</button>
+    <button data-ch="4" style="grid-column:5;grid-row:3;"><span class="num">04</span>クエリ分析と問題診断</button>
+    <button data-ch="5" style="grid-column:3;grid-row:3;"><span class="num">05</span>ダッシュボードとアラート設計</button>
+    <button data-ch="6" style="grid-column:1;grid-row:3;"><span class="num">06</span>データベース基礎知識付録</button>
+
+    <div class="wpath-h" aria-hidden="true" style="grid-column:2;grid-row:1;"></div>
+    <div class="wpath-h" aria-hidden="true" style="grid-column:4;grid-row:1;"></div>
+    <div class="wpath-v" aria-hidden="true" style="grid-column:5;grid-row:2;"></div>
+    <div class="wpath-h" aria-hidden="true" style="grid-column:4;grid-row:3;"></div>
+    <div class="wpath-h" aria-hidden="true" style="grid-column:2;grid-row:3;"></div>
+  </div>
+
+  <div class="overview-divider" aria-hidden="true"><span>◆</span></div>
+  <div class="overview-wrap">
+    <button class="overview-tab" data-ch="7">◆ アーキテクチャ全体像 · Storedog ロック事件フルトレース</button>
+  </div>
+</nav>
+
+<main>
+
+<!-- ===================== CHAPTER 1 ===================== -->
+<section class="chapter active" data-chapter="1" style="--accent:var(--c1);--accent-bg:var(--c1-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Chapter 01 · Telemetry &amp; Health</div>
+    <h2>テレメトリー概念と健康指標</h2>
+    <p class="lead">この章では 2 つの土台となる問いに答えます。DBM がどのエンジンをサポートしているか、標準統合と DBM は結局どこが違うのか。続いてデータベースの「バイタルサイン」を 9 つの健康指標に分解し、さらに 3 つのレンズを 6 種類のテレメトリータイプへと展開して 1 つずつ掘り下げます。この章を読み終えれば、以降のすべての調査動作で使うデータソースの意味が理解できるようになります。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>サポートされているデータベースエンジン</h3>
+    <div class="table-wrap"><table>
+      <tr><th>エンジン</th><th>備考</th></tr>
+      <tr><td><b>PostgreSQL</b></td><td><code>pg_stat_statements</code> 拡張機能が必要、また Datadog ユーザーに <code>pg_monitor</code> ロールを付与する必要があります。</td></tr>
+      <tr><td><b>MySQL</b></td><td>Performance Schema の有効化が必要です。セルフホスト型とクラウドマネージド型のインスタンスで設定手順が異なります。</td></tr>
+      <tr><td><b>SQL Server</b></td><td>特定の権限を持つ読み取り専用ログインアカウントが必要です。ストアドプロシージャが実行プランの収集を担当します。</td></tr>
+      <tr><td><b>Oracle</b></td><td>特定の Oracle パッケージ、および適切な権限を持つ専用の Datadog ユーザーが必要です。</td></tr>
+      <tr><td><b>MongoDB</b></td><td>Atlas とセルフホスト型のデプロイの両方をサポートします。テレメトリーの種類はリレーショナルエンジンとは異なります。</td></tr>
+    </table></div>
+    <div class="examtip"><span class="lbl">試験のポイント</span>試験は「データベースエンジンに依存しない」形式です。特定エンジンの SQL 構文や設定の細部は問われず、「調査ワークフロー」そのものが問われます。このワークフローはサポートされているすべてのエンジンで共通で、違うのは設定方法だけです。このマップの実装例はすべて PostgreSQL を使っており、<span class="term">Storedog</span> の実験環境に対応しています。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>標準統合 vs. DBM、どこまで多く見えるか</h3>
+    <p><span class="term">標準統合</span>は Postgres や SQL Server などの一般的な統合で、「ホストレベル / インスタンスレベル」の指標を収集する、データベースを「外から中へ」見る視点です。<span class="term">DBM</span> はそれを置き換えるものではなく、標準統合の上に重ねて、クエリレベルの一式のテレメトリーを追加するものです。</p>
+    <div class="toggle-row">
+      <button class="active" onclick="toggleP(this,'nodbm')">標準統合のみ</button>
+      <button onclick="toggleP(this,'hasdbm')">完全な DBM を追加</button>
+    </div>
+    <div class="toggle-panel active" id="nodbm">
+      <div class="example"><span class="lbl">見えるもの</span>接続数、SQL コンパイル速度、buffer pool 使用率、ディスク I/O、複製の状態などの集計数値。データベースが「健全かどうか」を教えてくれます。<span class="lbl" style="margin-top:10px;">見えないもの</span>「なぜ」の部分、つまりクエリレベルの詳細は完全にブラックボックスです。設定は簡単で、Agent ユーザーは基本の <code>SELECT</code> 権限だけで済みます。</div>
+    </div>
+    <div class="toggle-panel" id="hasdbm">
+      <div class="example"><span class="lbl">追加で得られるもの</span>Query Metrics（上位 200 件の正規化されたクエリの集計統計）、Query Samples（ある瞬間の実際の実行スナップショット、保存期間 15 日間）、自動収集される Explain Plans、Wait Events 分析、ブロッキングクエリのインサイト、正規化とオブファスケーション処理、APM 関連付け、DBM Recommendations。<span class="lbl" style="margin-top:10px;">代償</span>Agent の YAML に <code>dbm: true</code> を追加する必要があり、追加の権限が必要（Postgres なら <code>pg_monitor</code>）で、さらにデータベースホストへ直接接続する必要があり、proxy／ロードバランサー／コネクションプールを経由できません。ほとんどのワークロードでは追加負荷はクエリ実行時間の 1% 未満、CPU の 1% 未満に収まります。</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>9 つの健康指標、データベースのバイタルサイン</h3>
+    <p>医師が患者のバイタルサイン、心拍、血圧、体温を診るのと同じイメージです。各項目をクリックして判読ロジックを確認してください。</p>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">① 接続数（Connections）<span class="chev">▸</span></div>
+      <div class="acc-body"><p>何個のクライアントがデータベースに接続しているか、上限までどれくらい余裕があるか。持続的な上昇はコネクションリークの可能性があり、急激な増加はトラフィックの急増またはアプリケーションの設定ミスの可能性があります。長時間アイドル状態の接続はリソースの無駄です。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">② クエリ量とスループット（Query Volume and Throughput）<span class="chev">▸</span></div>
+      <div class="acc-body"><p>1 秒あたり何件のクエリを処理しているか（読み取り vs 書き込み）。急激な減少は上流のアプリケーションが壊れていることを示す可能性があり、急激な増加は暴走したプロセスがデータベースに負荷をかけている可能性があります。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">③ クエリレイテンシー（Query Latency）<span class="chev">▸</span></div>
+      <div class="acc-body"><p>平均、p50、p95、p99、最大値。<b>p95/p99 が特に重要</b>です。平均値は外れ値を覆い隠してしまうためで、例えば平均 10ms でも p99 が 2 秒であれば、1% のユーザー体験が極めて悪いことを意味します。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">④ アクティブセッションとデータベース負荷（Wait Events 分析）<span class="chev">▸</span></div>
+      <div class="acc-body"><p>「何件のクエリが動いたか」だけでなく、クエリがその瞬間「どのリソースを待っているか」を見ます。4 大分類は次のとおりです。<b>CPU</b>（演算リソースの奪い合い、クエリの最適化やインスタンスの増強を検討）、<b>I/O</b>（ディスクの読み書き待ち、インデックス不足や buffer pool のサイズ不足の可能性）、<b>ロック / Latch</b>（他のセッションがロックを解放するのを待つ、通常は長いトランザクションによる競合）、<b>ネットワーク</b>（データ転送待ち、結果セットが大きすぎるか遅延が高い可能性）。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">⑤ ブロッキングクエリ（Blocking Queries）<span class="chev">▸</span></div>
+      <div class="acc-body"><p>1 つの長いトランザクションがロックを握ったままになり、連鎖的に数十件のクエリが詰まることがあります。DBM は「根本原因となるブロッキングクエリ」とブロックされているクエリを視覚的に特定できます。実際のロック事例は第 4 章、第 7 章を参照してください。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">⑥ リソース使用率（CPU/メモリ/ディスク/I/O）<span class="chev">▸</span></div>
+      <div class="acc-body"><p>データベースの「物理的な限界」です。クエリがどれだけ良く書かれていても、ホストに CPU、メモリ、ディスク容量がなければ同様に落ちます。CPU が持続的に 80% を超えると限界が近いことを意味し、メモリはキャッシュヒット率を見ます。ディスク容量を使い切ると致命的な障害になります。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">⑦ レプリケーションの健康（Replication Health）<span class="chev">▸</span></div>
+      <div class="acc-body"><p>レプリケーション遅延（replica がプライマリノードにどれだけ遅れているか）、レプリケーションの状態（接続中で継続的に同期しているか）。遅延が大きすぎると古いデータを読んでいることになり、切断はフェイルオーバーの後ろ盾を失うことを意味します。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">⑧ データベースエンジン固有のテレメトリー<span class="chev">▸</span></div>
+      <div class="acc-body"><p>Postgres は vacuum の動作を見ます（デッドタプルが蓄積し続けているのは autovacuum が追いついていないサイン）。SQL Server は接続数、システムメモリ、スループットを見ます。MongoDB は遅い操作、実行プラン、レプリケーション状態の変化を見ます。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">⑨ DBM Recommendations 自体も健康のシグナル<span class="chev">▸</span></div>
+      <div class="acc-body"><p>生の指標を提供するだけでなく、影響度の高いブロッキングクエリ、使われていないインデックス、ディスク容量不足の警告を能動的に分析してフラグを立てます。各推奨事項には深刻度のランクがあり、完全なタイプ一覧は第 4 章を参照してください。</p></div>
+    </div>
+    <div class="example"><span class="lbl">総合的な判読の鍵は「関連付け」にある</span>単一の指標だけでは全体の話は語れません。CPU が高い + あるクエリがデータベース時間の大部分を消費 → そのクエリの最適化が必要。レイテンシー上昇 + ロック待ちの増加 → リソース問題ではなくブロッキング問題。接続数急増 + スループット低下 → クエリ効率の問題ではなく接続の飽和。I/O が高い + キャッシュヒット率が低い → メモリの追加が必要か、クエリが読みすぎている。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>6 種類のテレメトリータイプ、3 つのレンズを 1 つずつ掘り下げる</h3>
+    <p>公式ドキュメントはデータの種類を 3 つの大分類に凝縮していますが、これは同じデータベースを見る 3 つの異なる「レンズ」です。以下の 6 種類のテレメトリーは、この 3 つのレンズを実際に展開したものです。</p>
+    <div class="cmp">
+      <div class="col"><h4>Metrics · 衛星視点</h4><p>ホストレベルの統合指標で、「データベース全体の状況はどうか」に答えます。dashboard と閾値アラートの基礎です。<b>限界:</b> 「何が起きたか」しか見えず、「誰が引き起こしたか」は見えません。</p></div>
+      <div class="col"><h4>Query Metrics · ストリートビュー視点</h4><p>正規化された各クエリごとの集計パフォーマンス統計で、データベースをブラックボックスからクエリレベルで推論できるものへと変えます。</p></div>
+      <div class="col"><h4>Query Samples · 顕微鏡視点</h4><p>ある時点で実際に実行された個別のスナップショットです。<b>限界:</b> あくまで偏りのあるサンプリングであり、完全な記録ではありません。</p></div>
+    </div>
+    <p>典型的な調査の順序は、Metrics（「データベースに負荷がかかっている」）→ Query Metrics（「このクエリパターンがデータベース時間の 40% を占めている」）→ Query Samples（「今回の実行は 3:47 PM に 12 秒かかった」）です。実際の画面ではさらに Explain Plans、Wait Events、Active Sessions、Schemas が加わり、6 種類に展開されます。</p>
+    <div class="table-wrap"><table>
+      <tr><th>テレメトリータイプ</th><th>答える問い</th></tr>
+      <tr><td>Query Metrics</td><td>どのクエリが最も遅い / 最もリソースを消費しているか</td></tr>
+      <tr><td>Query Samples</td><td>今回具体的にどこが遅かったか</td></tr>
+      <tr><td>Explain Plans</td><td>データベースはこのクエリをどう実行したか</td></tr>
+      <tr><td>Wait Events</td><td>クエリは何を待っているか</td></tr>
+      <tr><td>Active Sessions</td><td>その瞬間データベース内で何が起きていたか</td></tr>
+      <tr><td>Schemas</td><td>テーブルの構造は妥当か</td></tr>
+    </table></div>
+    <p style="margin-top:10px;">典型的な調査の順序: <b>Query Metrics → Query Samples → Explain Plans → Schemas → Wait Events / Active Sessions</b>。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Query Metrics、正規化と query_signature</h3>
+    <p>DBM は同じ<span class="term">クエリシグネチャ</span>を持つすべての実行を、パラメータの値に関わらず 1 つのグループにまとめ、平均レイテンシー、総実行時間、返却行数、呼び出し回数を計算します。</p>
+    <div class="analogy"><span class="lbl">正規化とは何か</span>クエリに実際に代入されたパラメータの値をプレースホルダーに置き換え、パラメータは違ってもロジックが同じクエリを同じ「クエリシグネチャ」として扱います。
+      <pre style="margin-top:10px;"><code>SELECT * FROM orders WHERE user_id = 98712 AND status = 'pending'
+SELECT * FROM orders WHERE user_id = 55103 AND status = 'shipped'</code></pre>
+      正規化後はどちらも同じクエリシグネチャに分類されます。<code>SELECT * FROM orders WHERE user_id = ? AND status = ?</code>。構造が同じであれば（テーブル名、カラム、演算子、句の並びがすべて同じ）同じシグネチャとみなされ、構造的な差異があれば（カラムが 1 つ多い、`WHERE` の順序が違う、`JOIN` が 1 つ多いなど）別のシグネチャとして個別に集計されます。</div>
+    <div class="examtip"><span class="lbl">試験のポイント</span>フィルタリングには <code>query_signature</code> を使い、<code>query</code> フィールドは使いません。理由は、タグ名は 200 文字で切り詰められるためクエリ文が長いと `query` タグは一意にならない可能性がある一方、`query_signature` は固定長のハッシュ値であり、信頼できる識別根拠になるためです。</div>
+    <div class="example"><span class="lbl">実戦例、EC サイトのチェックアウトページが突然遅くなった</span>Query Metrics を「総実行時間」でソートすると、<code>SELECT * FROM orders WHERE user_id = ? AND status = ?</code> が最もリソースを消費していることが判明しました。平均レイテンシー 850ms（先週はわずか 120ms）、1 分あたり 3,200 回呼び出し、返却行数の平均 4,500 行（先週はわずか 50 行）。返却行数の急増は `LIMIT` の欠落かインデックスが効いていない可能性を示唆します。</div>
+    <div class="examtip"><span class="lbl">保存期間</span>公式ドキュメント（Database Monitoring Data Collected、Data Retention Periods）には Query Metrics の保存期間が <b>15 か月</b>と明記されています。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Query Samples、「平均的に遅い」から「今回なぜ遅いか」へ</h3>
+    <p>ある収集時点で取得された個別のクエリ実行です。正確なクエリ文、実行時間、ホスト、関連する Explain Plan を含み、APM トレースへ直接リンクします（第 3 章参照）。</p>
+    <div class="example"><span class="lbl">実戦例</span>Query Metrics からそのクエリが「平均的に」遅いことが分かったら、Query Samples に切り替えて、実行に 2.3 秒かかり、ホストが <code>postgres-replica-02</code> で、関連する APM トレースが <code>checkout-service</code> の <code>/api/v1/checkout</code> からのものである 1 件を見つけます。トレースをクリックすると、あるユーザーが 12,000 件の過去の注文履歴を持っていたことが今回特に遅かった原因だと分かります。</div>
+    <div class="examtip"><span class="lbl">試験のポイント</span>保存期間は <b>15 日間</b>で、Query Metrics の 15 か月とは桁が 1 つ違います。これはよく出る比較ポイントです。DBM は全量取得ではなくサンプリングであるため、あるクエリがサンプルに出てこないのは、その期間に取得されなかった可能性が高く、実行されていないという意味ではありません。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Explain Plans、すべての用語をゼロから分解する</h3>
+    <p>Explain Plan は、クエリプランナーがクエリを実行するために選んだ手順の表現です。Explain Plan 全体は「レストランの調理手順書」のようなものだとイメージしてください。お客さん（SQL）は「ステーキを 1 つ」と言うだけで、厨房の中でどう作るかは厨房が自分で決めます。この内部の判断と手順の一式が Explain Plan です。</p>
+    <div class="stepper-nav">
+      <button class="active" data-step="1" onclick="setStep(this,'plan')">1. インデックスなし: Seq Scan</button>
+      <button data-step="2" onclick="setStep(this,'plan')">2. 複合インデックスの作成</button>
+      <button data-step="3" onclick="setStep(this,'plan')">3. インデックス追加後: Index Scan</button>
+      <button data-step="4" onclick="setStep(this,'plan')">4. 高い/安いの見方</button>
+      <button data-step="5" onclick="setStep(this,'plan')">5. Map View でボトルネックを特定</button>
+    </div>
+    <div class="step-panel active plan-step" data-step="1">
+      <p><b>誰がどうやるか決めるのか、クエリプランナーとノード。</b>クエリプランナーは厨房で「方法を考える」シェフのような存在です。お客さんは食べたいものを言うだけで、シェフが自分で手順を考えます。この手順が Explain Plan であり、各行が 1 つの「ノード」です。動作が複雑になると複数のノードが積み重なり、これが Map View がツリー状に見える理由でもあります。</p>
+      <p><b>Seq Scan（全表スキャン）:</b> 分類されていない倉庫の中でモノを探すようなもので、箱を 1 つずつ開けて確認するしかありません。</p>
+      <div class="example"><pre><code>Seq Scan on orders  (cost=0.00..15420.00 rows=4500)
+  Filter: (user_id = 98712 AND status = 'pending')</code></pre></div>
+    </div>
+    <div class="step-panel plan-step" data-step="2">
+      <p>倉庫の入り口に「A 類のモノは 3 番棚にある」という一覧が貼ってあり、それを一目見るだけでどこに行けばよいか分かる、これが <b>Index Scan（インデックススキャン）</b>です。実際にこの一覧を作ってみます。</p>
+      <div class="example"><pre><code>CREATE INDEX idx_orders_user_status
+ON orders (user_id, status);</code></pre>`user_id` を第一ソートキーとし、同じ `user_id` のデータをさらに `status` でソートします。作成時にデータベースは各行の `(user_id, status)` の値を取り出してソートし、独立したデータ構造（PostgreSQL のデフォルトは B-tree）を組んで別途保存します。</div>
+      <p><b>なぜカラムの順序をこう並べるのか:</b> `user_id` は `status` よりはるかに区分度が高く（`user_id` はほぼすべての値が異なるのに対し、`status` は通常 `pending`、`shipped`、`cancelled` など少数の値しかありません）、区分度の高いカラムを最初に置くことで「目的の位置へ飛ぶ」ステップの範囲をできるだけ絞り込めます。</p>
+    </div>
+    <div class="step-panel plan-step" data-step="3">
+      <div class="example"><pre><code>Index Scan using idx_orders_user_status on orders  (cost=0.42..8.50 rows=3)</code></pre>コストが 15,420 から 8.5 へと大幅に低下しています。</div>
+      <p>クエリ <code>SELECT * FROM orders WHERE user_id = 98712 AND status = 'pending'</code> の実際の実行手順は次のとおりです。① プランナーがインデックスが `WHERE` で使われている 2 つのカラムをカバーしていることを見つけ、Index Scan を選択する。② インデックス内で二分探索（毎回半分に絞る）を使って `user_id = 98712` の開始位置を素早く特定する。N 回ではなく log(N) 回の比較で済む。③ その位置から後方へ読み進める。同じ `user_id` のデータはインデックス内で連続して並んでいるため。④ `status` は第二ソートキーなので、`pending` のデータはまとまって並んでおり、1 件ずつ確認する必要がない。⑤ インデックスの各レコードにはテーブル内の実際の行を指すポインタが付いており、条件に合う項目を見つけたらそのポインタでテーブルに戻り実データを読み出す。このプロセス全体で、条件に合わない 499,997 行を一切見ていません。</p>
+    </div>
+    <div class="step-panel plan-step" data-step="4">
+      <p><b>データを取得した後どう加工するか:</b> Filter（フィルタリング、`WHERE` に対応）、Sort（ソート、`ORDER BY` に対応、通常はすべてのデータがテーブルに揃うまで並べ替えを始められません）、Join（結合、`Nested Loop` はリストが小さいときに 1 件ずつもう一方を探しに行き、`Hash Join` は両方とも小さくないときに片方をハッシュテーブルにまとめ、`Merge Join` は両方が元々ソート済みのときにファスナーのように合わせます）、Aggregate（集計、`COUNT`/`SUM`/`GROUP BY`、通常は最後のステップです）。</p>
+      <p><b>cost:</b> かかった金額や秒数ではなく、シェフが心の中で「このやり方はどれくらい面倒か」に付けたスコアのようなものです。表記は「開始スコア..合計スコア」で、経験則に基づく推測にすぎず、同じプラン内の他の動作とだけ比較でき、クエリをまたいだり別のマシンと比較したりはできません。<b>rows:</b> シェフが「この動作が終わったらだいたい何件残るか」を推測した値です。この推測値が実際の値と大きくずれている場合、それは「シェフが今回やり方を間違えたかもしれない」というシグナルです。</p>
+    </div>
+    <div class="step-panel plan-step" data-step="5">
+      <p>プロセス全体に多くの動作が積み重なっている場合、DBM はプロセス全体をツリーとして描画し、色の濃淡やボックスの大きさでどのボックスが最も負荷が高いかを直接教えてくれます。1 つずつ暗算で比較する必要はありません。</p>
+      <div class="example"><span class="lbl">実戦例</span>あるクエリサンプルで Explain Plan を確認すると Seq Scan が見つかり、データベースは `orders` テーブル全体（50 万行）を 1 行ずつスキャンしていました。Map View ではこのノードが総コストの 98% を占めていることが表示されています。修正: `(user_id, status)` の複合インデックスを作成し、コストが 15,420 から 8.5 に低下しました。</div>
+      <div class="examtip"><span class="lbl">注意</span>すべてのクエリに Explain Plan があるわけではありません。実行時間が短すぎてサンプリングされずプランが付かないクエリもあれば、構造的に条件に合わないもの（特定のロックモードのトランザクションなど）もあります。また収集には <code>explain_statement</code> 関数が正しく設定されている必要があります（第 2 章参照）。Query Sample に関連する Plan がない場合は、まずこの関数を確認してください。</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Wait Events、銀行の窓口ロビー</h3>
+    <div class="analogy"><span class="lbl">Analogy</span>データベースを銀行の窓口ロビーだと考えてください。各「接続」は手続き中の 1 人の顧客で、顧客が手続きをしている各瞬間は、「サービスを受けている最中」か「何かを待っている」かのどちらかです。</div>
+    <p><b>CPU 待ち:</b> クエリが実際に処理されている最中であり、正常な忙しさです。この比率がずっと高い場合、通常はクエリが処理するデータ量や計算量が大きいことを意味します。<b>ロック待ち（Lock wait）:</b> この接続があるデータを操作しようとしているが、既に別の接続にロックされている状態です。例えば <code>Lock:transactionid</code> は別のトランザクション全体が終わるのを待っていることを意味し、急増はトランザクションが長時間終わらずに詰まっていることを示します。<b>I/O 待ち:</b> データがディスクからメモリに読み込まれる、またはディスクに書き込まれるのを待っている状態です。比率が高い場合、通常はデータ量が大きいかディスク速度が追いついていないことを意味します。<b>アイドル（Idle）:</b> 接続は現在クエリを実行していないが、まだ枠を占有している状態です。<b>ブロッキング（blocking）:</b> ロック待ちの裏側で、A が B のロック解放を待っているとき「B が A をブロックしている」と言います。Active Connections タブで「誰が誰をブロックしているか」を直接確認できます。</p>
+    <p class="trace-note">実戦例は第 4 章、第 7 章の <code>Lock:transactionid</code> の急増、<code>stop_locks</code> による追跡調査、根本原因がテスト用の <code>LOCK TABLE</code> の cronjob が消し忘れられていたという実際の事例を参照してください。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Active Sessions、10 秒ごとのスナップショット</h3>
+    <p>データベースのアクティブな接続状態の定期的なスナップショットで、約 10 秒ごとに取得されます。現在実行中のクエリ、実行時間、待機状態、どの接続が他の接続をブロックしているかを捉えます。Wait Events とセットで使うものです。Wait Events は「急増が発生した」ことを教え、Active Sessions は「急増発生時に具体的に何が動いていたか」を教えてくれます。</p>
+    <div class="analogy"><span class="lbl">Analogy</span>Wait Events が「この瞬間、ある顧客が何を待っているか」のライブ放送だとすれば、Active Sessions は警備システムが数秒おきにロビー全体を撮影する写真です。「定期的に撮影して保存」であって連続録画ではないため、2 枚の写真の間に起きたことは記録されませんが、事後でも 1 枚ずつさかのぼって異常発生時に何が起きていたかを見つけられます。複数の接続が同じ理由で同時に詰まっている場合、これらの接続を 1 本の「ブロッキングチェーン」としてつなぎ、どの接続がどのクエリを実行して引き起こしたかを具体的に特定できます。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Schemas、テーブル構造は妥当か</h3>
+    <p>1 枚のテーブルはファイルキャビネットのようなもので、各行のデータは形式が統一された 1 枚の伝票だとイメージしてください。<b>カラム（column）</b>は各伝票に必ずある 1 つの欄です。<b>データ型</b>はこの欄に何を入れられるかを規定します（例えば <code>numeric(10,2)</code>）。<b>主キー</b>は他のどの伝票とも絶対に重複せず、データベースはデフォルトで自動的にインデックスを作成します。<b>インデックス</b>はデータを素早く特定するための一覧で、インデックスサイズはこの追加の一覧自体がどれだけのストレージを占めるかを示し、無料ではありません。</p>
+    <div class="examtip"><span class="lbl">試験で補足される基礎用語</span><b>B-tree</b>（ほとんどのデータベースのインデックスがデフォルトで使うツリー構造で、「半分に絞る」二分探索を成立させます）、<b>covering index</b>（インデックス自体にクエリが必要とするすべてのカラムが含まれ、テーブルに一切戻る必要がありません）、<b>index bloat</b>（インデックスがデータの更新に伴い、もう有効でない項目を大量に蓄積し、占有スペースが増え、クエリが遅くなり、定期的な再構築やクリーンアップが必要になります）。テーブル名、カラム名、インデックス名といった構造的な情報はオブファスケーションの対象外で、Schemas ページに完全な形で表示されます。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>データプライバシーとオブファスケーション処理</h3>
+    <p>Query Samples は実際に実行されたクエリ文を取得します。データベースにはユーザーのメールアドレス、支払い情報、個人情報がよく保存されているため、Agent は Datadog にデータを送る前に 2 つのことを行います。<b>クエリの正規化</b>（リテラル値を `?` プレースホルダーに置き換える、ホストを離れる前にリテラル値を取り除く仕組みでもあります）と<b>パラメータのオブファスケーション処理（obfuscation）</b>（もう 1 段階の保護で、デフォルトで実行され、正規化がカバーしていないケース、例えばクエリ文中のコメントなどを処理します）。</p>
+    <div class="table-wrap"><table>
+      <tr><th>データの種類</th><th>デフォルトでオブファスケーションされるか</th></tr>
+      <tr><td>クエリパラメータの値（バインドされたリテラル値）</td><td>される</td></tr>
+      <tr><td>クエリ文中のコメント</td><td>される</td></tr>
+      <tr><td>テーブル名とカラム名</td><td>されない</td></tr>
+      <tr><td>インデックス名</td><td>されない</td></tr>
+      <tr><td>Explain Plan の構造</td><td>されない</td></tr>
+      <tr><td>ホストのメタデータとデータベースタグ</td><td>されない</td></tr>
+    </table></div>
+    <div class="examtip"><span class="lbl">試験でよく出る盲点</span>テーブル名やカラム名自体に機密情報が含まれている場合（例えばテーブル名が <code>credit_cards</code> など）、これらの名前自体は見えてしまいます。データベースの log が Datadog に送られる場合、バインドパラメータを含む完全な SQL クエリ文が含まれる可能性があり、オブファスケーション処理は DBM のテレメトリーパイプラインにのみ適用され、log は別の経路を通ります。SQL クエリ内の<b>コメント</b>は Agent に収集されオブファスケーションを経ない可能性があり、この点は第 3 章の trace 関連付けのコメント機構でも特に注意が必要です。その機構自体が SQL のコメントに trace id を仕込むことで成り立っているためです。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>調査を始める前に知っておくべき 2 つのこと</h3>
+    <ol>
+      <li><b>DBM はサンプリング（sampling）であり、全量取得ではありません。</b>あるクエリが Query Samples に出てこないのは、その時間帯に取得されなかった可能性が高く、実行されていないという意味ではありません。</li>
+      <li><b>伝播の遅延が存在します。</b>クエリの実行から指標が DBM の画面に表示されるまでには短い遅延があります。修正の検証をする際は数分待ってから最新のデータを確認してください。</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 2 ===================== -->
+<section class="chapter" data-chapter="2" style="--accent:var(--c2);--accent-bg:var(--c2-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Chapter 02 · Setup &amp; Instrumentation</div>
+    <h2>インフラ統合とセットアップ</h2>
+    <p class="lead">前章の 6 種類のテレメトリーデータが実際に画面に表示されるには、この一式のセットアッププロセスを経る必要があります。この章では Storedog 環境を使い、最も基本的な Postgres 統合から、DBM を完全に有効化して検証が成功するところまで進め、さらに試験に出るものの単一の実験環境では見られない範囲を補足します。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>実験環境、Storedog</h3>
+    <p><span class="term">Storedog</span> はこの章の実装例で使う EC アプリケーションで、ユーザーが商品を検索、閲覧、購入できます。アーキテクチャは 1 つの web フロントエンド、1 つのバックエンドサーバー、そして 2 つの PostgreSQL データベースで構成されています。1 つは spree のバックエンド関連データを保存し、もう 1 つは広告、割引コード、商品データを保存します。第 1 章、第 4 章で見たクエリの多くは、この 2 つのデータベースが Storedog のビジネスロジックを処理する際に発生したものです。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>第 1 段階 vs. 第 2 段階、インフラ統合だけでどこまで見えるか</h3>
+    <p>完全な DBM を有効化する前に、Postgres インフラ統合と APM だけでどれだけの可視性が得られるかを見て、DBM で追加で何が見えるようになるかの比較基準とします。</p>
+    <div class="toggle-row">
+      <button class="active" onclick="toggleP(this,'step1')">第 1 段階、インフラ統合のみ</button>
+      <button onclick="toggleP(this,'step2')">第 2 段階、完全な DBM へアップグレード</button>
+    </div>
+    <div class="toggle-panel active" id="step1">
+      <p><b>読み取り専用ユーザーと権限の作成:</b></p>
+      <div class="example"><pre><code>CREATE user datadog WITH PASSWORD 'datadog';
+GRANT pg_monitor TO datadog;
+GRANT SELECT ON pg_stat_database TO datadog;</code></pre>`datadog` というユーザーを作成します。`pg_monitor` を付与し、統計とアクティビティ情報を読み取れるがデータは変更できないようにします。さらに `pg_stat_database`（データベース全体レベルの統計数値）の読み取り権限を追加で付与します。</div>
+      <p><b>権限の検証:</b></p>
+      <div class="example"><pre><code>docker exec lab-postgres-1 psql -x -h postgres -U datadog postgres -c \
+"select * from pg_stat_database LIMIT(1);" \
+&& echo -e "\e[0;32mPostgres connection - OK\e[0m" \
+|| echo -e "\e[0;31mCannot connect to Postgres\e[0m"</code></pre>データが正常に取得できれば、ユーザーと権限が正しく設定されていることを意味します。この読み取り専用ユーザーが、後で Agent の設定ファイルに実際に記入されるアカウント情報になります。</div>
+      <p><b>Autodiscovery、Docker label がどうやって Agent を自動的にデータベースへ接続させるか。</b>Storedog には論理データベースが 2 つあるため、Agent の設定には 2 組の接続情報が必要になります。</p>
+      <div class="example"><pre><code>postgres:
+  image: postgres:13-alpine
+  environment:
+    - DD_DBM_PROPAGATION_MODE=full
+  labels:
+    com.datadoghq.ad.check_names: '["postgres", "postgres"]'
+    com.datadoghq.ad.init_configs: '[{}, {}]'
+    com.datadoghq.ad.instances: '[
+        {
+          "host":"%%host%%", "port":5432,
+          "username":"datadog", "password":"datadog",
+          "relations": [{"relation_name": "advertisement"},
+                        {"relation_name": "discount"},
+                        {"relation_name": "items"}],
+          "query_samples": {"enabled": true, "explain_parameterized_queries": true},
+          "collect_function_metrics": true,
+          "collection_interval": 1
+        },
+        {
+          "host":"%%host%%", "port":5432,
+          "username":"datadog", "password":"datadog",
+          "dbname": "spree_starter_development",
+          "relations": [{"relation_regex": "spree_.*"}],
+          "query_samples": {"enabled": true, "explain_parameterized_queries": true},
+          "collect_function_metrics": true,
+          "collection_interval": 1
+        }]'</code></pre></div>
+      <p><code>host: "%%host%%"</code> はテンプレート変数を使っており、Agent 起動時に container の実際のネットワークアドレスへ自動的に代入されます。`relations` は `relation_name` で具体的なテーブル名を列挙するか、`relation_regex` でパターンに一致するすべてのテーブルを一括カバーします。`query_samples` は Query Samples の収集を有効にし、パラメータ付きクエリに対しても Explain Plan の収集を試みることを許可します。`collection_interval: 1` は実験用途の高頻度設定です。これらの label はすでに DBM 関連のフィールドをカバーしており、環境がすでに準備を整えていることを意味しますが、この段階ではまだ背後の完全な機能を正式に有効化していません。</p>
+      <p><b>この段階で見えるもの:</b> <b>Postgres - Metrics</b>、<b>Postgres - Overview</b> の 2 つの既製ダッシュボードが自動で提供され（第 5 章参照）、また APM（Tracer + Agent の APM 機能経由、第 3 章参照）が「アプリケーションがデータベースを呼び出した」という視点からクエリと所要時間を記録します。<b>APM &gt; Software Catalog</b> で Postgres というサービスを見つけられます。この段階までは集計レベルのリソース指標しか見えず、第 1 章の 6 種類のテレメトリーはまだ見えません。</p>
+    </div>
+    <div class="toggle-panel" id="step2">
+      <p>元の統合に対して、いくつかの小さな変更を加えるだけで済みます。まず Agent に DBM モードで接続することを知らせ（<code>dbm: true</code>）、次にデータベース自体を詳細情報が取得できる状態にし（<code>postgresql.conf</code> の 2 つのパラメータ）、続いてデータベース内に DBM が必要とする権限とヘルパー関数を作成し（<code>dbm_setup.sql</code>）、最後に再起動して検証します。</p>
+      <p><b><code>dbm: true</code> の追加:</b> 2 組の接続設定それぞれで `host` パラメータの上に 1 行を追加する必要があります。</p>
+      <div class="example"><pre><code>com.datadoghq.ad.instances: '[
+    {
+      "dbm": true,
+      "host":"%%host%%", "port":5432,
+      "username":"datadog", "password":"datadog",
+      "relations": [{"relation_name": "advertisement"},
+                    {"relation_name": "discount"},
+                    {"relation_name": "items"},
+                    {"relation_name": "preorder_items"},
+                    {"relation_name": "influencer"}],
+      "query_samples": {"enabled": true, "explain_parameterized_queries": true},
+      "max_relations": 400,
+      "collect_function_metrics": true,
+      "collection_interval": 1
+    },
+    { "dbm": true, "host":"%%host%%", "port":5432,
+      "username":"datadog", "password":"datadog",
+      "relations": [{"relation_regex": "spree_.*"}],
+      "query_samples": {"enabled": true, "explain_parameterized_queries": true},
+      "max_relations": 400,
+      "collect_function_metrics": true,
+      "collection_interval": 1
+    }]'</code></pre>2 組のインスタンスはどちらも `"dbm": true,` の 1 行が増えただけで、他の接続設定は一切変わっていません。変更後は再起動して適用します。<code>docker compose stop postgres && docker compose up postgres -d</code>。</div>
+      <p><b><code>postgresql.conf</code> の設定:</b></p>
+      <div class="example"><pre><code>shared_preload_libraries = 'pg_stat_statements'
+track_activity_query_size = 4096</code></pre><code>shared_preload_libraries</code> は起動時に `pg_stat_statements` を事前ロードすることを指定します。この拡張機能はバックグラウンドで「正規化された各クエリが何回実行され、どれくらい時間がかかったか」を継続的に記録しており、Query Metrics 収集の根底にある仕組みです。`track_activity_query_size` は 4096 に引き上げ、収集される Query Sample が途中で切り詰められないようにします。これはデータベース自体の設定ファイル側の話であり、Agent 側の `dbm: true` とは別の話です。両方を有効にして初めて DBM が実際に機能します。</div>
+      <p><b><code>dbm_setup.sql</code>、権限付与、schema 作成、ヘルパー関数の作成。</b>DBM で監視したいデータベースごとに 1 回ずつ実行します。</p>
+      <div class="example"><pre><code>GRANT SELECT ON pg_stat_database TO datadog;
+CREATE SCHEMA datadog;
+GRANT USAGE ON SCHEMA datadog TO datadog;
+GRANT USAGE ON SCHEMA public TO datadog;
+GRANT pg_monitor TO datadog;
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements;</code></pre></div>
+      <button class="reveal-btn" onclick="openNodePanel('explain-statement')">explain_statement 関数の完全な内容と動作原理を見る</button>
+      <p style="margin-top:14px;"><b>実行結果:</b></p>
+      <div class="example"><pre><code>GRANT SELECT ON pg_stat_database TO datadog;
+GRANT
+CREATE SCHEMA datadog;
+psql:/root/lab/dbm_setup.sql:2: ERROR:  schema "datadog" already exists
+GRANT USAGE ON SCHEMA datadog TO datadog;
+GRANT
+...
+CREATE OR REPLACE FUNCTION datadog.explain_statement(...)
+CREATE FUNCTION</code></pre>途中の `ERROR: schema "datadog" already exists` は致命的なエラーではありません。`psql -a` モードはこの種の非致命的なエラーに遭遇すると、その行をスキップして先に進むだけです。この設定ファイルが同じデータベースに対して複数回実行されたためです。</div>
+      <p><b>再起動して検証:</b> <code>docker restart lab-postgres-1</code>。`shared_preload_libraries` は起動時にしかロードされないためです。再起動直後の `Total Runs: 1` の時点ではまだ DBM 関連のフィールドが見えませんが、これは正常で、数回実行されないと表示されません。<b>完全に有効化が成功すると、次の 3 行が追加されるはずです。</b></p>
+      <div class="example"><pre><code>Database Monitoring Activity Samples: Last Run: 2, Total: 11
+Database Monitoring Query Metrics: Last Run: 2, Total: 11
+Database Monitoring Query Samples: Last Run: 2, Total: 191</code></pre>これが表示されれば、Agent が実際にこれらのデータを収集していることを意味し、インフラ統合レベルの `Metric Samples` だけではないことが分かります。</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>より広い視野、試験範囲だが単一の Postgres 実験では見られない部分</h3>
+    <p>上記の実装はすべて「セルフホストの Postgres + Docker」に基づいていますが、試験の範囲はもっと広いです。以下は実験では触れる機会がないものの、概念として知っておくべき部分です。</p>
+    <div class="grid g3">
+      <div class="mini" tabindex="0" onclick="toggleMini(this)">
+        <div class="mt">セルフホストデータベース（self-hosted）</div>
+        <div class="md">Agent がデータベースホストに直接インストールされる</div>
+        <div class="full">この章の実験環境と同じで、データベースプロセスを実行しているマシンの健康を完全に把握でき、Agent に読み取り専用アクセス権を付与します。</div>
+      </div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)">
+        <div class="mt">クラウドマネージド（RDS、Azure SQL、Cloud SQL）</div>
+        <div class="md">マネージドインスタンスに直接ソフトウェアをインストールできない</div>
+        <div class="full">ネットワークアクセス権を持つ別のホスト（例えば EC2）に Agent をインストールし、各マネージドインスタンスへ接続するよう設定する必要があります。CPU/メモリ/ディスクなどのシステム指標はそのクラウドベンダーの Datadog 統合経由で直接収集されます。</div>
+      </div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)">
+        <div class="mt">Kubernetes</div>
+        <div class="md">Cluster Agent と DBM の組み合わせ</div>
+        <div class="full">pod 群に対して cluster check を実行でき、Cluster Agent は自動的にデータベースインスタンスを Agent 群に分散させ、各 check がインスタンスごとに 1 回だけ実行されるようにします。</div>
+      </div>
+    </div>
+    <div class="example" style="margin-top:14px;"><span class="lbl">基本の YAML 構造（エンジンを問わず似ており、この章の `dbm: true` と同じことです）</span><pre><code>init_config:
+instances:
+  - dbm: true
+    host: localhost
+    port: 5432
+    username: datadog
+    password: 'ENC[datadog_user_database_password]'</code></pre>設定ファイルのパスは `conf.d/&lt;CHECK_NAME&gt;.d/conf.yaml` です。<b>公式は 1 つの Agent で監視するデータベースインスタンスを 30 個以内にすることを推奨しています。</b></div>
+
+    <p style="margin-top:16px;"><b>データベースユーザー権限、エンジン横断の対照表</b>（共通パターン: 監視に必要な最小限の権限だけを持つ専用の `datadog` ユーザーを作成します）:</p>
+    <div class="table-wrap"><table>
+      <tr><th>エンジン</th><th>必要な権限 / 設定</th></tr>
+      <tr><td>Postgres</td><td><code>pg_monitor</code> ロール、`pg_stat_statements` のインストール、適切な権限を持つ `datadog` schema（この章で実際に行った `dbm_setup.sql` と一致）</td></tr>
+      <tr><td>MySQL</td><td>`performance_schema` の有効化、各種 `SELECT` と `REPLICATION CLIENT` の権限、`datadog.explain_statement` ストアドプロシージャ</td></tr>
+      <tr><td>SQL Server</td><td><code>VIEW SERVER STATE</code> と <code>VIEW DATABASE STATE</code> 権限、各データベースへの `CONNECT` アクセス権、特定のドライバー設定</td></tr>
+    </table></div>
+    <div class="examtip"><span class="lbl">試験のポイント</span>特定エンジンの SQL 構文は問われませんが、概念は理解しておく必要があります。Agent ユーザーは「パフォーマンスビューを読み取る」権限が必要で、権限が不足すると DBM はデータを受け取れません。</div>
+
+    <div class="acc-item" style="margin-top:16px;">
+      <div class="acc-head" onclick="toggleAcc(this)">設定が有効になっているかの検証（完全な 5 ステップ）<span class="chev">▸</span></div>
+      <div class="acc-body">
+        <p><b>Step 1:</b> <code>sudo datadog-agent status</code> を実行します。正常な統合であれば Running Checks の下に表示され、`Database Monitoring Query Metrics`、`Query Samples` といった統計行が付いています。<b>Step 2:</b> `psql`（Postgres）や `sqlcmd`（SQL Server）などのコマンドラインツールでアカウント情報、host、port が Agent の外からも接続できることを確認します。<b>Step 3:</b> 権限を検証します。例えば `datadog` ユーザーが `pg_stat_statements` から最低 1 件のデータを取得できることを確認します。<b>Step 4:</b> Datadog UI の Database Monitoring ページにデータが入ってきているか確認します。<b>Step 5:</b> Datadog のエンドポイントへのネットワーク接続を検証します。<code>telnet dbm-metrics-intake.&lt;site&gt; 443</code>、<code>telnet dbquery-intake.&lt;site&gt; 443</code>。よくある失敗の原因は proxy の設定やファイアウォールが外向きトラフィックをブロックしていることです。</p>
+        <p>DBM 特有のデータ収集は、Agent 内部の 4 つの並行した非同期ジョブに支えられています。<b>Statement Metrics</b>（`pg_stat_statements` などを照会し、各クエリの集計指標を収集）、<b>Statement Samples</b>（アクティブなクエリのスナップショットをサンプリングして `EXPLAIN` を実行）、<b>Activity Monitoring</b>（アクティブな接続、Wait Events、ブロッキングクエリを収集）、<b>Metadata Collection</b>（schema 情報、データベース設定、ホスト設定を収集）。各ジョブはそれぞれ独自にスケジュールされ、独自に報告するため、1 つが失敗しても必ずしも他に影響しません。</p>
+      </div>
+    </div>
+
+    <p style="margin-top:16px;"><b>調整可能な設定項目:</b></p>
+    <div class="table-wrap"><table>
+      <tr><th>設定項目</th><th>デフォルト値 / 説明</th></tr>
+      <tr><td>Query Metrics の収集間隔</td><td>10 秒。データベースが忙しいときは 30 秒に延ばして負荷を下げられます</td></tr>
+      <tr><td>Query Samples の収集間隔</td><td>1 秒（実験環境の `collection_interval: 1` はこれです）。Explain Plan がどう収集されるかの根拠でもあります</td></tr>
+      <tr><td>Query Activity の収集間隔</td><td>1 秒。Query Samples の収集間隔より小さくすることはできません</td></tr>
+      <tr><td>Reported Hostname</td><td>UI に表示されるホスト名を上書きします。Agent が proxy 経由で接続している場合や、汎用ホスト名のコンテナで動いている場合に重要です</td></tr>
+      <tr><td>Ignore Databases</td><td>監視したくないデータベースを除外します。例えば `template0`、`rdsadmin`、`cloudsqladmin`</td></tr>
+      <tr><td>Schema Collection</td><td>デフォルトで 10 分ごとに収集し、Schema Explorer が機能するようにします</td></tr>
+      <tr><td>Custom Queries</td><td>カスタム SQL の結果を指標として報告し、ビジネス指標（キューの深さ、注文数）を監視します</td></tr>
+    </table></div>
+    <p><b>タグの出所:</b> Agent の設定で明示的に設定された `tags`、ホストが自動的に収集するインフラタグ、`datadog.yaml` のグローバルホストタグ（`propagate_agent_tags: true` が必要）、データベース自体から派生したタグ（`db`、`user`、`client`、`query_signature`、`query`）、そして DBM-APM 関連付けを有効にした場合に trace のコンテキストから追加されるタグ（第 3 章参照）。</p>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 3 ===================== -->
+<section class="chapter" data-chapter="3" style="--accent:var(--c3);--accent-bg:var(--c3-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Chapter 03 · APM Correlation</div>
+    <h2>APM と DBM の関連付け</h2>
+    <p class="lead">前の 2 つの章ではそれぞれ 6 種類のテレメトリーデータ自体と、DBM をどう構築してこれらのデータを収集するかを扱いました。この章では別のことを扱います。DBM が収集したデータベース側のテレメトリーが、APM が収集したアプリケーション側のテレメトリーとどうつながるかです。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>解決したい問題</h3>
+    <p>関連付けがない場合、DBM と APM は 2 つの独立した世界です。APM は「この API エンドポイントが遅く、データベースの span が 2 秒かかっている」ことを教えてくれますが、「なぜ」遅いかは教えてくれません。DBM は「この正規化されたクエリのレイテンシーが高い」ことを教えてくれますが、どのサービスが原因かは教えてくれません。つなげることで、開発者はデータベースに直接アクセスしなくてもデータベースのパフォーマンスを理解できるようになり、DBA も特定のサービスのリクエストトラフィックがデータベース負荷にどう影響しているかを理解できるようになります。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>3 層の仕組み、Tracer、Agent、trace ID の注入</h3>
+    <p>この関連付けはデータベース自体に何か特別な設定があるわけではなく、アプリケーション側の設定と Agent の APM 機能が組み合わさって実現されているもので、第 2 章の Storedog 実験環境と完全に対応しています。</p>
+    <div class="stepper-nav">
+      <button class="active" data-step="1" onclick="setStep(this,'apm')">第 1 層: Tracer</button>
+      <button data-step="2" onclick="setStep(this,'apm')">第 2 層: Agent の APM Port</button>
+      <button data-step="3" onclick="setStep(this,'apm')">第 3 層: SQL コメント注入</button>
+    </div>
+    <div class="step-panel active apm-step" data-step="1">
+      <p><code>backend</code>、<code>worker</code> のようなサービスは <code>datadog-tracer-backend.rb</code> のような初期化ファイルをマウントします。これは dd-trace ライブラリの設定ファイルで、Ruby/Rails アプリケーション起動時に自動でトレーシング機能を組み込む役割を担います。導入後、Tracer はアプリケーションがデータベースを呼び出す動作（例えば ActiveRecord 経由の SQL）を自動的にインターセプトし、エンジニアが手動でコードを追加する必要はありません。</p>
+      <p>これが Postgres が「service」として APM に現れる根本的な理由です。アプリケーション側が「データベースを呼び出した」と報告しているのであって、データベース自体は自分がトレースされていることを知りません。導入後は <b>APM &gt; Software Catalog</b> で Postgres というサービスを見つけられます。</p>
+    </div>
+    <div class="step-panel apm-step" data-step="2">
+      <p>Agent の container には <code>DD_APM_ENABLED=true</code>、<code>DD_APM_NON_LOCAL_TRAFFIC=true</code> が設定されており、<b>8126</b> という port が開いています。これは Agent が各サービスから送られてくる trace データを受け取るための専用チャンネルです。アプリケーション側の Tracer が生成した span は、この port を通じて Agent に送られ、Agent が Datadog へ転送します。各アプリケーションサービスにも <code>DD_AGENT_HOST=datadog</code> が設定されており、Tracer にどの Agent へデータを送るべきか伝えています。</p>
+    </div>
+    <div class="step-panel apm-step" data-step="3">
+      <p>単に Tracer と APM があるだけでは、「アプリケーションがデータベースを呼び出し、どれだけ時間がかかったか」という span レベルの情報しか見えません。APM のあるトレースから DBM が収集した Query Samples、Explain Plans の詳細へ直接つなげるには、trace ID を DBM のデータ収集に注入する仕組みが必要です。</p>
+      <p>APM tracer は trace のコンテキスト（trace ID、span ID、service name、environment）を <b>SQL コメント</b>の形式で、実際のクエリ文の先頭に付けて送信します。</p>
+      <div class="example"><pre><code>/*dddbs='orders-db',ddps='checkout-service',ddtid='abc123'*/ SELECT * FROM orders WHERE id = ?</code></pre>データベースは `SELECT` の部分だけを実行します（コメントは無視され、パフォーマンスに影響しません）。Agent が Query Sample を収集する際にこのコメントを読み取り、trace のメタデータを抽出して関連付けを作ります。これが、<code>DD_DBM_PROPAGATION_MODE=full</code> という環境変数が第 2 章の `postgres`、`backend`、`worker` など複数のサービスそれぞれに個別に設定されている理由でもあります。両側で設定して初めて対応が取れるためです。</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>3 種類の Propagation Mode</h3>
+    <div class="grid g3">
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">full</div><div class="md">完全な trace 情報</div><div class="full">完全な trace 情報（trace ID、span ID、service name、environment）を送信し、双方向のナビゲーションが可能です。trace の span から DBM の Query Sample へジャンプでき、DBM のサンプルから完全な trace へも戻れます。ほとんどの統合でこれが推奨されており、第 2 章の実験環境でも実際に採用されている設定です。</div></div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">service</div><div class="md">service name のみ送信</div><div class="full">trace/span ID を含まないため、どのサービスがデータベース負荷を引き起こしたかは分かりますが、特定の trace へジャンプすることはできません。</div></div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">disabled</div><div class="md">一切送信しない</div><div class="full">DBM と APM はそれぞれ独立していて関連付けがなく、この章の冒頭の「2 つの世界が互いに無関係」な状態に戻ります。</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>関連付けを有効にするために必要な 4 つの条件</h3>
+    <ul>
+      <li>DBM が設定されデータを収集している（<code>dbm: true</code>、第 2 章参照）。</li>
+      <li>APM が設定されており tracing がある（Datadog の tracing ライブラリ、または正しい属性を持つ OpenTelemetry が導入されている）。</li>
+      <li>Tracer に Propagation Mode が設定されている（言語ごとに個別に設定するか、環境変数 <code>DD_DBM_PROPAGATION_MODE=full</code> を使う）。</li>
+      <li>Unified Service Tagging（<code>DD_SERVICE</code>、<code>DD_ENV</code>、<code>DD_VERSION</code> をすべて設定し、service/env/version のタグが APM と DBM の両方で一致するようにする）。</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>クエリの正規化/オブファスケーション処理との関係（重要な区別）</h3>
+    <p>第 1 章では、クエリ文が Datadog に送られる前に正規化とオブファスケーション処理を経ることに触れました。あれはクエリ内の<b>バインドされたパラメータ値</b>が漏れないようにする仕組みです。ここでの trace ID の注入はまったく別の経路を通ります。動かしているのはクエリ文の一番先頭にある<b>コメント</b>であり、クエリ自体のパラメータではありません。そして<b>コメントはオブファスケーション処理されません</b>。</p>
+    <div class="examtip"><span class="lbl">試験でよく出る盲点</span>アプリケーションが独自に機密情報を含むコメント（例えばユーザー ID や session token）を SQL に追加している場合、これらも Agent に収集され Datadog に送られ、オブファスケーションを経ません。オブファスケーション処理はパラメータ値のみを対象とし、SQL コメント自体は対象外です。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>まとめ、典型的な調査フロー</h3>
+    <p>Postgres 自体は APM に対応するための特別な設定を一切されておらず、アプリケーションが Tracer を導入し、span を APM が有効な Agent に送信しているだけです。<code>DD_DBM_PROPAGATION_MODE</code> が SQL コメント内の trace ID を使って、これらの span をデータベース側で収集されたクエリデータとつなげています。</p>
+    <div class="flowbox">
+      <div class="fb">APM で遅い<br>API エンドポイントを発見</div><span class="farrow">→</span>
+      <div class="fb">関連付けをたどって<br>DBM の具体的な遅いクエリへ</div><span class="farrow">→</span>
+      <div class="fb">Explain Plan と<br>Wait Events で根本原因を確認</div>
+    </div>
+    <p class="trace-note">完全な実戦例は第 4 章「Query Sample から APM Trace につなげて実際の影響を確認」を参照してください。</p>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 4 ===================== -->
+<section class="chapter" data-chapter="4" style="--accent:var(--c4);--accent-bg:var(--c4-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Chapter 04 · Diagnosis in Practice</div>
+    <h2>クエリ分析と問題診断（実戦事例）</h2>
+    <p class="lead">これが最も重い章です。一般化された診断フレームワークと、1 回の実際の Storedog データベース調査を 1 本のストーリーラインに統合します。フレームワークが骨格で、実戦事例が対応する段落に差し込まれてデモになります。この章が扱うのは「どう使うか」です。完全なロック事件フルトレースのインタラクティブ版は独立タブの「アーキテクチャ全体像」を参照してください。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>よくあるパフォーマンス問題パターンの対照表</h3>
+    <div class="table-wrap"><table>
+      <tr><th>パターン</th><th>説明</th><th>どこで探すか</th></tr>
+      <tr><td>遅いクエリ</td><td>特定のクエリパターンが時間を要しすぎている</td><td>Query Metrics を Average latency または Total time でソート</td></tr>
+      <tr><td>リソースの飽和</td><td>ホストの CPU/メモリ/ディスク I/O/接続数が枯渇</td><td>内蔵ダッシュボード、ホスト詳細の Metrics タブ</td></tr>
+      <tr><td>ブロッキング / ロック競合</td><td>クエリが他のクエリのロック解放を待っている</td><td>Metrics の Blocks タブ、Wait Events 分析</td></tr>
+      <tr><td>クエリの退化</td><td>元は速かったクエリが遅くなった</td><td>Recommendations の Query Load Increase、Query Metrics で Explain Plan を比較</td></tr>
+      <tr><td>非効率なクエリパターン</td><td>返却は少ないが多くの行を検査、高コストな join、全表スキャン</td><td>Query Samples の Explain Plan（Sequential Scan / COLLSCAN を探す）</td></tr>
+    </table></div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>どこから調査を始めるか</h3>
+    <p>問題をどう発見したかによって起点が異なります。<b>アラートのトリガー</b>（トリガーされたモニター自体から開始、第 5 章参照）、<b>ユーザーから特定の機能が遅いと報告された</b>（APM から遅いトレースを探し、DBM へジャンプ）、<b>一般的な健康チェック</b>（Databases ページから開始）、<b>能動的なレビュー</b>（Recommendations から開始）。</p>
+    <div class="examtip"><span class="lbl">実戦事例の起点</span>この章の Storedog の調査も「一般的な健康チェック」から始まりました。Databases 総覧ページの Wait Group Activity グラフに異常なロックイベントが現れたのがきっかけです。完全なインタラクティブトレースは独立タブの「アーキテクチャ全体像」を参照してください。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Query Metrics vs. Query Samples、いつどちらを使うか</h3>
+    <div class="cmp c2">
+      <div class="col"><h4>Query Metrics · トレンドアナリスト</h4><p>過去のパフォーマンスデータを集計したもので、上位 200 件の正規化されたクエリ、保存期間 15 か月。「どのクエリパターンが最もデータベース時間を消費しているか」「このクエリは今月遅くなったか」「1 秒あたり何回呼び出されているか」に答えます。<b>できないこと:</b> 具体的なある 1 回の実行、具体的なある瞬間に何が起きたかは見えません。</p></div>
+      <div class="col"><h4>Query Samples · 事件調査員</h4><p>ある時点で実行中だったクエリの個別スナップショットで、実行の詳細と Explain Plan が付き、保存期間 15 日間。「3:47 PM にレイテンシーが急上昇したとき何が動いていたか」「全表スキャンだったか」「誰がこのクエリを実行していたか」に答えます。</p></div>
+    </div>
+    <div class="example"><span class="lbl">実戦例、Query Metrics のソートで疑わしいクエリを見つける</span>Storedog に新しく「人気商品ランキング」ウィジェットが追加され、数秒ごとに `items` テーブルに対してクエリを実行し最もよく注文される上位 10 商品を取得しています。このクエリがデータベースに重い負荷をかけていました。Query Metrics タブに切り替えて Average Rows 列のヘッダーをクリックしてソートすると、`SELECT id, description...` が先頭に来ます。クエリ文中の `?` プレースホルダーは正規化の結果です。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Explain Plan が何を教えてくれるか</h3>
+    <div class="table-wrap"><table>
+      <tr><th>スキャンタイプ</th><th>意味</th><th>良いか悪いか</th></tr>
+      <tr><td>Index Seek / Index Scan</td><td>インデックスを使って行を探す</td><td>良い、効率的</td></tr>
+      <tr><td>Sequential Scan / Full Table Scan / COLLSCAN</td><td>テーブルの全行を読む</td><td>大きいテーブルでは良くない、通常はインデックス不足</td></tr>
+      <tr><td>Bitmap Heap Scan（Postgres）</td><td>インデックスで bitmap を作り、その後テーブルを読む</td><td>中程度の選択性のときに悪くない</td></tr>
+      <tr><td>Index Only Scan（Postgres）</td><td>データがすべてインデックスから取得でき、テーブルに触れない</td><td>最も良い、covering index</td></tr>
+    </table></div>
+    <p><b>Join 戦略:</b> Nested Loop（A テーブルの各行に対して B テーブルをスキャンする、小さいテーブルやインデックス検索に適する）、Hash Join（小さい方をハッシュテーブルにする、大量の未ソートデータに適する）、Merge Join（両方を先にソートしてからマージする、元々ソート済みのデータに適する）。Explain Plan のノードタイプの完全な第一原理での分解は第 1 章を参照してください。</p>
+    <div class="example"><span class="lbl">実戦例、Map View で本当のコストボトルネックを特定する</span>正規化されたクエリのパネルの Explain Plans タブで、Plan Operations テーブルにこのクエリで使われている操作が一覧表示され、コストがかなり高いことが分かります。下にある Map View は Explain Plan 全体を視覚的なツリー図として描画しており、今回は<b>Sort 操作が最大部分のコストを占めている</b>ことが分かります。これがこのクエリの実行時間が長すぎる主な原因です。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>APM と DBM を照らし合わせる判読パターン</h3>
+    <div class="table-wrap"><table>
+      <tr><th>APM で見える現象</th><th>DBM で何を確認するか</th><th>考えられる原因</th></tr>
+      <tr><td>データベース span がトレース総時間の 90% を占める</td><td>Query Metrics: このクエリは平均的に遅いか</td><td>クエリが最適化されていない</td></tr>
+      <tr><td>データベース span のレイテンシーが乱高下する</td><td>Wait Events: ロック待ちがあるか、I/O が急増しているか</td><td>リソース競合またはブロッキング</td></tr>
+      <tr><td>データベース span は速いが数百個ある</td><td>Query Metrics: 単一トレース内のリクエスト数が異常に多い</td><td>N+1 クエリ問題</td></tr>
+      <tr><td>データベースエラーが急増</td><td>ホスト指標: 接続数が上限に達しているか、ディスクが満杯か</td><td>インフラの飽和</td></tr>
+      <tr><td>レイテンシー急上昇がデプロイのタイミングと一致</td><td>Query Metrics: プランが変わったか、新しいクエリパターンか</td><td>コード変更による退化</td></tr>
+    </table></div>
+    <div class="example"><span class="lbl">実戦例、Query Sample から APM Trace につなげて実際の影響を確認する</span>正規化されたクエリパネル右上の View Query Samples をクリックすると、これらのサンプルのコストはおおよそ 7000 前後で、やや高めです。1 件をクリックし、Explain Plan Sample パネルを開いて Trace タブに切り替えると、今回のクエリに対応する APM trace が確認できます。`/get-item` ルートの GET リクエストがトリガーしたもので、リクエスト全体の所要時間は約 1.06 秒、そのうちこのクエリが 256ms を占めており、リクエスト全体の約 4 分の 1 を遅らせていることになります。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>N+1 クエリ問題</h3>
+    <p>1 つの `JOIN` で関連データを一度に取得するのではなく、アプリケーションが各項目ごとに個別にクエリを実行してしまうパターンです。例: EC ページに 100 件の注文一覧を表示し、各行に顧客名を表示する必要がある場合。</p>
+    <div class="cmp c2">
+      <div class="col good"><h4>効率的（1 つのクエリ）</h4><p><pre style="margin:0;"><code>SELECT orders.id, orders.total, customers.name
+FROM orders
+JOIN customers ON orders.customer_id = customers.id
+WHERE orders.created_at > '2024-01-01'</code></pre></p></div>
+      <div class="col bad"><h4>N+1（101 個のクエリ）</h4><p>まず 1 つのクエリですべての注文を取得し、その後アプリケーションが結果に対してループを回し、各注文ごとに個別にクエリを実行して顧客名を調べます。100 件の注文なら 101 回のデータベース往復になります。</p></div>
+    </div>
+    <p><b>なぜ重要か:</b> 個々のクエリは速いかもしれません（2ms）が、101 個合計すると 200ms を超え、データ量が 1 万件規模に拡大すると非常に深刻になります。厄介なのは、N+1 は開発段階では気づかれないことが多い点です。テスト用データベースの行数が少ないためで、本番環境でデータ量が増えて初めて顕在化します。</p>
+    <div class="examtip"><span class="lbl">DBM がどうやって発見を助けるか</span>APM で遅いトレースを開くと、フレームグラフに数百個の細かくほぼ同じデータベース span が積み重なって見えます。DBM の Query Metrics ではこの正規化されたクエリの <b>Requests</b> 数が異常に多く、個々の実行は速いかもしれません（Average latency が低い）が、<b>Total time</b> は高くなっています。<b>両方が同時に現れるのが明確なシグナルです。</b>修正方法はアプリケーションコード側にあり、データベース自体ではありません。よくある対処は `JOIN` で一度に取得する、eager loading を使う、または `WHERE id IN (...)` を使った 1 本のバッチクエリにまとめることです。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>レイテンシーの調査 / 負荷の調査 / ブロッキングの調査</h3>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">レイテンシーの調査、4 つのステップ<span class="chev">▸</span></div>
+      <div class="acc-body"><p>① データベースが根本原因かどうかを確認する（遅いトレースのフレームグラフを見て、データベース span がリクエスト時間の大部分を占めていればボトルネック）。② Query Metrics を Average latency でソートして最も遅いクエリパターンを見つける、ただし Total time も併せて確認する。③ クエリ詳細を開いて Explain Plans（全表スキャンか、高コストな join/sort か）、Wait Events、Hosts Running This Query、Metrics タブ（ゆっくり上昇しているか急上昇か）を確認する。④ 異なる時点の Explain Plan を比較し、新しいプランが出現した後にパフォーマンスが悪化していればプランの退化である。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">負荷の調査、どこを見るか<span class="chev">▸</span></div>
+      <div class="acc-body"><p>ホスト詳細ページ最上部のアクティブ接続のタイムシリーズグラフでは、待機のグループ別に接続状態を分けて見られます。ほとんどの接続が CPU 待ちであれば演算集約的、ほとんどが I/O 待ちであればディスク集約的、ほとんどがロック待ちであれば競合があることを意味します。Query Metrics を Percent time でソートし、どのクエリパターンがデータベース総時間の最大割合を占めているかを見ます。</p>
+      <div class="table-wrap"><table>
+        <tr><th>パターン</th><th>見える現象</th><th>考えられる原因</th></tr>
+        <tr><td>数週間かけて緩やかに増加</td><td>CPU と I/O が安定的に上昇</td><td>データの増加、拡張または最適化が必要</td></tr>
+        <tr><td>特定の時刻に突然急増</td><td>すべての指標が同時に跳ね上がる</td><td>デプロイ、バッチジョブ、またはトラフィックの急増</td></tr>
+        <tr><td>周期的なピーク</td><td>負荷が予測可能なサイクルに従う</td><td>スケジュールジョブ、業務のピーク時間帯</td></tr>
+        <tr><td>1 台のホストが満負荷、他はアイドル</td><td>分配の不均衡</td><td>ロードバランサーの設定ミス、ホットパーティション</td></tr>
+      </table></div></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">ブロッキングの調査、完全な実戦例<span class="chev">▸</span></div>
+      <div class="acc-body">
+        <p>ブロッキングとは、1 つのクエリがロックを握ったままになり、同じロックを必要とする別のクエリを待たせている状態です。深刻な場合はブロッキングチェーンを形成します。A が B をブロックし、B が C をブロックするといった具合です。確認すべきはホスト詳細 → Blocking Queries タブ（誰が誰をブロックしているかを視覚的なツリー図で表示）、Wait Events 分析（ロック/latch 待ちが主要であれば「リソース枯渇」ではなく「競合」の問題であることを意味する）、DBM Recommendations（影響度の高いブロッカーを自動検出してフラグを立てる）です。</p>
+        <div class="example"><span class="lbl">実戦例、Storedog の LOCK TABLE 事件と stop_locks</span>Databases 総覧ページで Wait Group Activity グラフを展開すると、CPU 待ち、アイドル、ロックといった Wait Events が同時に存在していました。今回最優先で対応すべきはロックイベントです。Active Connections タブに切り替え、何枚かスナップショットをめくって <b># WAITERS</b> フィールドに数字があり、待機グループのグラフに赤いバーが現れている 1 件を見つけて展開すると、完全な SQL が見えます。開発チームの誰かが注文数量を更新するクエリを書く際に構文を誤り、`LOCK TABLE` を使ってしまい、しかもスケジュールジョブ（cronjob）として定期実行するように設定してしまったため、大量の他のクエリがブロックされていました。Blocking Queries タブに切り替え、<b>Time Impact</b> でこのクエリが他のクエリを 15 秒以上待たせていたことを確認します。このクエリは以前ある機能をテストした際の残骸で、Storedog の正常な業務ロジックとは無関係なため、そのまま停止します。<code>stop_locks</code>。完全なインタラクティブトレース（各ステップの別の可能性を含む）は独立タブの「アーキテクチャ全体像」を参照してください。</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>DBM のデータで根本原因診断を行う</h3>
+    <p>順番に 4 つの問いを立てます。① 症状は何か（高レイテンシーか、接続断か、エラーか、タイムアウトか）。② どこで発生しているか（1 台のホストか全体か、1 つのクエリか全体か）。③ いつ始まったか（突然か徐々にか、デプロイ/スケジュール/トラフィック変化のタイミングと一致するか、DBM の履歴データでその瞬間を正確に特定できる）。④ なぜ発生したか。</p>
+    <div class="table-wrap"><table>
+      <tr><th>根本原因の分類</th><th>DBM が提供する証拠</th></tr>
+      <tr><td>インデックス不足</td><td>Explain Plan が Sequential Scan を示し、I/O 待ちが高く、検査行数が返却行数より大幅に多い</td></tr>
+      <tr><td>プランの退化</td><td>同一クエリに複数の Explain Plan があり、新しいプランのタイミングとパフォーマンス悪化が一致する</td></tr>
+      <tr><td>ロック競合</td><td>アクティブ接続のロック待ちが高く、Blocking Queries にチェーンが表示される</td></tr>
+      <tr><td>リソース枯渇</td><td>CPU/メモリ/ディスクの指標が上限に達し、個々のクエリには問題がないが全体で容量を超えている</td></tr>
+      <tr><td>データの増加</td><td>数週間/数か月かけてレイテンシーが緩やかに上昇し、テーブルサイズが増え続けている</td></tr>
+      <tr><td>N+1 クエリパターン</td><td>あるクエリのリクエスト数が極めて多いが個々は速く、単一トレースに数百のデータベース span がある</td></tr>
+      <tr><td>Schema 変更</td><td>退化のタイミングがあるマイグレーションと一致し、インデックスが削除されたかカラム型が変更された</td></tr>
+      <tr><td>アプリケーションが原因の悪いクエリ</td><td>デプロイ直後に新しいクエリパターンが出現し、呼び出し元サービスでフィルタして問題のアプリケーションを特定できる</td></tr>
+      <tr><td>接続の枯渇</td><td>アクティブ接続が上限に達し、新規接続が拒否される</td></tr>
+      <tr><td>統計情報の陳腐化</td><td>Explain Plan の行数見積もりが大幅にずれている</td></tr>
+    </table></div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>パフォーマンスの退化を特定する</h3>
+    <p>パフォーマンスの退化とは、元は良好だったクエリが悪化し始めることを指し、静かに進行し、しばらく蓄積してから明らかな中断を引き起こすことがあります。データベース自体は「現在」の統計状態しか報告しないため、DBM が正規化されたクエリの主要指標を時系列（Metrics タブ）として保存することで、初めて過去のデータと比較できるようになります。</p>
+    <p><b>DBM がどう検出するか:</b> Recommendations の「<b>Query Load Increase</b>」として自動的に検出しフラグを立て、クエリのワークロード変化、ユーザーやサービスのアクティビティ急増、schema の変更、直近のデプロイを自動的に関連付けます。</p>
+    <p><b>よくある原因:</b> プランの退化、schema の変更（インデックスが削除されると Missing Index としてフラグが立ちます）、データの増加、アプリケーションの変更、インフラの変更。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>DBM Recommendations の完全な種類一覧</h3>
+    <div class="table-wrap"><table>
+      <tr><th>推奨タイプ</th><th>検出内容</th><th>推奨アクション</th></tr>
+      <tr><td>Missing Index</td><td>大きなテーブルへの全表スキャン、高コストな Sequential Scan</td><td>フィルタ対象のカラムにインデックスを作成、`CREATE INDEX` 文を直接提示</td></tr>
+      <tr><td>Unused Index</td><td>インデックスは存在するが一度も使われていない</td><td>使われていないインデックスを削除し、書き込み負荷とストレージ容量を削減</td></tr>
+      <tr><td>Function in Filter</td><td>`WHERE` でカラムに関数を適用しており、インデックスが使えない</td><td>関数インデックス/式インデックスを作成するか、クエリを書き直す</td></tr>
+      <tr><td>Suboptimal Index Scan</td><td>インデックスはあるが先頭カラムがフィルタ条件と合っていない</td><td>フィルタパターンに対応した順序でカラムを並べたインデックスを作成</td></tr>
+      <tr><td>High-Impact Blocker</td><td>あるクエリが頻繁に他のクエリをブロックしている</td><td>このブロッキングクエリを調査し、トランザクションを短縮、クエリを最適化</td></tr>
+      <tr><td>Long-Running Query</td><td>同じホストの他のクエリより異常に長く実行されている</td><td>クエリの最適化、インデックスの追加、より小さな操作への分割</td></tr>
+      <tr><td>Query Load Increase</td><td>実行時間が過去のベースラインと比べて著しく増加</td><td>プランの変化、schema 変更、またはデータの増加を調査</td></tr>
+      <tr><td>Low Disk Space</td><td>データベースホストのディスク容量が枯渇しかけている</td><td>ストレージ容量を増やす、古いデータをクリーンアップ</td></tr>
+      <tr><td>Anomalous Wait Events</td><td>Wait Events のパターンが正常なベースラインから明らかに逸脱</td><td>どの待機タイプが急増しているかを調査し対応</td></tr>
+    </table></div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>実戦事例、人気商品クエリを最後まで最適化する</h3>
+    <p>まずコード内の実際のクエリロジック（<code>dbm.py</code>）を確認すると、商品をフィルタする閾値が広すぎ、本当の売れ筋商品ではなく範囲がかなり広い集団を抽出していたことが分かりました。</p>
+    <div class="stepper-nav">
+      <button class="active" data-step="1" onclick="setStep(this,'opt')">1 回目の最適化</button>
+      <button data-step="2" onclick="setStep(this,'opt')">2 回目の最適化</button>
+    </div>
+    <div class="step-panel active opt-step" data-step="1">
+      <p><b>クエリの範囲を絞る:</b> フィルタ閾値を生成するランダム範囲を `random.randint(1, 7000)` から `random.randint(5000, 7000)` に変更しました。</p>
+      <div class="example"><pre><code>SELECT id, description, order_count, last_hour, image_url, NULL AS is_preorder
+FROM items
+WHERE order_count::int > {random.randint(5000, 7000)}
+UNION
+SELECT id, description, order_count, last_hour, image_url, is_preorder
+FROM preorder_items
+WHERE order_count::int > {random.randint(5000, 7000)}</code></pre></div>
+      <p>サービスを再起動し、数分待ってから Query Metrics に戻り Average Rows でソートして検証しました。Query Sample のコストは下がっており、方向性は正しいです。次に Traces タブを見ると、今回の所要時間は以前（元は 225ms 超）より明らかに減っています。しかし全体のコストはまだ高めで、Explain Plan の Map View に戻ると、<b>Sort 操作が依然としてこのクエリの総コストの 75% を占めており</b>、次に対処すべきボトルネックです。</p>
+    </div>
+    <div class="step-panel opt-step" data-step="2">
+      <p><b>UNION を取り除く:</b> クエリロジックは `UNION` を使って `items` と `preorder_items` の 2 つのテーブルの結果を結合していました。`UNION` は単に 2 つの結果をつなげるだけでなく、自動的に重複行を除去します。そして重複を除去するには、データベースはまずすべての結果を一度ソートしなければなりません。これがまさに Map View にあった高コストな Sort ノードの出所です。</p>
+      <p>さらに理解を深めると、`preorder_items` 内の商品は正式に販売開始されると `false` にマークされます。つまり 2 つのテーブルを同時に照会して `UNION` で重複除去する必要は実はなく、より良い方法は開発チームがデータ書き込みロジックを調整し、販売開始済みの商品を直接 `items` テーブルで管理することです。そうすればクエリ側は 1 つのテーブルだけを照会するように簡素化できます。</p>
+      <div class="example"><pre><code>SELECT *
+FROM items
+WHERE order_count::int > {random.randint(5000, 7000)}</code></pre></div>
+      <p>サービスを再起動し、Query Metrics に戻って <b>Rows per Query</b> でソートして検証すると、コストは前回の最適化からさらに大幅に低下しました。今やクエリ全体が単一のスキャン操作だけになり、`UNION` の重複除去によるソート負荷が不要になったためです。</p>
+    </div>
+    <div class="examtip" style="margin-top:16px;"><span class="lbl">この事例が示す核心的な考え方</span>DBM は「問題を見つける」ためだけのツールではありません。コードを修正した後、同じ Query Metrics、Explain Plans、Query Samples、APM Trace の一式を使って「修正が効いたかどうかを検証する」こともできます。実際の数値（cost、所要時間、rows）を使い、「体感的に速くなったはず」という推測を置き換えます。一連の調査（ロック問題の解消 → 高負荷クエリの特定 → Explain Plan で Sort ボトルネックを特定 → 過去のトレンドで確認 → APM Trace で実際の影響を確認 → 2 回の最適化イテレーションで検証）は、この章で前述したすべての診断フレームワークを実際に一通り走らせた完全なデモです。インタラクティブ版は独立タブの「アーキテクチャ全体像」を参照してください。</div>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 5 ===================== -->
+<section class="chapter" data-chapter="5" style="--accent:var(--c5);--accent-bg:var(--c5-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Chapter 05 · Dashboards &amp; Alerting</div>
+    <h2>ダッシュボードとアラート設計</h2>
+    <p class="lead">ダッシュボードでデータベースの健康をどう監視するか、パフォーマンスアラートをどう設定するか、そしてアラート設計が有効なシグナルか単なるノイズかをどう見分けるか。前半は実際に見てきた内蔵ダッシュボード、後半は試験専用の知識です。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>内蔵ダッシュボード</h3>
+    <p>Postgres のインフラ統合を有効化すると、Datadog は自動的に 2 つの既製ダッシュボードを提供し、ゼロから作る必要はありません。Query Metrics または Query Samples ページ上部の Dashboards リンクからアクセスできます。</p>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">Postgres - Metrics<span class="chev">▸</span></div>
+      <div class="acc-body"><p>データベースパフォーマンス関連の主要指標を集約して表示し、現在のアクティビティ量とリソース使用状況を素早く把握できます。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">Postgres - Overview<span class="chev">▸</span></div>
+      <div class="acc-body"><p>Postgres 全体の稼働状況の総覧です。リソース使用状況（デッドタプル、各テーブルのディスク使用量、スキャン回数が最多/最少のインデックス）。<b>ロック（Locks）セクション</b>はロックモード別のロック数とデッドロック総数を示します（<span class="term">ロックモード</span>は「このロックがどれだけ厳格か」によっていくつかに分かれ、単なる読み取りの緩やかなモードからテーブル構造全体を動かす最も厳格なモードまであります。<span class="term">デッドロック</span>は A が B の解放を待ち、B も A の解放を待っている状態で、双方とも永遠に待ち続けます。Postgres が検出すると通常はどちらか一方を強制中止します）。<b>行数（Rows）セクション</b>は追加/更新/削除された行数、および現在の接続数を示します。</p></div>
+    </div>
+    <div class="examtip"><span class="lbl">複製してカスタマイズ可能</span>まず 1 部複製し、オリジナル版を直接編集しないでください（Agent の更新時に上書きされます）。その後、自分の widget を追加したり、無関係なものを削除したり、フィルタしやすいようテンプレート変数を追加したりできます。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>DBM 専用のモニタータイプ</h3>
+    <p>Monitors &gt; New Monitor &gt; Database Monitoring から作成でき、Query Samples、Query Metrics、Explain Plans、Wait Events に対してアラートを設定できます。</p>
+    <div class="grid g3">
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">Waiting Queries</div><div class="md">詰まっているクエリ数が閾値を超える</div><div class="full">1 か月分の履歴データを見て正常範囲を把握し、正常なピークより上に閾値を設定します（例えば普段 3000 未満なら 4000 に設定）。</div></div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">Long Running Queries</div><div class="md">ある実行時間の閾値を超えるクエリ数が多すぎる</div><div class="full">`Duration:>30s` を使って 30 秒を超えるクエリだけをカウントできます。</div></div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">Explain Plan Cost Change</div><div class="md">Explain Plan のコストが週対週で著しく変化</div><div class="full">プランの退化を検出します。設定には 2 組のクエリ（現在 vs. Timeshift で 1 週間前を取得）を作り、差分に対してアラートを設定する必要があります。</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>ホストレベルの Metric 監視</h3>
+    <div class="grid g4">
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">Threshold</div><div class="md">固定値を超えたらアラート</div><div class="full">例えば CPU が連続 5 分間 85% 超、接続数が上限の 90% 超、レプリケーション遅延が 30 秒超。</div></div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">Change</div><div class="md">前の期間と比べて変化が大きすぎる</div><div class="full">例えばクエリ量が先週の同時間帯と比べて 50% 以上減少。</div></div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">Anomaly</div><div class="md">機械学習で過去のパターンからの逸脱を検出</div><div class="full">時間帯や曜日の季節性を考慮し、変動が明らかで周期的な規則性がある指標に適します。</div></div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">Forecast</div><div class="md">実際に閾値を超える前にアラート</div><div class="full">例えばディスク使用量の増加ペースから 3 日後に満杯になると予測。</div></div>
+    </div>
+    <p style="margin-top:14px;"><b>Composite:</b> ブール論理で複数のモニターを組み合わせます。例えば「エラー率が高い」<b>かつ</b>「総リクエスト量が十分に多い」ときだけアラートし、リクエストが 2 件しかないのにエラー率が高いという誤検知を避けます。</p>
+    <div class="table-wrap"><table>
+      <tr><th>アラート</th><th>モニタータイプ</th><th>閾値の考え方</th></tr>
+      <tr><td>データベースホストの CPU が高すぎる</td><td>Metric（threshold）</td><td>連続 5 分間 85% 超、ホスト別にグループ化</td></tr>
+      <tr><td>接続数が上限に近づいている</td><td>Metric（threshold）</td><td>max_connections の 90% 超、ホスト別にグループ化</td></tr>
+      <tr><td>レプリケーション遅延が大きすぎる</td><td>Metric（threshold）</td><td>連続 3 分間 30 秒超、replica 別にグループ化</td></tr>
+      <tr><td>クエリレイテンシーの異常</td><td>Metric（anomaly）</td><td>平均クエリ所要時間に対して異常検出</td></tr>
+      <tr><td>ディスクがすぐ満杯になる</td><td>Metric（forecast）</td><td>48 時間以内に 95% 到達を予測</td></tr>
+      <tr><td>待機クエリの急増</td><td>DBM（waiting queries）</td><td>連続 5 分間で数が 4000 超</td></tr>
+      <tr><td>長時間実行クエリ</td><td>DBM（long running）</td><td>30 秒超のクエリ数が閾値を超える</td></tr>
+      <tr><td>Explain Plan コストの退化</td><td>DBM（explain plan）</td><td>週対週のコスト変化が閾値を超える</td></tr>
+      <tr><td>デッドロックの検出</td><td>Metric（threshold）</td><td>過去 10 分間のデッドロック数が 0 超</td></tr>
+      <tr><td>クエリ量の低下</td><td>Metric（change）</td><td>先週の同時間帯と比べて 50% 超の減少</td></tr>
+    </table></div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>アラートの集約方式、Simple vs. Multi Alert</h3>
+    <div class="cmp c2">
+      <div class="col"><h4>Simple Alert</h4><p>すべての報告元を横断して集計し、1 つまたは複数のグループが閾値を超えたら 1 回だけアラートを発火します。この戦略で通知ノイズを減らせます。</p></div>
+      <div class="col"><h4>Multi Alert</h4><p>設定したグルーピングパラメータごとに個別にアラートを適用します。例えば `@db.user` でグループ化すると、条件をトリガーした各データベースユーザーがそれぞれアラートを受け取ります。粒度は細かくなりますが、通知が多くなる可能性もあります。</p></div>
+    </div>
+    <div class="examtip"><span class="lbl">試験のポイント</span>データベース監視では通常、host でグループ化した <b>Multi Alert</b> が最も理にかなっています。知りたいのは「どのホスト」で問題が起きているかであり、「あるホスト」で何かあったという情報だけでは不十分だからです。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>無効なアラートの兆候と修正方法</h3>
+    <div class="table-wrap"><table>
+      <tr><th>兆候</th><th>修正方法</th></tr>
+      <tr><td>Flapping（行ったり来たり）: 閾値が正常な稼働範囲にあまりに近い</td><td>評価ウィンドウを延ばす、復旧閾値を追加する、指標に移動平均/レートを適用して短い急上昇を平滑化する、「at all times」の評価方式を使う</td></tr>
+      <tr><td>常にアラートが出続ける: 閾値が実際の環境状況を反映していない</td><td>1 か月分の履歴データを見て閾値を再評価する、直さないと分かっている問題はミュートを設定する（理由と期限付き）か削除する</td></tr>
+      <tr><td>一度もアラートが出ない: 閾値が高すぎるか監視指標が問題を代表していない</td><td>モニターの必要性と閾値を見直す</td></tr>
+      <tr><td>通知が多すぎる: 高カーディナリティなタグ（query_signature など）でグループ化している</td><td>細かい粒度が不要なら Simple Alert に変更する、グルーピングのカーディナリティを下げて host 単位にする、通知ルールで別のチャンネルへ振り分ける</td></tr>
+      <tr><td>行動につながる情報がない: 通知が受け手に何をすべきか伝えていない</td><td>メッセージにテンプレート変数を入れる（{{host.name}}、{{value}}、{{threshold}}）、関連ダッシュボードと runbook のリンクを追加する</td></tr>
+    </table></div>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 6 ===================== -->
+<section class="chapter" data-chapter="6" style="--accent:var(--c6);--accent-bg:var(--c6-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Chapter 06 · Database Fundamentals</div>
+    <h2>データベース基礎知識付録</h2>
+    <p class="lead">試験範囲外ではあるものの、DBM の画面を理解するために必須の一般的なデータベース知識です。DBM 専用の内容ではなく、他の章で扱っていない部分だけを残しています。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>データベースとは何か</h3>
+    <p>データベースはデータを保存、取得、管理するための組織化されたシステムであり、情報をファイル、スプレッドシート、文書に散らばらせておくやり方に代わるものです。</p>
+    <div class="analogy"><span class="lbl">Analogy</span>倉庫だとイメージしてください。すべての在庫を 1 つの大きな部屋に放り込み、何かを探すたびに部屋全体をひっくり返すこともできますし、ラベル付きの棚、列、箱に分類して収め、目録システムでモノがどこに正確にあるかを教えてもらうこともできます。データベースはあの整理された倉庫です。</div>
+    <p><b>なぜファイルだけでは足りないのか:</b> ファイルは「複数人が同時に読み書きしても壊れない」「数百万件のレコードから効率的に検索する」「停電時にデータが書きかけのままにならない」「異なる種類のデータ間の関連付け」といった要求に直面するとすぐに限界を迎えます。データベースはこれらの問題を解決します。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>テーブル、行、カラム、主キー、外部キー</h3>
+    <p>データベースの最も一般的な組織方法は<b>テーブル（table）</b>で、スプレッドシートに似ています。1 つのテーブルはあるモノの種類を表し、各<b>行（row）</b>は具体的な 1 つのインスタンス、各<b>カラム（column）</b>は 1 つの属性です。各テーブルには通常<b>主キー（primary key）</b>があり、各行を一意に識別するカラムです。テーブル同士は<b>外部キー（foreign key）</b>で関連付けられることが多く、あるテーブルのあるカラムが別のテーブルの主キーを指します。</p>
+    <p class="trace-note">テーブル/行/カラム/インデックスのより完全な実例は第 1 章の Schemas の段落を参照してください。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>SQL と CRUD</h3>
+    <p><span class="term">SQL</span>（構造化クエリ言語）はリレーショナルデータベースとやり取りする方法で、宣言型言語です。データベースに「何が欲しいか」を伝えるのであって「どうやって取得するか」ではなく、エンジンが自分で最良の実行方法を考えます。主な操作は <span class="term">CRUD</span> に対応します。Create（<code>INSERT</code>）、Read（<code>SELECT</code>）、Update（<code>UPDATE</code>）、Delete（<code>DELETE</code>）。</p>
+    <div class="examtip"><span class="lbl">試験のポイント</span>DBM の認定試験では SQL を「書く」ことは求められず、「読み解く」ことだけが問われます。ただしこれらの文が何をしているかを理解しておくと、Datadog 内の正規化されたクエリや Explain Plan を理解する助けになります。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>データベース管理システム（DBMS）</h3>
+    <p>DBMS はデータベースを実行し管理するソフトウェアです。「Postgres」や「MySQL」と言うとき、指しているのはこのソフトウェア自体であり、データそのものではありません。ストレージ、クエリ実行、並行性制御、セキュリティ、バックアップなどを担当します。</p>
+    <div class="examtip"><span class="lbl">試験のポイント</span>Datadog DBM は現在 <b>PostgreSQL、MySQL、SQL Server、Oracle、MongoDB、Amazon DocumentDB、ClickHouse</b> をサポートしています。試験はエンジンに依存しない形式で、特定エンジンの知識は問われませんが、DBM がどのエンジンをサポートしているかは知っておく必要があります。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>クライアントサーバーアーキテクチャとコネクションプール</h3>
+    <p>データベースは<b>クライアントサーバー（client-server）</b>モデルに従います。データベースサーバーが DBMS を実行しデータを保持し、クライアントはネットワーク経由でサーバーに接続します。各接続はサーバーのリソースを消費します。<span class="term">コネクションプール</span>（PgBouncer、ProxySQL、またはアプリケーションレイヤー経由）は複数のリクエスト間で接続を再利用してオーバーヘッドを下げます。</p>
+    <div class="examtip"><span class="lbl">試験のポイント</span>Datadog Agent は<b>データベースホストへ直接接続する必要があります</b>。コネクションプールやロードバランサーを経由することはできません。proxy を経由すると、Agent が時間の経過とともに異なるホストを見てしまい、不正確な指標が生成される可能性があるためです。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>セルフホスト vs. マネージドデータベース</h3>
+    <p><b>セルフホスト（self-hosted）</b>データベースは自分でコントロールするインフラ上で動作し、インストール、パッチ適用、バックアップ、拡張はすべて自分の責任です。<b>マネージド（managed）</b>データベース（AWS RDS、Azure SQL、Google Cloud SQL）はクラウドベンダーが運用を担当し、設定と利用だけを行えばよくなります。DBM はどちらもサポートしていますが、マネージドは特定のパラメータグループや IAM ロールが必要になることが多く、セルフホストは Agent が localhost や socket で直接アクセスする必要があります（設定の違いは第 2 章参照）。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>クエリのライフサイクル、レプリケーション、Buffer Pool</h3>
+    <p><b>クエリのライフサイクル:</b> 解析（構文チェック）→ プランニング/最適化（エンジンが「どうやって」実行するかを決める）→ 実行（実際のデータアクセスまたは変更）。DBM はプランニング段階（Explain Plan）と実行段階（レイテンシー、影響を受けた行数、Wait Events）でそれぞれデータを表示します。</p>
+    <p><b>レプリケーション:</b> データをプライマリノード（writer）から 1 つ以上のレプリカノード（reader）へ複製し、高可用性と読み取りのスケーリングを提供します。監視すべきは、レプリケーション遅延、レプリケーションの状態です。</p>
+    <p><b>Buffer Pool / Shared Buffers:</b> データベースはよく使われるデータをメモリ内に保持し（MySQL/SQL Server では buffer pool、Postgres では shared buffers と呼ばれます）、毎回ディスクを読みに行かなくて済むようにします。<b>キャッシュヒット率</b>は通常 95% 超であれば良好なパフォーマンスを意味します。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>スループット、レイテンシー、リソース使用率</h3>
+    <p><b>スループット</b>はデータベースが単位時間あたりに処理するクエリ数、<b>レイテンシー</b>は各クエリが個別に完了するまでにかかる時間です。負荷が上昇すると両者はしばしば反比例の関係になります。リソース競合の核心は <b>CPU、メモリ、ディスク I/O、ネットワーク</b>です。これらをクエリ指標と一緒に監視することが重要で、CPU のピークは特定の負荷の高いクエリに対応している可能性があり、高いディスク I/O はインデックス不足による全表スキャンを示している可能性があります。</p>
+    <div class="examtip"><span class="lbl">返却行数 vs. 検査行数</span>よく最適化されたクエリは、返却が必要な行数だけを検査します。あるクエリが 10 行を返すのに 1000 万行を検査していたら、これは強いシグナルであり、不必要な作業をしていることを意味します。通常はインデックス不足かフィルタ条件の書き方が悪いことが原因です。この比率はクエリの効率を判断する最も実用的な指標の 1 つです。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>インデックスの発展的な概念</h3>
+    <p>インデックスはデータベースがテーブル全体をスキャンしなくても行を素早く見つけられるようにするもので、本の巻末索引に似ています（基本概念と実例は第 1 章参照）。他の場所で出てこなかった発展的な用語を 3 つ紹介します。</p>
+    <ul>
+      <li><b>B-tree インデックス</b>: 最も一般的なインデックスタイプで、等価検索と範囲検索に適しています。</li>
+      <li><b>covering index</b>: クエリが必要とするすべてのカラムを含み、エンジンは一切テーブルに戻る必要がありません。</li>
+      <li><b>index bloat</b>: 時間の経過とともに更新や削除によって、インデックスが必要以上に大きくなり、パフォーマンスを低下させることがあります。</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ===================== ARCHITECTURE OVERVIEW ===================== -->
+<section class="chapter" data-chapter="7" style="--accent:var(--c9);--accent-bg:var(--c9-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Architecture Overview · One Real Incident, Start to Finish</div>
+    <h2>アーキテクチャ全体像、Storedog ロック事件フルトレース</h2>
+    <p class="lead">このページは抽象的なアーキテクチャ図ではなく、第 2 章、第 4 章に分散して触れられていた同じ 1 回の実際の Storedog 調査を、完全に 1 本の線につなげたものです。一般的な健康チェックで異常なロックを発見してから、ロックを解消し、次の高負荷クエリを見つけ、Sort ボトルネックを特定し、最後まで最適化するまでの流れです。各判断のゲートには「もし別の道を選んでいたらどうなっていたか」が添えられています。</p>
+  </div>
+
+  <div class="factory-legend">
+    <div class="lgi"><span class="sw" style="background:var(--c1);"></span>異常の発見</div>
+    <div class="lgi"><span class="sw" style="background:var(--c2);"></span>ロックの調査</div>
+    <div class="lgi"><span class="sw" style="background:var(--c3);"></span>クエリの調査</div>
+    <div class="lgi"><span class="sw" style="background:var(--c4);"></span>Explain Plan 分析</div>
+    <div class="lgi"><span class="sw" style="background:var(--c5);"></span>最適化と検証</div>
+    <div class="lgi"><span class="sw" style="background:var(--c6);"></span>フィードバックと改善</div>
+  </div>
+
+  <div class="trace">
+
+    <div class="card trace-step" style="--accent:var(--c1);">
+      <h3><span class="dot"></span>STEP 01 · 一般的な健康チェックで異常を発見</h3>
+      <p>チームはアラートのトリガーを一切受け取っておらず、ユーザーから機能が遅いという報告もありませんでした。今回の調査は純粋に定例の一般的な健康チェックです。<b>APM &gt; Database Monitoring</b> から Databases 総覧ページに入り、Summary Graphs の <b>Wait Group Activity</b> グラフを展開すると、データベース上に CPU 待ち、アイドル、ロックといった Wait Events が同時に存在しており、そのうちロックイベントの割合が明らかに高いことが分かりました。これが今回最優先で対応すべきシグナルです。</p>
+      <p class="trace-note">第 1 章の「Wait Events」に対応しています。ロック待ちの急増は素早いシグナルであり、1 つまたは複数のクエリが他のクエリをブロックしていることを意味します。</p>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c2);">
+      <h3><span class="dot"></span>STEP 02 · アクティブ接続のスナップショットをめくって # WAITERS を見つける</h3>
+      <p><b>Active Connections</b> タブに切り替え、クエリ実行時間のグラフで比較的高いピークをクリックし、その時点のアクティブ接続（10 秒ごとの <code>pg_stat_activity</code> スナップショット）を確認します。何枚かスナップショットをめくった後、<b># WAITERS</b> フィールドに数字があり、待機グループのグラフに赤いバーが現れている 1 件を見つけ、展開すると完全な SQL が見えます。</p>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c2);">
+      <h3><span class="dot"></span>STEP 03 · 真相の発覚、忘れられたテスト用の LOCK TABLE</h3>
+      <p>完全な SQL を見ると、開発チームの誰かが注文数量を更新するクエリを書く際に構文を誤り、<code>LOCK TABLE</code> を使ってしまい、しかもスケジュールジョブ（cronjob）として定期実行するように設定してしまったため、大量の他のクエリがブロックされていたことが分かりました。</p>
+    </div>
+
+    <div class="card trace-step gate" style="--accent:var(--c2);">
+      <h3><span class="dot"></span>STEP 04 · 判断ゲート、このロックはそのまま停止してよいか</h3>
+      <p>ロックしているクエリを停止する前に、それが安全に中止できるものかどうかを判断する必要があります。</p>
+      <div class="branch-wrap">
+        <div class="branch-main">✓ 以前ある機能をテストした際に残った cronjob であり、Storedog の正常な業務ロジックとは無関係だと判明し、安全に停止できる ▼</div>
+        <div class="branch-arrow">⇢</div>
+        <div class="branch-box"><span class="bb-lbl">✗ 別の可能性、正当な schema migration</span>もしこの <code>LOCK TABLE</code> が実際には進行中の <code>ALTER TABLE</code>／<code>CREATE INDEX</code> のような排他ロックを必要とする正当な DDL であった場合、直接 <code>stop_locks</code> で中止す<b>べきではなく</b>、完了するまで待たせた上で、同様の操作を低トラフィック帯に予定するべきです。これはまさに第 4 章「ブロッキングの調査」で触れた判断原則であり、このステップが実際に行っていることでもあります。</div>
+      </div>
+    </div>
+
+    <div class="card trace-step gate" style="--accent:var(--c3);">
+      <h3><span class="dot"></span>STEP 05 · Blocking Queries の Time Impact で影響を定量化する</h3>
+      <p><b>Blocking Queries</b> タブに切り替えると、「ブロッキングを引き起こしているクエリ」（Root Blocking Queries）と「このブロッキングを待っているクエリ」（Waiting Queries）の 2 組のグラフが見えます。</p>
+      <div class="branch-wrap">
+        <div class="branch-main">✓ <b>Time Impact</b> フィールドで、この `LOCK TABLE` クエリが他のクエリを 15 秒以上待たせていたことを確認。影響は確かに大きく、優先対応の価値がある ▼</div>
+        <div class="branch-arrow">⇢</div>
+        <div class="branch-box"><span class="bb-lbl">✗ 別の可能性、Time Impact が非常に低い</span>もし Time Impact が 1 秒未満で、かつ継続的に発生していない場合、このブロッキングは単発的な正常なロック競合にすぎず、特別に介入する必要はなく、観察を続ければよく、すぐに <code>stop_locks</code> を使う必要はありません。</div>
+      </div>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c3);">
+      <h3><span class="dot"></span>STEP 06 · stop_locks を実行し、ロックイベントを解消</h3>
+      <div class="example"><pre><code>stop_locks</code></pre></div>
+      <p class="trace-note">ロック問題が解消されて初めて、次の症状、人気商品クエリの負荷過剰に取り掛かれます。このステップは第 1 章「9 つの健康指標」で強調した「単一の指標だけでは全体の話は語れない」ことを示しています。ロックイベントの解消は、データベースが完全に健全になったことを意味せず、次の層の問題がまだ発見を待っています。</p>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c3);">
+      <h3><span class="dot"></span>STEP 07 · Query Metrics に切り替え、次の高負荷クエリを見つける</h3>
+      <p>Storedog に新しく「人気商品ランキング」ウィジェットが追加され、数秒ごとに <code>items</code> テーブルに対してクエリを実行し最もよく注文される上位 10 商品を取得しています。このクエリはデータベースに重い負荷をかけ、実行時間も長くなっていました。<b>Query Metrics</b> タブに切り替え、<b>Average Rows</b> 列のヘッダーをクリックしてテーブル全体をソートすると、<code>SELECT id, description...</code> というクエリが先頭に来ます。</p>
+      <button class="reveal-btn" onclick="openNodePanel('query-metrics-vs-samples')">なぜ Query Metrics から調査を始め、Query Samples からではないのか。クリックして判断ロジックを見る</button>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c4);">
+      <h3><span class="dot"></span>STEP 08 · Explain Plan の Map View で Sort ボトルネックを特定</h3>
+      <p>正規化されたクエリパネルの Explain Plans タブを開くと、Plan Operations テーブルにこのクエリで使われるすべての操作が一覧表示され、コストがかなり高いことが分かります。下にある Map View は Explain Plan 全体を視覚的なツリー図として描画しており、<b>Sort 操作が最大部分のコストを占めている</b>ことが直接見て取れます。これがこのクエリの実行時間が長すぎる主な原因です。</p>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c4);">
+      <h3><span class="dot"></span>STEP 09 · APM Trace で実際の影響を確認する</h3>
+      <p>正規化されたクエリパネル右上の View Query Samples をクリックすると、これらのサンプルのコストはおおよそ 7000 前後で、やや高めです。1 件をクリックし、Explain Plan Sample パネルを開いて Trace タブに切り替えます。<code>/get-item</code> ルートの GET リクエストがこのクエリをトリガーしており、リクエスト全体の所要時間は約 1.06 秒、そのうちこのクエリが 256ms を占めており、リクエスト全体の約 4 分の 1 を遅らせていました。</p>
+      <p class="trace-note">このステップは「クエリ自体のパフォーマンスが悪い」ことと「それを呼び出しているサービスに実際どれだけの影響を与えているか」をつなげるもので、このクエリを優先対応するかどうかを判断する上で鍵となる証拠です。第 3 章の APM-DBM 関連付けの仕組みに対応しています。</p>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c5);">
+      <h3><span class="dot"></span>STEP 10 · 1 回目の最適化、クエリの範囲を絞る</h3>
+      <p>コード内の実際のクエリロジック（<code>dbm.py</code>）を確認すると、商品をフィルタする閾値が広すぎることが分かりました。フィルタ閾値を生成するランダム範囲を <code>random.randint(1, 7000)</code> から <code>random.randint(5000, 7000)</code> に変更し、本当に売上上位の小さな集団だけに絞り込みました。サービスを再起動し、数分待ってから Query Metrics に戻って検証すると、コストは下がり方向性は正しかったものの、Map View では <b>Sort が依然として 75% のコストを占めている</b>ことが分かりました。</p>
+    </div>
+
+    <div class="card trace-step gate" style="--accent:var(--c5);">
+      <h3><span class="dot"></span>STEP 11 · 判断ゲート、Sort ボトルネックの本当の原因は何か</h3>
+      <p>クエリロジックを見直すと、<code>UNION</code> を使って <code>items</code> と <code>preorder_items</code> の 2 つのテーブルの結果を結合していました。</p>
+      <div class="branch-wrap">
+        <div class="branch-main">✓ `UNION` は単に 2 つの結果をつなげるだけでなく、自動的に重複行を除去し、除去のためにデータベースはまずすべての結果を一度ソートして比較しなければならないと判明。これがまさにあの高コストな Sort ノードの出所である ▼</div>
+        <div class="branch-arrow">⇢</div>
+        <div class="branch-box"><span class="bb-lbl">✗ 別の可能性、インデックス問題と誤判する</span>先に Map View で具体的にどのノードがコストを消費しているかを確認しなければ、Sort ボトルネックを「インデックス不足」だと誤解し、まったく無関係なインデックスを追加してしまいがちです。実際にはインデックスは `UNION` の重複除去によるソートコストを解決できず、無駄骨に終わるどころか書き込みを遅くする可能性さえあります。</div>
+      </div>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c5);">
+      <h3><span class="dot"></span>STEP 12 · 2 回目の最適化、UNION を取り除く</h3>
+      <p><code>preorder_items</code> 内の商品は正式に販売開始されると <code>false</code> にマークされます。つまり 2 つのテーブルを同時に照会して <code>UNION</code> で重複除去する必要は実はありませんでした。より良い方法は開発チームがデータ書き込みロジックを調整し、販売開始済みの商品を直接 <code>items</code> テーブルで管理することです。そうすればクエリ側は 1 つのテーブルだけを照会するように簡素化できます。変更後にサービスを再起動し、Query Metrics に戻って <b>Rows per Query</b> でソートして検証すると、コストは前回の最適化からさらに大幅に低下しました。今やクエリ全体が単一のスキャン操作だけになったためです。</p>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c6);">
+      <h3><span class="dot"></span>STEP 13 · Recommendations とアラート設計へフィードバック</h3>
+      <p>この一連の調査で得られた証拠は、振り返って 2 つのことへの入力になります。もしこのクエリの退化が一度きりのコード問題ではなく徐々に進行するものであれば、DBM Recommendations の <b>Query Load Increase</b> がもともと自動的にフラグを立ててくれます。また今回のロック事件は、チームに <b>Waiting Queries</b> や <b>Long Running Queries</b>（第 5 章参照）に対して DBM のモニターを設定できることも気づかせてくれました。次回同様の残骸 cronjob が、定例の健康チェックまで発見されずに待たされるのではなく、能動的にアラートされるようにするためです。</p>
+      <p class="trace-note">一連の調査（ロック問題の解消 → 高負荷クエリの特定 → Explain Plan で Sort ボトルネックを特定 → APM Trace で実際の影響を確認 → 2 回の最適化イテレーションで検証 → モニター設計へフィードバック）は、第 4 章全体の診断フレームワークを実際に一通り走らせた完全なデモです。</p>
+    </div>
+
+  </div>
+</section>
+
+</main>
+
+<div class="node-panel" id="nodePanel">
+  <div class="node-panel-backdrop" onclick="closeNodePanel()"></div>
+  <div class="node-panel-content" id="nodePanelContent">
+    <button class="node-panel-close" onclick="closeNodePanel()" aria-label="閉じる">✕</button>
+    <div class="node-panel-tag" id="nodePanelTag"></div>
+    <div class="node-panel-title" id="nodePanelTitle"></div>
+    <div class="node-panel-body" id="nodePanelBody"></div>
+  </div>
+</div>
+
+<footer>DBM STUDY MAP · Yuan の Obsidian Study Notes を基に構成 · 6 章 + アーキテクチャ全体像</footer>
+
+<script>
+function setActiveChapter(ch){
+  document.querySelectorAll('.chapter').forEach(function(s){
+    s.classList.toggle('active', s.dataset.chapter === ch);
+  });
+  document.querySelectorAll('nav.tabs button').forEach(function(b){
+    b.classList.toggle('active', b.dataset.ch === ch);
+  });
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+document.querySelectorAll('nav.tabs button').forEach(function(b){
+  b.addEventListener('click', function(){ setActiveChapter(b.dataset.ch); });
+});
+setActiveChapter('1');
+
+function toggleAcc(head){
+  var item = head.parentElement;
+  var body = item.querySelector('.acc-body');
+  var isOpen = item.classList.contains('open');
+  if(isOpen){
+    item.classList.remove('open');
+    body.style.maxHeight = null;
+  } else {
+    item.classList.add('open');
+    body.style.maxHeight = body.scrollHeight + 40 + 'px';
+  }
+}
+
+function toggleMini(el){
+  el.classList.toggle('open');
+}
+
+function setStep(btn, group){
+  var nav = btn.parentElement;
+  nav.querySelectorAll('button').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  var step = btn.dataset.step;
+  document.querySelectorAll('.'+group+'-step').forEach(function(p){
+    p.classList.toggle('active', p.dataset.step === step);
+  });
+}
+
+function toggleP(btn, id){
+  var row = btn.parentElement;
+  row.querySelectorAll('button').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.querySelectorAll('.toggle-panel').forEach(function(p){
+    p.classList.toggle('active', p.id === id);
+  });
+}
+
+// ---------- Floating node detail panels ----------
+var NODE_DATA = {
+  'explain-statement': { tag:'第 2 章参照', accent:'var(--c2)', title:'explain_statement 関数、完全な内容と動作原理', body:
+    '<p>この関数は Explain Plan を収集したい各データベースに 1 つずつ作成する必要があります。</p>'+
+    '<pre><code>CREATE OR REPLACE FUNCTION datadog.explain_statement(\n'+
+    '  l_query TEXT,\n'+
+    '  OUT explain JSON\n'+
+    ')\n'+
+    'RETURNS SETOF JSON AS\n'+
+    '$$\n'+
+    'DECLARE\n'+
+    'curs REFCURSOR;\n'+
+    'plan JSON;\n\n'+
+    'BEGIN\n'+
+    "  OPEN curs FOR EXECUTE pg_catalog.concat('EXPLAIN (FORMAT JSON) ', l_query);\n"+
+    '  FETCH curs INTO plan;\n'+
+    '  CLOSE curs;\n'+
+    '  RETURN QUERY SELECT plan;\n'+
+    'END;\n'+
+    '$$\n'+
+    "LANGUAGE 'plpgsql'\n"+
+    'RETURNS NULL ON NULL INPUT\n'+
+    'SECURITY DEFINER;</code></pre>'+
+    '<div class="pk-diagram">'+
+      '<div class="pk-hub">Agent が 1 本のクエリ文を送ってくる<br><small style="font-weight:400;color:var(--text-faint);">パラメータ l_query</small></div>'+
+      '<div class="pk-arrow">▼</div>'+
+      '<div class="pk-branch-grid">'+
+        '<div class="pk-item">関数内部が自動的に組み立てる<br><code>EXPLAIN (FORMAT JSON) &lt;このクエリ&gt;</code><small>Agent が自分で構文を組む必要はない</small></div>'+
+        '<div class="pk-item">SECURITY DEFINER で実行<small>「関数を作成した人」の権限で動く。読み取り専用の Agent ユーザーの権限ではない</small></div>'+
+        '<div class="pk-item pk-branch-single">Postgres が生成した Explain Plan（JSON 形式）を返す</div>'+
+      '</div>'+
+    '</div>'+
+    '<p><b>なぜこの関数が必要か:</b> Agent 自体は読み取り専用ユーザーで接続しており、任意のクエリに対して直接 <code>EXPLAIN</code> を実行することはできません。`SECURITY DEFINER` は「EXPLAIN を実行する」という動作を安全な固定の入り口としてラップし、読み取り専用ユーザーがこの関数を通じて間接的に Explain Plan を取得できるようにします。任意の `EXPLAIN` を実行する権限を実際に付与する必要はありません。</p>'+
+    '<p><b>試験のポイント:</b> Query Sample に関連する Explain Plan がない場合、最初に確認すべきはこの関数が正しく作成されているかどうかです。Explain Plan が収集できるかどうかは、これに直接左右されます。</p>' },
+
+  'query-metrics-vs-samples': { tag:'第 4 章参照', accent:'var(--c3)', title:'なぜ Query Metrics から調査を始め、Query Samples からではないのか', body:
+    '<p>両者の違いは「どちらが優れているか」ではなく、「答える問いが違う」ということです。</p>'+
+    '<div class="pk-diagram">'+
+      '<div class="pk-hub">問い、どのクエリがデータベースの足を引っ張っているか</div>'+
+      '<div class="pk-arrow">▼</div>'+
+      '<div class="pk-branch-grid">'+
+        '<div class="pk-item">Query Metrics<small>トレンドアナリスト、15 か月分の履歴を集計し「どのパターンが最もリソースを消費しているか」に答える</small></div>'+
+        '<div class="pk-item">Query Samples<small>事件調査員、15 日以内の個別スナップショットで「今回具体的にどこが遅かったか」に答える</small></div>'+
+      '</div>'+
+      '<div class="pk-arrow">▼</div>'+
+      '<div class="pk-hub small">正しい順序、まず Query Metrics で「誰か」を特定<br><small style="font-weight:400;color:var(--text-faint);">その後 Query Samples で「今回なぜか」を掘り下げる</small></div>'+
+    '</div>'+
+    '<p>逆に、最初から Query Samples に飛び込んで異常を探すと、それは 15 日以内のサンプリングでソートされていない集計視点にすぎないため、単発の偶発的な遅いクエリに惑わされやすく、本当に継続してリソースを消費しているパターンを見つけられません。これがこのページの STEP 07 で Query Metrics を Average Rows でソートすることから調査を始めた理由でもあります。</p>' },
+};
+
+function openNodePanel(id){
+  var data = NODE_DATA[id];
+  if(!data) return;
+  document.getElementById('nodePanelTag').textContent = data.tag;
+  document.getElementById('nodePanelTitle').textContent = data.title;
+  document.getElementById('nodePanelBody').innerHTML = data.body;
+  document.getElementById('nodePanelContent').style.setProperty('--panel-accent', data.accent);
+  document.getElementById('nodePanel').classList.add('open');
+}
+function closeNodePanel(){
+  document.getElementById('nodePanel').classList.remove('open');
+}
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape'){ closeNodePanel(); }
+});
+</script>
+
+</body>
+</html>

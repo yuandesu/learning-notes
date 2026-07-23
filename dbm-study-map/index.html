@@ -1,0 +1,1749 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Datadog Database Monitoring 完全理解地圖</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f2ecd9;
+  --surface:#fffdf6;
+  --surface2:#e8e0c5;
+  --border:#2a2a45;
+  --text:#201f33;
+  --text-dim:#4a4864;
+  --text-faint:#8a87a0;
+  --on-accent:#201f33;
+
+  --c1:#b8860c; /* 遙測概念與健康指標 - dark goldenrod */
+  --c1-bg:rgba(184,134,12,0.14);
+  --c2:#0e8fa3; /* 基礎架構整合與設定 - deep teal-cyan */
+  --c2-bg:rgba(14,143,163,0.14);
+  --c3:#7c3fd8; /* APM 與 DBM 關聯 - violet */
+  --c3-bg:rgba(124,63,216,0.14);
+  --c4:#c92d8f; /* 查詢分析與問題診斷 - raspberry magenta */
+  --c4-bg:rgba(201,45,143,0.14);
+  --c5:#0f9668; /* 儀表板與告警設計 - deep emerald */
+  --c5-bg:rgba(15,150,104,0.14);
+  --c6:#1f5fd6; /* 資料庫基礎知識附錄 - royal blue */
+  --c6-bg:rgba(31,95,214,0.14);
+  --c9:#b8541f; /* 架構全覽 - terracotta */
+  --c9-bg:rgba(184,84,31,0.14);
+
+  --danger:#cc3520;
+  --ok:#148a34;
+}
+
+*{box-sizing:border-box;border-radius:0 !important;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Noto Sans TC','IBM Plex Sans',sans-serif;
+  line-height:1.75;
+  -webkit-font-smoothing:antialiased;
+}
+header.top .eyebrow, .chapter-head .kicker, .lbl, th, .fb,
+.stepper-nav button, .cmp .col h4, .panel-mock .ph, .stbadge, footer{
+  font-family:'JetBrains Mono',monospace;
+}
+code, .mono{
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.88em;
+  background:#efe6ff;
+  color:#5b3fae;
+  padding:0.1em 0.45em;
+  border:1px solid #c9b3f0;
+}
+pre code{
+  display:block;
+  padding:14px 16px;
+  overflow-x:auto;
+  line-height:1.6;
+  white-space:pre;
+}
+
+/* ---------- Header ---------- */
+header.top{
+  padding:48px 24px 32px;
+  text-align:center;
+  border-bottom:4px solid var(--text);
+  background:var(--bg);
+}
+header.top .eyebrow{
+  letter-spacing:0.14em;
+  font-size:10px;
+  color:var(--text-faint);
+  margin-bottom:18px;
+}
+header.top h1{
+  font-family:'IBM Plex Sans',sans-serif;
+  font-weight:700;
+  font-size:clamp(28px,4.2vw,42px);
+  margin:0 0 20px;
+  letter-spacing:-0.01em;
+  line-height:1.3;
+  color:var(--c1);
+  text-shadow:3px 3px 0 rgba(32,31,51,0.16);
+}
+header.top p.sub{
+  color:var(--text-dim);
+  max-width:640px;
+  margin:0 auto;
+  font-size:14.5px;
+}
+
+/* ---------- Nav / world map ---------- */
+nav.tabs{
+  position:sticky;
+  top:0;
+  z-index:50;
+  padding:16px;
+  background:var(--bg);
+  border-bottom:4px solid var(--text);
+}
+nav.tabs .tabs-inner.worldmap{
+  display:grid;
+  grid-template-columns:minmax(90px,1fr) 32px minmax(90px,1fr) 32px minmax(90px,1fr);
+  grid-auto-rows:auto;
+  align-items:center;
+  gap:6px;
+  max-width:900px;
+  margin:0 auto;
+  overflow-x:auto;
+  overflow-y:visible;
+  padding-top:22px;
+  scrollbar-width:none;
+}
+nav.tabs .tabs-inner.worldmap::-webkit-scrollbar{display:none;}
+.wpath-h{
+  height:4px;
+  align-self:center;
+  background:repeating-linear-gradient(to right, var(--text-faint) 0 6px, transparent 6px 12px);
+}
+.wpath-v{
+  width:4px;
+  height:100%;
+  min-height:24px;
+  justify-self:center;
+  background:repeating-linear-gradient(to bottom, var(--text-faint) 0 6px, transparent 6px 12px);
+}
+nav.tabs button{
+  position:relative;
+  flex:0 0 auto;
+  font-family:'Noto Sans TC','IBM Plex Sans',sans-serif;
+  font-size:12px;
+  font-weight:600;
+  line-height:1.4;
+  color:var(--text-dim);
+  background:var(--surface);
+  border:3px solid var(--border);
+  padding:8px 6px;
+  min-width:86px;
+  cursor:pointer;
+  transition:transform 0.1s linear;
+  white-space:normal;
+  text-align:center;
+}
+nav.tabs button .num{
+  display:block;
+  font-size:9px;
+  margin-bottom:4px;
+  opacity:0.7;
+}
+nav.tabs button:hover{color:var(--text);border-color:var(--text-faint);}
+nav.tabs button:active{transform:translate(2px,2px);}
+nav.tabs button.active{
+  color:var(--on-accent);
+  background:var(--accent);
+  border-color:var(--text);
+  box-shadow:3px 3px 0 0 rgba(32,31,51,0.30);
+}
+nav.tabs button.active::before{
+  content:'▲';
+  position:absolute;
+  top:-20px;
+  left:50%;
+  transform:translateX(-50%);
+  color:var(--c1);
+  font-size:13px;
+  animation:blink 0.7s steps(2) infinite;
+}
+@keyframes blink{50%{opacity:0;}}
+@media (max-width:820px){
+  nav.tabs .tabs-inner.worldmap{display:flex;flex-direction:column;gap:8px;padding-top:20px;}
+  .wpath-h, .wpath-v{display:none;}
+  nav.tabs button{width:100%;min-width:0;}
+}
+
+.overview-divider{
+  max-width:900px;
+  margin:14px auto 10px;
+  text-align:center;
+  color:var(--text-faint);
+  font-size:11px;
+  position:relative;
+}
+.overview-divider::before, .overview-divider::after{
+  content:'';
+  position:absolute;
+  top:50%;
+  width:38%;
+  border-top:2px dashed var(--border);
+}
+.overview-divider::before{left:0;}
+.overview-divider::after{right:0;}
+.overview-wrap{max-width:900px;margin:0 auto;text-align:center;}
+nav.tabs button.overview-tab{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-size:11.5px;
+  font-weight:600;
+  padding:8px 16px;
+  border:2px solid var(--c9);
+  background:var(--surface);
+  color:var(--c9);
+  box-shadow:2px 2px 0 0 rgba(32,31,51,0.15);
+}
+nav.tabs button.overview-tab:hover{transform:translate(-2px,-2px);box-shadow:3px 3px 0 0 rgba(32,31,51,0.2);}
+nav.tabs button.overview-tab.active{
+  background:var(--c9);
+  color:var(--on-accent);
+  box-shadow:2px 2px 0 0 rgba(32,31,51,0.30);
+}
+
+/* ---------- Main / chapters ---------- */
+main{max-width:1120px;margin:0 auto;padding:44px 24px 100px;}
+.chapter{display:none;}
+.chapter.active{display:block;animation:fadeUp 0.25s steps(3) both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+@media (prefers-reduced-motion: reduce){
+  .chapter.active{animation:none;}
+  *{transition:none !important;animation:none !important;}
+}
+
+.chapter-head{margin-bottom:36px;}
+.chapter-head .kicker{
+  font-size:11px;
+  letter-spacing:0.08em;
+  color:var(--accent);
+  margin-bottom:14px;
+}
+.chapter-head h2{
+  font-size:clamp(24px,3.2vw,32px);
+  margin:0 0 16px;
+  font-weight:700;
+  line-height:1.4;
+  color:var(--text);
+}
+.chapter-head .lead{
+  color:var(--text-dim);
+  font-size:15.5px;
+  max-width:760px;
+}
+
+.card{
+  position:relative;
+  background:var(--surface);
+  border:3px solid var(--border);
+  border-top:5px solid var(--accent);
+  padding:26px 28px;
+  margin-bottom:24px;
+  box-shadow:5px 5px 0 0 rgba(32,31,51,0.22);
+}
+.card::before{
+  content:'';
+  position:absolute;top:-3px;left:-3px;
+  width:9px;height:9px;
+  background:var(--bg);
+}
+.card::after{
+  content:'';
+  position:absolute;bottom:-3px;right:-3px;
+  width:9px;height:9px;
+  background:var(--bg);
+}
+.card h3{
+  font-size:18px;
+  font-weight:700;
+  line-height:1.5;
+  margin:0 0 16px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  color:var(--text);
+}
+.card h3 .dot{
+  width:9px;height:9px;
+  margin-top:6px;
+  background:var(--accent);
+  flex:0 0 auto;
+}
+.card p{margin:0 0 12px;color:var(--text);}
+.card p:last-child{margin-bottom:0;}
+.card ul, .card ol{margin:0 0 12px;padding-left:22px;}
+.card li{margin-bottom:8px;}
+
+.term{
+  display:inline-block;
+  font-weight:700;
+  color:var(--accent);
+}
+
+.analogy{
+  background:var(--accent-bg);
+  border:3px solid var(--accent);
+  padding:16px 18px;
+  margin:14px 0;
+  font-size:14.5px;
+}
+.analogy .lbl{
+  font-size:10px;
+  letter-spacing:0.06em;
+  color:var(--accent);
+  margin-bottom:10px;
+  display:block;
+}
+
+.example{
+  background:var(--surface2);
+  border:3px solid var(--border);
+  padding:14px 18px;
+  margin:14px 0;
+  font-size:14px;
+}
+.example .lbl{
+  font-size:10px;
+  letter-spacing:0.06em;
+  color:var(--text-faint);
+  margin-bottom:10px;
+  display:block;
+}
+
+.examtip{
+  background:rgba(204,53,32,0.10);
+  border:3px solid var(--danger);
+  padding:14px 18px;
+  margin:14px 0;
+  font-size:14px;
+}
+.examtip .lbl{
+  font-size:10px;
+  letter-spacing:0.06em;
+  color:var(--danger);
+  margin-bottom:10px;
+  display:block;
+}
+
+.honest{
+  background:rgba(160,106,0,0.10);
+  border:3px dashed #a06a00;
+  padding:14px 18px;
+  margin:14px 0;
+  font-size:14px;
+  color:var(--text-dim);
+}
+.honest .lbl{
+  font-size:10px;
+  letter-spacing:0.06em;
+  color:#a06a00;
+  margin-bottom:10px;
+  display:block;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin:14px 0;
+  font-size:14px;
+}
+th,td{
+  padding:10px 12px;
+  border-bottom:2px solid var(--border);
+  text-align:left;
+  vertical-align:top;
+}
+th{
+  font-size:10px;
+  letter-spacing:0.02em;
+  color:var(--accent);
+  border-bottom:3px solid var(--accent);
+}
+tr:last-child td{border-bottom:none;}
+.table-wrap{overflow-x:auto;margin:14px 0;}
+
+/* accordion */
+.acc-item{
+  border:3px solid var(--border);
+  margin-bottom:10px;
+  overflow:hidden;
+  background:var(--surface2);
+}
+.acc-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:14px 18px;
+  cursor:pointer;
+  font-size:12.5px;
+  line-height:1.7;
+  color:var(--text);
+  user-select:none;
+}
+.acc-head:hover{background:rgba(32,31,51,0.05);}
+.acc-head .chev{
+  color:var(--accent);
+  font-family:'JetBrains Mono',monospace;
+  transition:transform 0.15s linear;
+  flex:0 0 auto;
+  margin-left:12px;
+}
+.acc-item.open .chev{transform:rotate(90deg);}
+.acc-body{
+  max-height:0;
+  overflow:hidden;
+  transition:max-height 0.25s linear;
+  padding:0 18px;
+  font-size:14px;
+  color:var(--text-dim);
+}
+.acc-item.open .acc-body{padding:0 18px 16px;}
+
+/* grid of mini cards */
+.grid{display:grid;gap:14px;}
+.grid.g4{grid-template-columns:repeat(4,1fr);}
+.grid.g3{grid-template-columns:repeat(3,1fr);}
+.grid.g2{grid-template-columns:repeat(2,1fr);}
+@media (max-width:820px){
+  .grid.g4{grid-template-columns:repeat(2,1fr);}
+  .grid.g3{grid-template-columns:1fr;}
+  .grid.g2{grid-template-columns:1fr;}
+}
+@media (max-width:480px){
+  .grid.g4{grid-template-columns:1fr;}
+}
+.mini{
+  border:3px solid var(--border);
+  padding:14px 16px;
+  background:var(--surface2);
+  cursor:pointer;
+  transition:border-color 0.1s linear, transform 0.1s linear;
+}
+.mini:hover{border-color:var(--accent);transform:translate(-2px,-2px);box-shadow:2px 2px 0 0 var(--accent);}
+.mini .mt{font-size:12.5px;margin-bottom:8px;color:var(--accent);}
+.mini .md{font-size:12.5px;color:var(--text-dim);}
+.mini .full{display:none;font-size:13px;color:var(--text);margin-top:10px;padding-top:10px;border-top:2px solid var(--border);}
+.mini.open .full{display:block;}
+
+/* step simulator */
+.stepper-nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
+.stepper-nav button{
+  font-size:10.5px;
+  padding:9px 14px;
+  border:3px solid var(--border);
+  background:var(--surface2);
+  color:var(--text-dim);
+  cursor:pointer;
+  transition:transform 0.1s linear;
+}
+.stepper-nav button:active{transform:translate(2px,2px);}
+.stepper-nav button.active{
+  background:var(--accent);
+  color:var(--on-accent);
+  border-color:var(--text);
+  box-shadow:3px 3px 0 0 rgba(32,31,51,0.30);
+}
+.step-panel{display:none;}
+.step-panel.active{display:block;animation:fadeUp 0.2s steps(3) both;}
+.flowbox{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  margin:14px 0;
+}
+.fb{
+  padding:12px 16px;
+  border:3px solid var(--accent);
+  background:var(--accent-bg);
+  font-size:11px;
+  line-height:1.7;
+  color:var(--text);
+}
+.farrow{color:var(--accent);font-size:16px;}
+
+/* comparison columns */
+.cmp{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:14px 0;}
+.cmp.c2{grid-template-columns:repeat(2,1fr);}
+@media (max-width:820px){.cmp{grid-template-columns:1fr;}}
+.cmp .col{
+  border:3px solid var(--border);
+  padding:16px;
+  background:var(--surface2);
+}
+.cmp .col.good{border-color:var(--ok);}
+.cmp .col.bad{border-color:var(--danger);}
+.cmp .col h4{
+  margin:0 0 12px;
+  font-size:11px;
+  color:var(--accent);
+  letter-spacing:0.02em;
+}
+.cmp .col.good h4{color:var(--ok);}
+.cmp .col.bad h4{color:var(--danger);}
+.cmp .col p{font-size:13.5px;color:var(--text-dim);margin:0;}
+
+/* toggle */
+.toggle-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.toggle-row button{
+  font-size:11px;
+  padding:9px 16px;
+  border:3px solid var(--border);
+  background:var(--surface2);color:var(--text-dim);
+  cursor:pointer;transition:transform 0.1s linear;
+}
+.toggle-row button:active{transform:translate(2px,2px);}
+.toggle-row button.active{background:var(--accent);border-color:var(--text);color:var(--on-accent);box-shadow:3px 3px 0 0 rgba(32,31,51,0.30);}
+.toggle-panel{display:none;}
+.toggle-panel.active{display:block;animation:fadeUp 0.2s steps(3) both;}
+
+/* signal / detail panel mock */
+.panel-mock{
+  border:3px solid var(--border);
+  background:var(--surface2);
+  overflow:hidden;
+  margin:14px 0;
+}
+.panel-mock .ph{
+  padding:12px 16px;
+  background:var(--accent);
+  border-bottom:3px solid var(--border);
+  font-size:11px;
+  color:var(--on-accent);
+}
+.panel-mock .pr{
+  padding:12px 16px;
+  border-bottom:2px solid var(--border);
+  display:flex;
+  gap:14px;
+}
+.panel-mock .pr:last-child{border-bottom:none;}
+.panel-mock .pr .pk{
+  flex:0 0 150px;
+  font-size:12.5px;
+  color:var(--text-faint);
+  font-weight:600;
+}
+.panel-mock .pr .pv{font-size:13px;color:var(--text);}
+
+/* one-trace (architecture overview) */
+.factory-legend{
+  display:flex;
+  flex-wrap:wrap;
+  gap:14px;
+  margin-bottom:24px;
+  padding:14px 18px;
+  background:var(--surface2);
+  border:3px solid var(--border);
+  font-size:12.5px;
+  color:var(--text-dim);
+}
+.factory-legend .lgi{display:flex;align-items:center;gap:7px;}
+.factory-legend .sw{width:13px;height:13px;flex:0 0 auto;border:2px solid var(--text);}
+
+.trace{display:flex;flex-direction:column;}
+.trace-step{margin-bottom:40px;}
+.trace-step:last-child{margin-bottom:0;}
+.trace-step.gate{border-top-style:dashed;}
+.trace-note{font-size:12.5px;color:var(--text-faint);font-style:italic;margin-top:8px;}
+
+.reveal-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  margin-top:12px;
+  padding:9px 16px;
+  border:3px solid var(--accent);
+  background:var(--accent-bg);
+  color:var(--accent);
+  font-weight:700;
+  font-size:13px;
+  cursor:pointer;
+  transition:transform 0.08s linear;
+}
+.reveal-btn:hover{transform:translate(-2px,-2px);}
+.reveal-btn::before{content:'▶ ';}
+
+.branch-wrap{
+  display:grid;
+  grid-template-columns:1fr 40px minmax(0,280px);
+  align-items:center;
+  gap:0;
+  margin-top:14px;
+}
+.branch-main{font-size:13px;color:var(--text-dim);}
+.branch-arrow{
+  text-align:center;
+  color:var(--text-faint);
+  font-size:16px;
+}
+.branch-box{
+  padding:12px 14px;
+  border:3px dashed var(--border);
+  background:var(--surface2);
+  font-size:12.5px;
+  color:var(--text-dim);
+}
+.branch-box .bb-lbl{
+  display:block;
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;
+  letter-spacing:0.04em;
+  color:var(--text-faint);
+  margin-bottom:6px;
+}
+@media (max-width:640px){
+  .branch-wrap{grid-template-columns:1fr;}
+  .branch-arrow{display:none;}
+  .branch-box{margin-top:8px;}
+}
+
+/* floating node detail panel */
+.node-panel{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:200;
+}
+.node-panel.open{display:block;}
+.node-panel-backdrop{
+  position:absolute;
+  inset:0;
+  background:rgba(32,31,51,0.45);
+}
+.node-panel-content{
+  position:absolute;
+  top:0;right:0;
+  height:100%;
+  width:min(460px, 92vw);
+  background:var(--surface);
+  border-left:5px solid var(--panel-accent, var(--c1));
+  box-shadow:-6px 0 0 0 rgba(32,31,51,0.2);
+  overflow-y:auto;
+  padding:26px 24px 40px;
+  animation:panelSlide 0.18s ease both;
+}
+@keyframes panelSlide{from{transform:translateX(24px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+@media (prefers-reduced-motion: reduce){.node-panel-content{animation:none;}}
+.node-panel-close{
+  position:absolute;
+  top:16px;right:16px;
+  width:32px;height:32px;
+  border:3px solid var(--border);
+  background:var(--surface2);
+  color:var(--text);
+  font-size:14px;
+  cursor:pointer;
+}
+.node-panel-tag{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  letter-spacing:0.04em;
+  color:var(--panel-accent, var(--c1));
+  margin:0 40px 10px 0;
+}
+.node-panel-title{
+  font-size:19px;
+  font-weight:700;
+  margin:0 40px 16px 0;
+  line-height:1.5;
+  color:var(--text);
+}
+.node-panel-body{font-size:14.5px;color:var(--text);}
+.node-panel-body p{margin:0 0 12px;}
+.node-panel-body ul{margin:0 0 12px;padding-left:20px;}
+.node-panel-body li{margin-bottom:6px;}
+.node-panel-body b{color:var(--panel-accent, var(--c1));}
+
+.pk-diagram{margin:6px 0 22px;}
+.pk-hub{
+  padding:13px 14px;
+  text-align:center;
+  font-weight:700;
+  font-size:13px;
+  border:3px solid var(--panel-accent, var(--c1));
+  background:var(--surface2);
+  color:var(--panel-accent, var(--c1));
+}
+.pk-arrow{text-align:center;color:var(--text-faint);font-size:14px;margin:4px 0;}
+.pk-branch-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.pk-item{
+  padding:10px 8px;
+  text-align:center;
+  font-size:11.5px;
+  line-height:1.5;
+  font-weight:600;
+  border:2px solid var(--border);
+  background:var(--surface2);
+  color:var(--text);
+}
+.pk-item small{display:block;font-weight:400;color:var(--text-faint);font-size:10px;margin-top:3px;}
+.pk-hub.small{font-size:11.5px;font-weight:600;padding:10px 12px;}
+.pk-branch-single{grid-column:1 / -1;}
+
+footer{
+  text-align:center;
+  padding:40px 24px 60px;
+  color:var(--text-faint);
+  font-size:11px;
+  line-height:2;
+}
+
+/* focus visibility */
+button:focus-visible, .acc-head:focus-visible, .mini:focus-visible{
+  outline:2px solid var(--text);
+  outline-offset:2px;
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="eyebrow">DATADOG DATABASE MONITORING · DBM FUNDAMENTALS</div>
+  <p style="margin:0 0 4px;"><a href="../dbm-study-map-jp/" style="font-size:12px;color:var(--text-faint);text-decoration:underline;">日本語版はこちら →</a></p>
+  <h1>DBM 完全理解地圖</h1>
+  <p class="sub">從「標準整合能看到什麼、DBM 又多看到什麼」到「一次真實的鎖定事件怎麼被排查、優化到底」，用同一套 Storedog 環境，把六篇筆記串成一張圖。</p>
+</header>
+
+<nav class="tabs" id="tabs">
+  <div class="tabs-inner worldmap">
+    <button data-ch="1" class="active" style="grid-column:1;grid-row:1;"><span class="num">01</span>遙測概念與健康指標</button>
+    <button data-ch="2" style="grid-column:3;grid-row:1;"><span class="num">02</span>基礎架構整合與設定</button>
+    <button data-ch="3" style="grid-column:5;grid-row:1;"><span class="num">03</span>APM 與 DBM 關聯</button>
+    <button data-ch="4" style="grid-column:5;grid-row:3;"><span class="num">04</span>查詢分析與問題診斷</button>
+    <button data-ch="5" style="grid-column:3;grid-row:3;"><span class="num">05</span>儀表板與告警設計</button>
+    <button data-ch="6" style="grid-column:1;grid-row:3;"><span class="num">06</span>資料庫基礎知識附錄</button>
+
+    <div class="wpath-h" aria-hidden="true" style="grid-column:2;grid-row:1;"></div>
+    <div class="wpath-h" aria-hidden="true" style="grid-column:4;grid-row:1;"></div>
+    <div class="wpath-v" aria-hidden="true" style="grid-column:5;grid-row:2;"></div>
+    <div class="wpath-h" aria-hidden="true" style="grid-column:4;grid-row:3;"></div>
+    <div class="wpath-h" aria-hidden="true" style="grid-column:2;grid-row:3;"></div>
+  </div>
+
+  <div class="overview-divider" aria-hidden="true"><span>◆</span></div>
+  <div class="overview-wrap">
+    <button class="overview-tab" data-ch="7">◆ 架構全覽 · Storedog 鎖定事件全追蹤</button>
+  </div>
+</nav>
+
+<main>
+
+<!-- ===================== CHAPTER 1 ===================== -->
+<section class="chapter active" data-chapter="1" style="--accent:var(--c1);--accent-bg:var(--c1-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Chapter 01 · Telemetry &amp; Health</div>
+    <h2>遙測概念與健康指標</h2>
+    <p class="lead">這一章回答兩個地基問題：DBM 支援哪些引擎、標準整合跟 DBM 到底差在哪；接著把資料庫的「生命徵象」拆成九大健康指標，再把三種鏡頭攤開成六種遙測類型逐一深入。讀完這章，後面所有排查動作用的資料來源才有意義。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>支援的資料庫引擎</h3>
+    <div class="table-wrap"><table>
+      <tr><th>引擎</th><th>備註</th></tr>
+      <tr><td><b>PostgreSQL</b></td><td>需要 <code>pg_stat_statements</code> 擴充套件，以及為 Datadog 使用者授予 <code>pg_monitor</code> 角色。</td></tr>
+      <tr><td><b>MySQL</b></td><td>需要啟用 Performance Schema。自行託管與雲端託管實例的設定步驟有所不同。</td></tr>
+      <tr><td><b>SQL Server</b></td><td>需要具有特定權限的唯讀登入帳號。預存程序負責處理執行計畫的收集。</td></tr>
+      <tr><td><b>Oracle</b></td><td>需要特定的 Oracle 套件，以及具有適當授權的專用 Datadog 使用者。</td></tr>
+      <tr><td><b>MongoDB</b></td><td>支援 Atlas 和自行託管的部署。遙測類型與關聯式引擎有所不同。</td></tr>
+    </table></div>
+    <div class="examtip"><span class="lbl">考試重點</span>考試是「資料庫引擎無關」的，不會考特定引擎的 SQL 語法或設定細節，只會考「調查工作流程」本身，這套流程在所有支援的引擎中皆相同，僅設定方式有所差異。這份地圖的實作範例全部用 PostgreSQL，呼應 <span class="term">Storedog</span> 實驗環境。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>標準整合 vs. DBM：多看到什麼</h3>
+    <p><span class="term">標準整合</span>是像 Postgres 或 SQL Server 的一般整合，收集「主機層級 / 實例層級」的指標，是資料庫「由外往內看」的視角。<span class="term">DBM</span> 不是取代它，是疊加在標準整合之上，多出查詢層級的一整套遙測。</p>
+    <div class="toggle-row">
+      <button class="active" onclick="toggleP(this,'nodbm')">只有標準整合</button>
+      <button onclick="toggleP(this,'hasdbm')">疊加完整 DBM</button>
+    </div>
+    <div class="toggle-panel active" id="nodbm">
+      <div class="example"><span class="lbl">看得到</span>連線數、SQL 編譯速率、buffer pool 使用率、磁碟 I/O、複寫狀態等彙總數字，能告訴你資料庫「健不健康」。<span class="lbl" style="margin-top:10px;">看不到</span>「為什麼」，也就是查詢層級的細節完全是黑盒子。設定簡單，Agent 使用者只需要基本 <code>SELECT</code> 權限。</div>
+    </div>
+    <div class="toggle-panel" id="hasdbm">
+      <div class="example"><span class="lbl">額外拿到</span>查詢指標（前 200 條正規化查詢的彙總統計）、查詢樣本（某時刻的實際執行快照，保留 15 天）、自動收集的執行計畫、等待事件分析、阻塞查詢洞察、正規化與混淆處理、APM 關聯、DBM Recommendations。<span class="lbl" style="margin-top:10px;">代價</span>Agent YAML 要加 <code>dbm: true</code>，需要額外權限（Postgres 要 <code>pg_monitor</code>），且必須直接連到資料庫主機，不能經過 proxy/負載平衡器/連線池。多數工作負載下額外負擔通常低於查詢執行時間的 1%、CPU 的 1%。</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>九大健康指標：資料庫的生命徵象</h3>
+    <p>可以想成醫生看病人的生命徵象：心跳、血壓、體溫。點開每一項看判讀邏輯：</p>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">① 連線數（Connections）<span class="chev">▸</span></div>
+      <div class="acc-body"><p>多少客戶端連進資料庫、離上限還有多遠。持續攀升可能是連線洩漏，突然暴增可能是流量突發或應用程式設定錯誤，長時間閒置的連線是浪費資源。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">② 查詢量與吞吐量（Query Volume and Throughput）<span class="chev">▸</span></div>
+      <div class="acc-body"><p>每秒處理幾個查詢（讀 vs 寫）。突然下降可能代表上游應用程式壞了，突然暴增可能是某個失控的程序在灌爆資料庫。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">③ 查詢延遲（Query Latency）<span class="chev">▸</span></div>
+      <div class="acc-body"><p>平均、p50、p95、p99、最大值。<b>p95/p99 特別重要</b>，因為平均值會掩蓋離群值，例如平均 10ms、p99 卻 2 秒，代表 1% 的使用者體驗極差。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">④ 活動連線與資料庫負載（等待事件分析）<span class="chev">▸</span></div>
+      <div class="acc-body"><p>不只看「跑了幾個查詢」，而是看查詢當下「在等哪種資源」，四大分類：<b>CPU</b>（搶運算資源，考慮優化查詢或加大實例）、<b>I/O</b>（等磁碟讀寫，可能缺索引或 buffer pool 太小）、<b>鎖/Latch</b>（等其他 session 放開鎖，通常是長交易造成的競爭）、<b>網路</b>（等資料傳輸，可能結果集太大或延遲高）。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">⑤ 阻塞查詢（Blocking Queries）<span class="chev">▸</span></div>
+      <div class="acc-body"><p>一個長交易卡住鎖，可能連鎖造成幾十個查詢被卡住。DBM 能視覺化找出「根源阻塞查詢」和被卡住的查詢，見第 4 章、第 7 章的真實鎖定案例。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">⑥ 資源使用率（CPU/記憶體/磁碟/I/O）<span class="chev">▸</span></div>
+      <div class="acc-body"><p>資料庫的「物理極限」，就算查詢寫得再好，主機沒 CPU、沒記憶體、沒磁碟空間一樣會掛。CPU 持續 &gt;80% 代表快撐不住；記憶體看快取命中率；磁碟空間用完是災難性故障。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">⑦ 複寫健康度（Replication Health）<span class="chev">▸</span></div>
+      <div class="acc-body"><p>複寫延遲（replica 落後主節點多少）、複寫狀態（是否連線中且持續同步）。延遲太高代表讀到舊資料，斷線代表失去容錯後援。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">⑧ 資料庫引擎特有的遙測<span class="chev">▸</span></div>
+      <div class="acc-body"><p>Postgres 看 vacuum 操作（死列持續累積代表 autovacuum 跟不上）；SQL Server 看連線數、系統記憶體、吞吐量；MongoDB 看慢操作、執行計畫、複寫狀態變化。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">⑨ DBM Recommendations 本身也是健康訊號<span class="chev">▸</span></div>
+      <div class="acc-body"><p>不只給原始指標，還主動分析並標出高影響力的阻塞查詢、沒在用的索引、低磁碟空間告警，每個建議都有嚴重程度分級，完整類型表見第 4 章。</p></div>
+    </div>
+    <div class="example"><span class="lbl">綜合判讀的關鍵在於「關聯」</span>單一指標說不了完整的故事：CPU 高 + 某條查詢吃掉大部分資料庫時間 → 那條查詢需要優化；延遲上升 + 鎖等待增加 → 是阻塞問題不是資源問題；連線暴增 + 吞吐量下降 → 是連線飽和不是查詢效率差；I/O 高 + 快取命中率低 → 需要更多記憶體或查詢掃太多資料。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>六種遙測類型：三種鏡頭逐一深入</h3>
+    <p>官方文件把資料型態濃縮成三大類，是同一個資料庫的三種不同「鏡頭」；下面六種遙測，是這三種鏡頭實際攤開後的樣子：</p>
+    <div class="cmp">
+      <div class="col"><h4>Metrics · 衛星視角</h4><p>主機層級整合指標，回答「資料庫整體狀況如何」，是 dashboard 和門檻告警的基礎。<b>限制：</b>只看得到「發生了什麼」，看不到「是誰造成的」。</p></div>
+      <div class="col"><h4>Query Metrics · 街景視角</h4><p>針對每條正規化查詢的彙總效能統計，把資料庫從黑盒子變成可以在查詢層級推理的東西。</p></div>
+      <div class="col"><h4>Query Samples · 顯微鏡視角</h4><p>某個時間點實際執行的個別快照。<b>限制：</b>只是有偏誤的抽樣，不是完整紀錄。</p></div>
+    </div>
+    <p>典型調查順序：Metrics（「資料庫在承壓」）→ Query Metrics（「這個查詢模式吃掉 40% 資料庫時間」）→ Query Samples（「這一次執行在 3:47 PM 花了 12 秒」）。實際畫面上再加上執行計畫、等待事件、活動工作階段、結構描述，攤開成六種：</p>
+    <div class="table-wrap"><table>
+      <tr><th>遙測類型</th><th>回答的問題</th></tr>
+      <tr><td>查詢指標（Query Metrics）</td><td>哪條查詢最慢 / 最耗資源？</td></tr>
+      <tr><td>查詢樣本（Query Samples）</td><td>這一次具體慢在哪？</td></tr>
+      <tr><td>執行計畫（Explain Plans）</td><td>資料庫怎麼執行這條查詢的？</td></tr>
+      <tr><td>等待事件（Wait Events）</td><td>查詢在等什麼？</td></tr>
+      <tr><td>活動工作階段（Active Sessions）</td><td>那個時刻資料庫裡發生了什麼？</td></tr>
+      <tr><td>結構描述（Schemas）</td><td>表的結構是否合理？</td></tr>
+    </table></div>
+    <p style="margin-top:10px;">典型調查順序：<b>查詢指標 → 查詢樣本 → 執行計畫 → 結構描述 → 等待事件 / 活動工作階段</b>。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>查詢指標（Query Metrics）：正規化與 query_signature</h3>
+    <p>DBM 將具有相同<span class="term">查詢簽章</span>的所有執行不論參數值為何歸為一組，計算平均延遲、總執行時間、回傳列數、呼叫次數。</p>
+    <div class="analogy"><span class="lbl">什麼是正規化</span>把查詢裡實際帶入的參數值換成佔位符，讓不同參數但邏輯相同的查詢被視為同一條「查詢簽章」：
+      <pre style="margin-top:10px;"><code>SELECT * FROM orders WHERE user_id = 98712 AND status = 'pending'
+SELECT * FROM orders WHERE user_id = 55103 AND status = 'shipped'</code></pre>
+      正規化後都被歸類成同一條查詢簽章：<code>SELECT * FROM orders WHERE user_id = ? AND status = ?</code>。只要結構相同（表名、欄位、運算子、子句排列都一樣），就視為同一條簽章；只要有結構性差異（多一個欄位、`WHERE` 順序不同、多一個 `JOIN`），就是不同簽章，各自彙總。
+    </div>
+    <div class="examtip"><span class="lbl">考試重點</span>篩選時要用 <code>query_signature</code>，不要用 <code>query</code> 欄位。原因：tag 名稱會被截斷到 200 個字元，查詢文字可能很長、`query` 這個 tag 不一定唯一；`query_signature` 是固定長度的雜湊值，才是可靠的辨識依據。</div>
+    <div class="example"><span class="lbl">實戰範例：電商結帳頁面突然變慢</span>Query Metrics 依「總執行時間」排序，發現 <code>SELECT * FROM orders WHERE user_id = ? AND status = ?</code> 佔了最多資源：平均延遲 850ms（上週只有 120ms）、每分鐘呼叫 3,200 次、回傳列數平均 4,500 列（上週只有 50 列）。回傳列數暴增暗示可能缺少 `LIMIT` 或索引失效。</div>
+    <div class="examtip"><span class="lbl">保留期限</span>官方文件（Database Monitoring Data Collected、Data Retention Periods）明確列出 Query Metrics 保留 <b>15 個月</b>。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>查詢樣本（Query Samples）：從「平均慢」到「這一次為什麼慢」</h3>
+    <p>某個收集時刻擷取的個別查詢執行：確切的查詢文字、持續時間、主機、相關執行計畫，直接連結到 APM 追蹤（見第 3 章）。</p>
+    <div class="example"><span class="lbl">實戰範例</span>從查詢指標知道那條查詢「平均」慢，切到查詢樣本，找到一筆執行 2.3 秒、主機 <code>postgres-replica-02</code>、關聯的 APM 追蹤來自 <code>checkout-service</code> 的 <code>/api/v1/checkout</code>。點進追蹤，發現是某使用者有 12,000 筆歷史訂單導致這次特別慢。</div>
+    <div class="examtip"><span class="lbl">考試重點</span>保留期限 <b>15 天</b>，跟 Query Metrics 的 15 個月差了一個量級，這是常考對比點。DBM 是取樣而非全量擷取，某查詢沒出現在樣本裡，很可能是該區間內未被擷取，而非沒有執行。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>執行計畫（Explain Plans）：從零拆解每個名詞</h3>
+    <p>執行計畫是查詢規劃器為執行查詢所選擇步驟的表示。整份執行計畫可以想成一份「餐廳出餐流程單」：客人點餐（SQL）只說「我要一份牛排」，廚房內部要自己決定怎麼做，這整套內部決定和步驟，就是執行計畫。</p>
+    <div class="stepper-nav">
+      <button class="active" data-step="1" onclick="setStep(this,'plan')">1. 沒加索引：Seq Scan</button>
+      <button data-step="2" onclick="setStep(this,'plan')">2. 建立複合索引</button>
+      <button data-step="3" onclick="setStep(this,'plan')">3. 加索引後：Index Scan</button>
+      <button data-step="4" onclick="setStep(this,'plan')">4. 怎麼看貴不貴</button>
+      <button data-step="5" onclick="setStep(this,'plan')">5. Map View 抓瓶頸</button>
+    </div>
+    <div class="step-panel active plan-step" data-step="1">
+      <p><b>誰在決定怎麼做：查詢規劃器、節點。</b>查詢規劃器就是廚房裡負責「想辦法」的大廚，客人只說想吃什麼，大廚要自己想一套流程，這套流程就是執行計畫；每一行是一個「節點」，動作複雜時好幾個節點疊起來，這也是地圖檢視長得像一棵樹的原因。</p>
+      <p><b>Seq Scan（全表掃描）：</b>想像在沒有分類的倉庫裡找東西，只能一箱一箱打開看。</p>
+      <div class="example"><pre><code>Seq Scan on orders  (cost=0.00..15420.00 rows=4500)
+  Filter: (user_id = 98712 AND status = 'pending')</code></pre></div>
+    </div>
+    <div class="step-panel plan-step" data-step="2">
+      <p>想像倉庫大門貼了一張清單「A 類東西在第 3 排」，看一眼清單就知道去哪拿，這就是 <b>Index Scan（索引掃描）</b>。實際建這張清單：</p>
+      <div class="example"><pre><code>CREATE INDEX idx_orders_user_status
+ON orders (user_id, status);</code></pre>用 `user_id` 為第一排序依據，相同 `user_id` 的資料再依 `status` 排序，建立時資料庫把每列 `(user_id, status)` 值抓出來排序，組成獨立資料結構（PostgreSQL 預設用 B-tree）分開存放。</div>
+      <p><b>為什麼欄位順序要這樣排：</b>`user_id` 的區分度遠高於 `status`（`user_id` 幾乎每個值都不一樣，`status` 通常只有 `pending`、`shipped`、`cancelled` 等少數值），區分度高的欄位放第一位，才能讓「跳到目標位置」這一步盡量縮小範圍。</p>
+    </div>
+    <div class="step-panel plan-step" data-step="3">
+      <div class="example"><pre><code>Index Scan using idx_orders_user_status on orders  (cost=0.42..8.50 rows=3)</code></pre>成本從 15,420 大幅降到 8.5。</div>
+      <p>查詢 <code>SELECT * FROM orders WHERE user_id = 98712 AND status = 'pending'</code> 實際執行步驟：① 規劃器發現索引涵蓋 `WHERE` 用到的兩個欄位，選擇 Index Scan；② 在索引裡用二元搜尋（每次對半找）快速定位到 `user_id = 98712` 開始的位置，只需比對 log(N) 次而非 N 次；③ 從那個位置往後讀，因為同一個 `user_id` 的資料在索引裡連續排在一起；④ `status` 是第二排序依據，`pending` 的資料排在一起，不用逐筆檢查；⑤ 索引每筆紀錄附帶指標指向表裡實際那一列，找到符合條件的項目後依指標回表讀出真正資料。整個過程完全沒有看那些不符合條件的 499,997 列。</p>
+    </div>
+    <div class="step-panel plan-step" data-step="4">
+      <p><b>拿到資料後怎麼加工：</b>Filter（篩選，對應 `WHERE`）、排序 Sort（對應 `ORDER BY`，通常要等所有東西堆到桌上才能開始排）、聯結 Join（`Nested Loop` 清單小時一筆筆去另一份找對應／`Hash Join` 兩份都不小時先把其中一份建成雜湊表／`Merge Join` 兩邊本來就有序時像拉拉鍊一樣對）、彙總 Aggregate（`COUNT`/`SUM`/`GROUP BY`，通常是最後一步）。</p>
+      <p><b>cost：</b>不是花多少錢或秒數，比較像大廚心裡對「這個做法麻不麻煩」打的分數，寫法「起步分數..總分數」，是憑經驗猜的，只能跟同一份計畫裡的其他動作比大小，不能跨查詢、跨機器比較。<b>rows：</b>大廚猜「這個動作做完大概留下幾筆」，猜的數字和實際差很多，就是「大廚這次可能選錯做法」的訊號。</p>
+    </div>
+    <div class="step-panel plan-step" data-step="5">
+      <p>如果整份流程有很多動作疊在一起，DBM 會把整份流程畫成一棵樹，用顏色深淺或方塊大小直接告訴你哪個方塊最耗力氣，不用自己一個一個心算比較。</p>
+      <div class="example"><span class="lbl">實戰範例</span>對某筆查詢樣本查看執行計畫，看到 Seq Scan，資料庫逐列掃描整張 `orders` 表（50 萬列），地圖檢視顯示這個節點佔了總成本的 98%。修復：建立 `(user_id, status)` 複合索引，成本從 15,420 降到 8.5。</div>
+      <div class="examtip"><span class="lbl">注意</span>並非每個查詢都有執行計畫：有些查詢時間太短無法被取樣附帶計畫，有些結構上不符合條件（例如特定鎖定模式的交易），且收集需要 <code>explain_statement</code> 函式正確設定（見第 2 章）。若查詢樣本沒有相關計畫，先檢查這個函式。</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>等待事件（Wait Events）：銀行辦事大廳</h3>
+    <div class="analogy"><span class="lbl">Analogy</span>把資料庫想成一間銀行的辦事大廳，每個「連線」是一位正在辦事的客戶，客戶辦事的每一刻，不是「正在被服務」就是「在等某件事」。</div>
+    <p><b>CPU 等待：</b>查詢正在真正被處理，是正常忙碌，占比一直很高通常代表查詢要處理的資料量或計算量大。<b>鎖定等待（Lock wait）：</b>這條連線想動某筆資料，但已被另一條連線鎖住，例如 <code>Lock:transactionid</code> 代表在等另一整筆交易結束，突增代表有交易卡太久沒結束。<b>I/O 等待：</b>等資料從硬碟讀進記憶體或寫進硬碟，占比高通常代表資料量大或硬碟速度跟不上。<b>閒置（Idle）：</b>連線目前沒有查詢在跑但還占著位置。<b>阻塞（blocking）：</b>鎖定等待的另一面，A 在等 B 放開鎖就說「B 阻塞了 A」，活動連線分頁能直接告訴你「誰在阻塞誰」。</p>
+    <p class="trace-note">實戰範例見第 4 章、第 7 章的 <code>Lock:transactionid</code> 突增、<code>stop_locks</code> 追查、根因是測試用 <code>LOCK TABLE</code> cronjob 沒被清掉的真實案例。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>活動工作階段（Active Sessions）：每 10 秒的快照</h3>
+    <p>資料庫活動連線狀態的定期快照，大約每 10 秒擷取一次，捕捉當前正在執行的查詢、持續時間、等待狀態、哪些連線正在阻塞其他連線。跟等待事件是搭配使用的一組：等待事件告訴你「突增發生了」，活動工作階段告訴你「突增發生時具體在跑什麼」。</p>
+    <div class="analogy"><span class="lbl">Analogy</span>如果等待事件是「這一刻某位客戶在等什麼」的即時廣播，活動工作階段就是保全系統每隔幾秒對整個大廳拍一張照片。因為是「定期拍照存檔」不是持續錄影，兩張照片中間發生的事不會被記錄，但事後還是能一張一張翻回去找到異常當下發生了什麼事。多條連線同時因同一個原因卡住時，能把這些連線串成一條「阻塞鏈」，具體點名是哪一條連線、跑哪一句查詢造成的。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>結構描述（Schemas）：表結構是否合理</h3>
+    <p>可以把一張表想成一個檔案櫃，每一列資料是一份格式統一的表單。<b>欄位（column）</b>是每份表單固定會有的一格；<b>資料類型</b>規定這一格只能填什麼（例如 <code>numeric(10,2)</code>）；<b>主鍵</b>絕對不會跟別份表單重複，資料庫預設會自動建立索引；<b>索引</b>是幫忙快速定位資料的清單，索引大小指這份額外清單本身占了多少儲存空間，不是免費的。</p>
+    <div class="examtip"><span class="lbl">考試補充的基礎名詞</span><b>B-tree</b>（多數資料庫索引預設用的樹狀結構，讓「對半找」的二元搜尋能成立）、<b>覆蓋索引（covering index）</b>（索引本身就包含查詢需要的所有欄位，完全不用回表）、<b>索引膨脹（index bloat）</b>（索引隨資料異動累積大量不再有效的項目，佔用空間變大、查詢變慢，需要定期重建或清理）。表名、欄位名、索引名稱這些結構性資訊不屬於混淆處理範圍，會完整顯示在結構描述頁面。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>資料隱私與混淆處理</h3>
+    <p>查詢樣本會擷取實際執行的查詢文字，資料庫裡常存著使用者信箱、付款資訊、個資，Agent 送資料到 Datadog 之前做兩件事：<b>查詢正規化</b>（字面值換成 `?` 佔位符，同時也是離開主機前先拿掉字面值的機制）和<b>參數混淆處理（obfuscation）</b>（另一道保護，預設就會執行，處理正規化沒涵蓋到的情況，例如查詢文字裡的註解）。</p>
+    <div class="table-wrap"><table>
+      <tr><th>資料類型</th><th>預設是否會被混淆</th></tr>
+      <tr><td>查詢參數值（綁定的字面值）</td><td>會</td></tr>
+      <tr><td>查詢文字中的註解</td><td>會</td></tr>
+      <tr><td>表格名稱和欄位名稱</td><td>不會</td></tr>
+      <tr><td>索引名稱</td><td>不會</td></tr>
+      <tr><td>執行計畫結構</td><td>不會</td></tr>
+      <tr><td>主機中繼資料和資料庫標籤</td><td>不會</td></tr>
+    </table></div>
+    <div class="examtip"><span class="lbl">考試常考的盲點</span>如果表名、欄位名本身包含敏感資訊（例如表叫 <code>credit_cards</code>），這些名稱本身會被看到；資料庫的 log 若送到 Datadog，可能包含完整 SQL 查詢文字含綁定參數，混淆處理只套用在 DBM 遙測管線，log 走不同路徑；SQL 查詢裡的<b>註解</b>可能被 Agent 收集且不經混淆，這一點在第 3 章的 trace 關聯註解機制裡也要特別留意，因為那個機制本身就是靠 SQL 註解夾帶 trace id。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>動手調查前要知道的兩件事</h3>
+    <ol>
+      <li><b>DBM 是取樣（sampling），不是全量擷取。</b>某查詢沒出現在查詢樣本中，很可能是該時間區間內未被擷取，而非沒有執行。</li>
+      <li><b>存在傳播延遲。</b>從查詢執行到指標出現在 DBM 檢視之間有短暫延遲，驗證修復時請等幾分鐘再看更新資料。</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 2 ===================== -->
+<section class="chapter" data-chapter="2" style="--accent:var(--c2);--accent-bg:var(--c2-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Chapter 02 · Setup &amp; Instrumentation</div>
+    <h2>基礎架構整合與設定</h2>
+    <p class="lead">上一章的六種遙測資料要真的出現在畫面上，得先走過這整套設定過程。這一章用 Storedog 環境，從最基礎的 Postgres 整合，一路做到完整啟用 DBM 並驗證成功，再補上考試會問、但單一實驗環境看不到的廣度。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>實驗環境：Storedog</h3>
+    <p><span class="term">Storedog</span> 是這一章實作範例用的電商應用程式，讓使用者搜尋、瀏覽、購買商品。架構包含一個 web 前端、一個後端伺服器、以及兩個 PostgreSQL 資料庫：一個存 spree 後端相關資料，另一個存廣告、折扣碼、商品資料。第 1 章、第 4 章看到的查詢，很多都是這兩個資料庫在處理 Storedog 業務邏輯時跑出來的。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>第一步 vs. 第二步：只靠基礎架構整合，能看到多少</h3>
+    <p>在啟用完整 DBM 之前，先看看只靠 Postgres 基礎架構整合和 APM，能拿到多少可見性，作為對照 DBM 額外能看到什麼的基準。</p>
+    <div class="toggle-row">
+      <button class="active" onclick="toggleP(this,'step1')">第一步：僅基礎架構整合</button>
+      <button onclick="toggleP(this,'step2')">第二步：升級成完整 DBM</button>
+    </div>
+    <div class="toggle-panel active" id="step1">
+      <p><b>建立唯讀使用者與權限：</b></p>
+      <div class="example"><pre><code>CREATE user datadog WITH PASSWORD 'datadog';
+GRANT pg_monitor TO datadog;
+GRANT SELECT ON pg_stat_database TO datadog;</code></pre>建立一個叫 `datadog` 的使用者；授予 `pg_monitor` 讓它能讀取統計和活動資訊但不能改資料；額外授權讀取 `pg_stat_database`（整個資料庫層級的統計數字）。</div>
+      <p><b>驗證權限：</b></p>
+      <div class="example"><pre><code>docker exec lab-postgres-1 psql -x -h postgres -U datadog postgres -c \
+"select * from pg_stat_database LIMIT(1);" \
+&& echo -e "\e[0;32mPostgres connection - OK\e[0m" \
+|| echo -e "\e[0;31mCannot connect to Postgres\e[0m"</code></pre>能成功查到資料就代表使用者和權限都設定正確。這個唯讀使用者就是後面 Agent 設定檔中實際填入的帳密。</div>
+      <p><b>Autodiscovery：Docker label 怎麼讓 Agent 自動連上資料庫。</b>因為 Storedog 有兩個邏輯資料庫，Agent 設定會有兩組連線資訊：</p>
+      <div class="example"><pre><code>postgres:
+  image: postgres:13-alpine
+  environment:
+    - DD_DBM_PROPAGATION_MODE=full
+  labels:
+    com.datadoghq.ad.check_names: '["postgres", "postgres"]'
+    com.datadoghq.ad.init_configs: '[{}, {}]'
+    com.datadoghq.ad.instances: '[
+        {
+          "host":"%%host%%", "port":5432,
+          "username":"datadog", "password":"datadog",
+          "relations": [{"relation_name": "advertisement"},
+                        {"relation_name": "discount"},
+                        {"relation_name": "items"}],
+          "query_samples": {"enabled": true, "explain_parameterized_queries": true},
+          "collect_function_metrics": true,
+          "collection_interval": 1
+        },
+        {
+          "host":"%%host%%", "port":5432,
+          "username":"datadog", "password":"datadog",
+          "dbname": "spree_starter_development",
+          "relations": [{"relation_regex": "spree_.*"}],
+          "query_samples": {"enabled": true, "explain_parameterized_queries": true},
+          "collect_function_metrics": true,
+          "collection_interval": 1
+        }]'</code></pre></div>
+      <p><code>host: "%%host%%"</code> 用範本變數，Agent 啟動時自動代入 container 實際網路位址；`relations` 用 `relation_name` 列出具體表名，或用 `relation_regex` 一次涵蓋所有符合樣式的表；`query_samples` 開啟查詢樣本收集並允許對帶參數的查詢也嘗試收集執行計畫；`collection_interval: 1` 是實驗用途的高頻設定。這些 label 已經涵蓋 DBM 相關欄位，代表環境已經預先鋪好路，只是這一步還沒正式啟用背後對應的完整功能。</p>
+      <p><b>這個階段能看到什麼：</b>自動提供 <b>Postgres - Metrics</b>、<b>Postgres - Overview</b> 兩個現成儀表板（見第 5 章），以及 APM（透過 Tracer + Agent APM 功能，見第 3 章）從「應用程式呼叫資料庫」角度記錄查詢和耗時，能在 <b>APM &gt; Software Catalog</b> 找到 Postgres 這個服務。到這一步為止，只看得到彙總層級的資源指標，還看不到第 1 章的六種遙測。</p>
+    </div>
+    <div class="toggle-panel" id="step2">
+      <p>在原本的整合上，只需要幾個小改動：先讓 Agent 知道要用 DBM 模式連線（<code>dbm: true</code>），再讓資料庫本身準備好被抓取細節（<code>postgresql.conf</code> 兩個參數），然後在資料庫裡建立 DBM 需要的權限和輔助函式（<code>dbm_setup.sql</code>），最後重啟並驗證。</p>
+      <p><b>加上 <code>dbm: true</code>：</b>兩組連線設定各自都要在 `host` 參數上面加一行：</p>
+      <div class="example"><pre><code>com.datadoghq.ad.instances: '[
+    {
+      "dbm": true,
+      "host":"%%host%%", "port":5432,
+      "username":"datadog", "password":"datadog",
+      "relations": [{"relation_name": "advertisement"},
+                    {"relation_name": "discount"},
+                    {"relation_name": "items"},
+                    {"relation_name": "preorder_items"},
+                    {"relation_name": "influencer"}],
+      "query_samples": {"enabled": true, "explain_parameterized_queries": true},
+      "max_relations": 400,
+      "collect_function_metrics": true,
+      "collection_interval": 1
+    },
+    { "dbm": true, "host":"%%host%%", "port":5432,
+      "username":"datadog", "password":"datadog",
+      "relations": [{"relation_regex": "spree_.*"}],
+      "query_samples": {"enabled": true, "explain_parameterized_queries": true},
+      "max_relations": 400,
+      "collect_function_metrics": true,
+      "collection_interval": 1
+    }]'</code></pre>兩組實例都只多了 `"dbm": true,` 這一行，其餘連線設定完全沒變。改完重啟套用：<code>docker compose stop postgres && docker compose up postgres -d</code>。</div>
+      <p><b><code>postgresql.conf</code> 設定：</b></p>
+      <div class="example"><pre><code>shared_preload_libraries = 'pg_stat_statements'
+track_activity_query_size = 4096</code></pre><code>shared_preload_libraries</code> 指定啟動時預先載入 `pg_stat_statements`，這個擴充套件在背景持續記錄「每一種正規化後的查詢跑了幾次、花了多久」，是收集查詢指標的底層依據；`track_activity_query_size` 調高到 4096，確保收集到的查詢樣本不會被腰斬。這是資料庫自己設定檔裡的東西，跟 Agent 端的 `dbm: true` 是兩件不同的事，兩邊都要打開 DBM 才能真正運作。</div>
+      <p><b><code>dbm_setup.sql</code>：授權、建 schema、建輔助函式。</b>每個想用 DBM 監控的資料庫各自跑一次：</p>
+      <div class="example"><pre><code>GRANT SELECT ON pg_stat_database TO datadog;
+CREATE SCHEMA datadog;
+GRANT USAGE ON SCHEMA datadog TO datadog;
+GRANT USAGE ON SCHEMA public TO datadog;
+GRANT pg_monitor TO datadog;
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements;</code></pre></div>
+      <button class="reveal-btn" onclick="openNodePanel('explain-statement')">點開看 explain_statement 函式完整內容與運作原理</button>
+      <p style="margin-top:14px;"><b>執行結果：</b></p>
+      <div class="example"><pre><code>GRANT SELECT ON pg_stat_database TO datadog;
+GRANT
+CREATE SCHEMA datadog;
+psql:/root/lab/dbm_setup.sql:2: ERROR:  schema "datadog" already exists
+GRANT USAGE ON SCHEMA datadog TO datadog;
+GRANT
+...
+CREATE OR REPLACE FUNCTION datadog.explain_statement(...)
+CREATE FUNCTION</code></pre>中間 `ERROR: schema "datadog" already exists` 不是致命錯誤，`psql -a` 模式遇到這種非致命錯誤只會跳過那一句繼續往下跑，因為這個設定檔在同一個資料庫上被執行過不只一次。</div>
+      <p><b>重啟並驗證：</b><code>docker restart lab-postgres-1</code>，因為 `shared_preload_libraries` 只有啟動時才會載入。剛重啟完 `Total Runs: 1` 時還看不到 DBM 相關欄位，這是正常的，需要跑過幾輪才會出現。<b>完全啟用成功後應該多出三行：</b></p>
+      <div class="example"><pre><code>Database Monitoring Activity Samples: Last Run: 2, Total: 11
+Database Monitoring Query Metrics: Last Run: 2, Total: 11
+Database Monitoring Query Samples: Last Run: 2, Total: 191</code></pre>出現代表 Agent 真的有在收集這些資料，不是只有基礎架構整合層級的 `Metric Samples`。</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>更廣的畫面：考試涵蓋、但單一 Postgres 實驗看不到的部分</h3>
+    <p>上面的實作全部基於「自架 Postgres + Docker」，考試涵蓋範圍更廣，以下是實驗沒機會碰到、但概念上要知道的部分。</p>
+    <div class="grid g3">
+      <div class="mini" tabindex="0" onclick="toggleMini(this)">
+        <div class="mt">自架資料庫（self-hosted）</div>
+        <div class="md">Agent 直接裝在資料庫主機上</div>
+        <div class="full">跟這一章實驗環境一樣，能完整看到執行資料庫程序那台機器的健康狀況，並授予 Agent 唯讀存取權。</div>
+      </div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)">
+        <div class="mt">雲端託管（RDS、Azure SQL、Cloud SQL）</div>
+        <div class="md">沒辦法直接裝軟體在受管執行個體上</div>
+        <div class="full">要把 Agent 裝在另一台有網路存取權的主機（例如 EC2），並設定連到每個受管執行個體。CPU/記憶體/磁碟等系統指標透過該雲端廠商的 Datadog 整合直接收集。</div>
+      </div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)">
+        <div class="mt">Kubernetes</div>
+        <div class="md">Cluster Agent 搭配 DBM</div>
+        <div class="full">能對 pod 群跑 cluster check，Cluster Agent 會自動把資料庫執行個體分散到一組 Agent 上，確保每個 check 只跑一次實例。</div>
+      </div>
+    </div>
+    <div class="example" style="margin-top:14px;"><span class="lbl">基本 YAML 結構（不分引擎都類似，跟這一章的 `dbm: true` 是同一件事）</span><pre><code>init_config:
+instances:
+  - dbm: true
+    host: localhost
+    port: 5432
+    username: datadog
+    password: 'ENC[datadog_user_database_password]'</code></pre>設定檔路徑是 `conf.d/&lt;CHECK_NAME&gt;.d/conf.yaml`。<b>官方建議一個 Agent 監控不超過 30 個資料庫執行個體。</b></div>
+
+    <p style="margin-top:16px;"><b>資料庫使用者權限：跨引擎對照</b>（通用模式：建立一個專用的 `datadog` 使用者，只給監控需要的最小權限）：</p>
+    <div class="table-wrap"><table>
+      <tr><th>引擎</th><th>需要的權限/設定</th></tr>
+      <tr><td>Postgres</td><td><code>pg_monitor</code> 角色、安裝 `pg_stat_statements`、有適當授權的 `datadog` schema（跟這一章實際做過的 `dbm_setup.sql` 一致）</td></tr>
+      <tr><td>MySQL</td><td>啟用 `performance_schema`、各種 `SELECT` 和 `REPLICATION CLIENT` 授權、`datadog.explain_statement` 預存程序</td></tr>
+      <tr><td>SQL Server</td><td><code>VIEW SERVER STATE</code> 和 <code>VIEW DATABASE STATE</code> 權限、對各資料庫的 `CONNECT` 存取權、特定驅動程式設定</td></tr>
+    </table></div>
+    <div class="examtip"><span class="lbl">考試重點</span>不會考特定引擎的 SQL 語法，但要理解概念：Agent 使用者需要「讀取效能檢視表」的權限，權限不足 DBM 就收不到資料。</div>
+
+    <div class="acc-item" style="margin-top:16px;">
+      <div class="acc-head" onclick="toggleAcc(this)">驗證設定是否生效（完整五步驟）<span class="chev">▸</span></div>
+      <div class="acc-body">
+        <p><b>Step 1：</b>跑 <code>sudo datadog-agent status</code>，正常整合會顯示在 Running Checks 底下，帶著 `Database Monitoring Query Metrics`、`Query Samples` 這幾行統計。<b>Step 2：</b>用 `psql`（Postgres）或 `sqlcmd`（SQL Server）等命令列工具確認帳密、host、port 在 Agent 之外也連得上。<b>Step 3：</b>驗證權限，例如確認 `datadog` 使用者能查到 `pg_stat_statements` 至少一筆資料。<b>Step 4：</b>檢查 Datadog UI 的 Database Monitoring 頁面有沒有資料進來。<b>Step 5：</b>驗證到 Datadog 端點的網路連線：<code>telnet dbm-metrics-intake.&lt;site&gt; 443</code>、<code>telnet dbquery-intake.&lt;site&gt; 443</code>，常見失敗原因是 proxy 設定或防火牆擋掉對外流量。</p>
+        <p>DBM 特有的資料收集靠 Agent 內部四個平行的非同步工作：<b>Statement Metrics</b>（查 `pg_stat_statements` 等，收集每條查詢的彙總指標）、<b>Statement Samples</b>（抽樣活動查詢快照並跑 `EXPLAIN`）、<b>Activity Monitoring</b>（收集活動連線、等待事件、阻塞查詢）、<b>Metadata Collection</b>（收集 schema 資訊、資料庫設定、主機設定），每個工作各自排程、各自回報，一個失敗不一定影響其他的。</p>
+      </div>
+    </div>
+
+    <p style="margin-top:16px;"><b>可調整的設定項：</b></p>
+    <div class="table-wrap"><table>
+      <tr><th>設定項</th><th>預設值 / 說明</th></tr>
+      <tr><td>Query Metrics 收集間隔</td><td>10 秒，資料庫忙時可拉長到 30 秒降低負擔</td></tr>
+      <tr><td>Query Samples 收集間隔</td><td>1 秒（實驗環境的 `collection_interval: 1` 就是這個），也是執行計畫怎麼被收集的依據</td></tr>
+      <tr><td>Query Activity 收集間隔</td><td>1 秒，不能小於 Query Samples 的收集間隔</td></tr>
+      <tr><td>Reported Hostname</td><td>覆寫 UI 顯示的主機名稱，Agent 經 proxy 連線或跑在通用主機名容器裡時重要</td></tr>
+      <tr><td>Ignore Databases</td><td>排除不想監控的資料庫，例如 `template0`、`rdsadmin`、`cloudsqladmin`</td></tr>
+      <tr><td>Schema Collection</td><td>預設每 10 分鐘收集一次，讓 Schema Explorer 能運作</td></tr>
+      <tr><td>Custom Queries</td><td>自訂 SQL 結果當成指標回報，監控業務指標（佇列深度、訂單數）</td></tr>
+    </table></div>
+    <p><b>標籤的來源：</b>Agent 設定裡明確設的 `tags`、主機自動收集的基礎架構標籤、`datadog.yaml` 的全域主機標籤（需 `propagate_agent_tags: true`）、從資料庫本身衍生的標籤（`db`、`user`、`client`、`query_signature`、`query`）、以及啟用 DBM-APM 關聯後從 trace 上下文加上的標籤（見第 3 章）。</p>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 3 ===================== -->
+<section class="chapter" data-chapter="3" style="--accent:var(--c3);--accent-bg:var(--c3-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Chapter 03 · APM Correlation</div>
+    <h2>APM 與 DBM 關聯</h2>
+    <p class="lead">前兩章分別講了六種遙測資料本身、以及怎麼把 DBM 架起來收集這些資料，這一章講另一件事：DBM 收集到的資料庫端遙測，怎麼跟 APM 收集到的應用程式端遙測連在一起。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>要解決的問題</h3>
+    <p>沒有關聯時，DBM 和 APM 是兩個獨立的世界。APM 告訴你「這個 API 端點很慢，資料庫那個 span 花了 2 秒」，但不會告訴你「為什麼」慢；DBM 告訴你「這條正規化查詢延遲很高」，但不會告訴你是哪個服務造成的。接起來之後，開發者不需要直接存取資料庫就能理解資料庫效能，DBA 也能理解特定服務的請求流量如何影響資料庫負載。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>三層機制：Tracer、Agent、trace ID 注入</h3>
+    <p>這個關聯不是資料庫本身有什麼特別設定，而是應用程式端設定加上 Agent 的 APM 功能共同促成的，跟第 2 章的 Storedog 實驗環境完全對得起來。</p>
+    <div class="stepper-nav">
+      <button class="active" data-step="1" onclick="setStep(this,'apm')">第一層：Tracer</button>
+      <button data-step="2" onclick="setStep(this,'apm')">第二層：Agent APM Port</button>
+      <button data-step="3" onclick="setStep(this,'apm')">第三層：SQL 註解注入</button>
+    </div>
+    <div class="step-panel active apm-step" data-step="1">
+      <p><code>backend`、`worker</code> 這類服務會掛載 <code>datadog-tracer-backend.rb</code> 這種初始化檔案，是 dd-trace 函式庫設定檔，負責在 Ruby/Rails 應用程式啟動時自動掛上追蹤功能。裝好之後，Tracer 會自動攔截應用程式呼叫資料庫的動作（例如透過 ActiveRecord 下的 SQL），不需要工程師手動加程式碼。</p>
+      <p>這是 Postgres 能以「service」身分出現在 APM 裡的根本原因：是應用程式那端在回報「它呼叫了資料庫」，資料庫本身並不知道自己被追蹤。裝好後能在 <b>APM &gt; Software Catalog</b> 找到 Postgres 這個服務。</p>
+    </div>
+    <div class="step-panel apm-step" data-step="2">
+      <p>Agent container 設有 <code>DD_APM_ENABLED=true</code>、<code>DD_APM_NON_LOCAL_TRAFFIC=true</code>，並開了 <b>8126</b> 這個 port，是 Agent 用來接收各服務送過來的 trace 資料的專用通道。應用程式端 Tracer 產生的 span，就是透過這個 port 送給 Agent，再由 Agent 轉送到 Datadog。每個應用程式服務也都設了 <code>DD_AGENT_HOST=datadog</code>，告訴 Tracer 要把資料送去哪個 Agent。</p>
+    </div>
+    <div class="step-panel apm-step" data-step="3">
+      <p>單純有 Tracer 和 APM，只能看到「應用程式呼叫了資料庫、花了多少時間」的 span 層級資訊，要能從 APM 某條 trace 直接連到 DBM 收集到的 Query Samples、Explain Plans 細節，靠的是把 trace ID 注入到 DBM 資料收集裡。</p>
+      <p>APM tracer 會把 trace 上下文（trace ID、span ID、service name、environment）以 <b>SQL 註解</b>的形式，加在實際查詢文字前面再送出去：</p>
+      <div class="example"><pre><code>/*dddbs='orders-db',ddps='checkout-service',ddtid='abc123'*/ SELECT * FROM orders WHERE id = ?</code></pre>資料庫只執行 `SELECT` 那部分（忽略註解，不影響效能），Agent 收集查詢樣本時讀到這段註解，抽出 trace 中繼資料，建立關聯。這也是為什麼 <code>DD_DBM_PROPAGATION_MODE=full</code> 這個環境變數在第 2 章 `postgres`、`backend`、`worker` 等多個服務裡都各自設了一份，因為兩邊都要設才能對得起來。</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>三種 Propagation Mode</h3>
+    <div class="grid g3">
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">full</div><div class="md">完整 trace 資訊</div><div class="full">送出完整 trace 資訊（trace ID、span ID、service name、environment），能雙向導航：從 trace span 跳到 DBM 查詢樣本，也能從 DBM 樣本跳回完整 trace。大多數整合建議用這個，也是第 2 章實驗環境實際採用的設定。</div></div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">service</div><div class="md">只送 service name</div><div class="full">不含 trace/span ID，能看出是哪個服務造成資料庫負載，但不能跳轉到特定 trace。</div></div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">disabled</div><div class="md">完全不傳送</div><div class="full">DBM 和 APM 各自獨立，沒有關聯，回到本章開頭「兩個世界互不相干」的狀態。</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>啟用關聯需要的四個條件</h3>
+    <ul>
+      <li>DBM 已設定並收集資料（<code>dbm: true</code>，見第 2 章）。</li>
+      <li>APM 已設定並有 tracing（裝了 Datadog tracing 函式庫，或帶正確屬性的 OpenTelemetry）。</li>
+      <li>Tracer 裡設定了 Propagation Mode（依語言各自設定，或用環境變數 <code>DD_DBM_PROPAGATION_MODE=full</code>）。</li>
+      <li>Unified Service Tagging（<code>DD_SERVICE</code>、<code>DD_ENV</code>、<code>DD_VERSION</code> 都要設，確保 service/env/version 在 APM 和 DBM 兩邊標籤一致）。</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>跟查詢正規化/混淆處理的關係（重要區分）</h3>
+    <p>第 1 章提到查詢文字送到 Datadog 前會經過正規化與混淆處理，那是保護查詢裡的<b>綁定參數值</b>不外洩的機制。這裡的 trace ID 注入走的是完全不同的路徑：它動的是查詢文字最前面的<b>註解</b>，不是查詢本身的參數，而且<b>註解不會被混淆處理</b>。</p>
+    <div class="examtip"><span class="lbl">考試常考的盲點</span>如果應用程式自己額外在 SQL 裡加了含敏感資訊的註解（例如使用者 ID 或 session token），這些也會被 Agent 收集並送到 Datadog，不經過混淆。混淆處理只涵蓋參數值，不涵蓋 SQL 註解本身。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>小結：典型排查流程</h3>
+    <p>Postgres 本身完全沒被特別設定去配合 APM，是應用程式裝了 Tracer、把 span 送給開了 APM 的 Agent，<code>DD_DBM_PROPAGATION_MODE</code> 再靠 SQL 註解裡的 trace ID 把這些 span 跟資料庫端收集到的查詢資料接起來。</p>
+    <div class="flowbox">
+      <div class="fb">APM 發現慢的<br>API 端點</div><span class="farrow">→</span>
+      <div class="fb">順著關聯跳到<br>DBM 的具體慢查詢</div><span class="farrow">→</span>
+      <div class="fb">看執行計畫和<br>等待事件確認根因</div>
+    </div>
+    <p class="trace-note">完整實戰範例見第 4 章「從 Query Sample 連到 APM Trace 確認實際影響」。</p>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 4 ===================== -->
+<section class="chapter" data-chapter="4" style="--accent:var(--c4);--accent-bg:var(--c4-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Chapter 04 · Diagnosis in Practice</div>
+    <h2>查詢分析與問題診斷（實戰案例）</h2>
+    <p class="lead">這是最重的一章：一般化的診斷框架，跟一次真實的 Storedog 資料庫調查合併成同一條敘事線，框架是骨架，實戰案例穿插在對應段落示範。這一章講的是「怎麼用」；完整的鎖定事件全追蹤互動版見獨立分頁「架構全覽」。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>常見效能問題模式對照表</h3>
+    <div class="table-wrap"><table>
+      <tr><th>模式</th><th>描述</th><th>去哪裡找</th></tr>
+      <tr><td>慢查詢</td><td>特定查詢模式耗時過長</td><td>Query Metrics，依 Average latency 或 Total time 排序</td></tr>
+      <tr><td>資源飽和</td><td>主機 CPU/記憶體/磁碟 I/O/連線數耗盡</td><td>內建儀表板、主機詳情的 Metrics 分頁</td></tr>
+      <tr><td>阻塞/鎖競爭</td><td>查詢在等其他查詢放開鎖</td><td>Metrics 的 Blocks 分頁、等待事件分析</td></tr>
+      <tr><td>查詢退化</td><td>原本快的查詢變慢</td><td>Recommendations 的 Query Load Increase、Query Metrics 比對執行計畫</td></tr>
+      <tr><td>低效查詢模式</td><td>回傳少但檢查很多列、昂貴 join、全表掃描</td><td>Query Samples 的執行計畫（找 Sequential Scan / COLLSCAN）</td></tr>
+    </table></div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>從哪裡開始查</h3>
+    <p>依照你怎麼發現問題的，起點不一樣：<b>告警觸發</b>（從觸發的監控本身開始，見第 5 章）、<b>使用者回報特定功能慢</b>（從 APM 開始找慢的 trace，再跳到 DBM）、<b>一般健康檢查</b>（從 Databases 頁面開始）、<b>主動檢視</b>（從 Recommendations 開始）。</p>
+    <div class="examtip"><span class="lbl">實戰案例的起點</span>本章的 Storedog 調查也是從「一般健康檢查」開始，從 Databases 總覽頁看到 Wait Group Activity 圖表上出現異常鎖定事件，完整互動追蹤見獨立分頁「架構全覽」。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Query Metrics vs. Query Samples：什麼時候用哪個</h3>
+    <div class="cmp c2">
+      <div class="col"><h4>Query Metrics · 趨勢分析師</h4><p>彙總歷史效能資料，前 200 名正規化查詢，保留 15 個月。回答：「哪個查詢模式吃最多資料庫時間？」「這條查詢這個月變慢了嗎？」「每秒被呼叫幾次？」<b>做不到：</b>看不到具體某一次執行、具體某個時刻發生了什麼。</p></div>
+      <div class="col"><h4>Query Samples · 事件調查員</h4><p>某時間點正在跑的查詢個別快照，附執行細節和執行計畫，保留 15 天。回答：「3:47 PM 延遲飆升時在跑什麼？」「是不是全表掃描？」「是誰在跑這條查詢？」</p></div>
+    </div>
+    <div class="example"><span class="lbl">實戰範例：用 Query Metrics 排序找出可疑查詢</span>Storedog 新加了一個「熱門商品排行」小工具，每隔幾秒對 `items` 表跑一次查詢抓最常被下單的前十項商品，這條查詢造成資料庫負擔很重。切到 Query Metrics 分頁，點選 Average Rows 欄位標題排序，`SELECT id, description...` 排在最前面，查詢文字裡的 `?` 佔位符就是正規化的結果。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>執行計畫在告訴你什麼</h3>
+    <div class="table-wrap"><table>
+      <tr><th>掃描類型</th><th>意思</th><th>好還是壞</th></tr>
+      <tr><td>Index Seek / Index Scan</td><td>用索引找列</td><td>好，有效率</td></tr>
+      <tr><td>Sequential Scan / Full Table Scan / COLLSCAN</td><td>讀整張表的每一列</td><td>大表上不好，通常缺索引</td></tr>
+      <tr><td>Bitmap Heap Scan（Postgres）</td><td>用索引建 bitmap 再讀表</td><td>中等選擇性時不錯</td></tr>
+      <tr><td>Index Only Scan（Postgres）</td><td>資料全從索引拿，不用碰表</td><td>最好，涵蓋索引</td></tr>
+    </table></div>
+    <p><b>Join 策略：</b>Nested Loop（對 A 表每列去掃 B 表，適合小表或有索引查找）、Hash Join（較小一邊建雜湊表，適合大量未排序資料）、Merge Join（兩邊先排序再合併，適合本來就有序的資料）。執行計畫節點類型的完整第一性原理拆解見第 1 章。</p>
+    <div class="example"><span class="lbl">實戰範例：Map View 抓出真正的成本瓶頸</span>正規化查詢面板的 Explain Plans 分頁，Plan Operations 表格列出這條查詢用到的操作，成本相當高。往下的 Map View 把整份執行計畫畫成視覺化樹狀圖，這次看到<b>排序（Sort）操作占了最大部分的成本</b>，是這條查詢執行時間過長的主要原因。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>APM 對照 DBM 的判讀模式</h3>
+    <div class="table-wrap"><table>
+      <tr><th>APM 看到的現象</th><th>DBM 要檢查什麼</th><th>可能原因</th></tr>
+      <tr><td>資料庫 span 占 trace 總耗時 90%</td><td>Query Metrics：這條查詢平均就慢嗎？</td><td>查詢沒優化</td></tr>
+      <tr><td>資料庫 span 延遲忽高忽低</td><td>等待事件：有鎖等待嗎？I/O 突增嗎？</td><td>資源競爭或阻塞</td></tr>
+      <tr><td>資料庫 span 很快但有好幾百個</td><td>Query Metrics：單一 trace 裡請求數異常高</td><td>N+1 查詢問題</td></tr>
+      <tr><td>資料庫錯誤暴增</td><td>主機指標：連線數到頂了嗎？磁碟滿了嗎？</td><td>基礎架構飽和</td></tr>
+      <tr><td>延遲飆升跟部署時間對上</td><td>Query Metrics：計畫變了嗎？新查詢模式？</td><td>程式碼變更造成的退化</td></tr>
+    </table></div>
+    <div class="example"><span class="lbl">實戰範例：從 Query Sample 連到 APM Trace 確認實際影響</span>正規化查詢面板右上角點 View Query Samples，這幾筆樣本成本大約落在 7000 左右，偏高。點進其中一筆，打開 Explain Plan Sample 面板切到 Trace 分頁，能看到這次查詢對應的 APM trace：是 `/get-item` 路由的 GET 請求觸發的，整個請求耗時約 1.06 秒，其中這條查詢占了 256ms，等於拖慢了整個請求四分之一左右的時間。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>N+1 查詢問題</h3>
+    <p>不是用一句 `JOIN` 一次拿到所有相關資料，而是應用程式每一筆項目各自跑一次查詢。範例：電商頁面顯示 100 筆訂單清單，每筆要顯示客戶姓名。</p>
+    <div class="cmp c2">
+      <div class="col good"><h4>有效率（1 個查詢）</h4><p><pre style="margin:0;"><code>SELECT orders.id, orders.total, customers.name
+FROM orders
+JOIN customers ON orders.customer_id = customers.id
+WHERE orders.created_at > '2024-01-01'</code></pre></p></div>
+      <div class="col bad"><h4>N+1（101 個查詢）</h4><p>先跑一個查詢抓所有訂單，接著應用程式對結果跑迴圈，每筆訂單各自跑一次查詢去查客戶姓名，100 筆訂單就是 101 次資料庫來回。</p></div>
+    </div>
+    <p><b>為什麼重要：</b>每個查詢個別看可能很快（2ms），但 101 個加起來超過 200ms，資料量放大到 1 萬筆時會非常嚴重。最麻煩的是 N+1 在開發階段常常不會被注意到，因為測試資料庫列數很少，只有到正式環境資料量變大才會顯現。</p>
+    <div class="examtip"><span class="lbl">DBM 怎麼幫你抓到它</span>APM 裡打開一條慢 trace 會看到火焰圖疊了幾百個細小、幾乎一樣的資料庫 span；DBM Query Metrics 裡這條正規化查詢的 <b>Requests</b> 數異常高，個別執行可能很快（Average latency 低），但 <b>Total time</b> 很高。<b>兩者同時出現就是明確訊號。</b>怎麼修：修法在應用程式碼，不是資料庫本身，常見做法是用 `JOIN` 一次查完、用 eager loading、或批次成一句帶 `WHERE id IN (...)` 的查詢。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>調查延遲 / 調查負載 / 調查阻塞</h3>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">調查延遲：四個步驟<span class="chev">▸</span></div>
+      <div class="acc-body"><p>① 確認資料庫是不是根源（看慢 trace 火焰圖，資料庫 span 若占大部分請求時間就是瓶頸）；② 在 Query Metrics 依 Average latency 排序找出最慢的查詢模式，但也要看 Total time；③ 點進查詢詳情看 Explain Plans（全表掃描？昂貴 join/排序？）、等待事件、Hosts Running This Query、Metrics 分頁（慢慢爬升還是突然跳升）；④ 比較不同時間點的執行計畫，如果新計畫出現後效能變差，就是計畫退化。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">調查負載：要看哪裡<span class="chev">▸</span></div>
+      <div class="acc-body"><p>主機詳情頁最上方的活動連線時序圖，能依等待分組拆開看連線狀態，大部分連線在等 CPU 代表運算密集，大部分在等 I/O 代表磁碟密集，大部分在等鎖代表有競爭；Query Metrics 依 Percent time 排序看哪個查詢模式占最大比例的資料庫總時間。</p>
+      <div class="table-wrap"><table>
+        <tr><th>模式</th><th>看到的現象</th><th>可能原因</th></tr>
+        <tr><td>數週內緩慢增加</td><td>CPU 和 I/O 穩定攀升</td><td>資料成長，需要擴容或優化</td></tr>
+        <tr><td>特定時間突然暴增</td><td>所有指標同時跳升</td><td>部署、批次工作、或流量突增</td></tr>
+        <tr><td>週期性尖峰</td><td>負載跟著可預測循環走</td><td>排程工作、業務尖峰時段</td></tr>
+        <tr><td>一台主機滿載，其他閒置</td><td>分配不均</td><td>負載平衡器設定錯誤、熱點分區</td></tr>
+      </table></div></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">調查阻塞：完整實戰範例<span class="chev">▸</span></div>
+      <div class="acc-body">
+        <p>阻塞是一個查詢卡住鎖，讓另一個需要同一個鎖的查詢等待，嚴重時形成阻塞鏈：A 卡住 B，B 卡住 C。要看主機詳情 → Blocking Queries 分頁（視覺化樹狀圖顯示誰在卡誰）、等待事件分析（鎖/latch 等待占主導代表問題是「競爭」不是「資源耗盡」）、DBM Recommendations（自動偵測並標出高影響力的阻塞者）。</p>
+        <div class="example"><span class="lbl">實戰範例：Storedog 的 LOCK TABLE 事件與 stop_locks</span>從 Databases 總覽頁展開 Wait Group Activity 圖表，看到 CPU 等待、閒置、鎖定這幾種等待事件同時存在，這次最需要優先處理的是鎖定事件。切到 Active Connections 分頁，翻幾張快照找到 <b># WAITERS</b> 欄位有數字、等待分組圖表出現紅色長條的那一筆，展開看到完整 SQL：開發團隊有人在寫更新訂單數量的查詢時語法沒寫好，用了 `LOCK TABLE` 還設成排程 cronjob 定期跑，導致大量其他查詢被卡住。切到 Blocking Queries 分頁，<b>Time Impact</b> 確認這條查詢已讓其他查詢等了超過 15 秒。這條查詢是之前測試某功能時留下的，跟 Storedog 正常運作無關，直接停掉：<code>stop_locks</code>。完整互動式追蹤（含每一步的另一種可能分支）見獨立分頁「架構全覽」。</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>用 DBM 資料做根因診斷</h3>
+    <p>依序問四個問題：① 症狀是什麼（高延遲？連線斷線？錯誤？逾時？）；② 發生在哪裡（一台主機還是全部？一條查詢還是全部？）；③ 什麼時候開始的（突然還是慢慢？跟部署/排程/流量變化對上嗎？DBM 的歷史資料能精準定位那一刻）；④ 為什麼會發生：</p>
+    <div class="table-wrap"><table>
+      <tr><th>根因分類</th><th>DBM 提供的證據</th></tr>
+      <tr><td>缺索引</td><td>執行計畫顯示 Sequential Scan，I/O 等待高，檢查列數遠大於回傳列數</td></tr>
+      <tr><td>計畫退化</td><td>同一條查詢有多個執行計畫，新計畫時間點跟效能變差對上</td></tr>
+      <tr><td>鎖競爭</td><td>活動連線鎖等待高，Blocking Queries 顯示鏈條</td></tr>
+      <tr><td>資源耗盡</td><td>CPU/記憶體/磁碟指標到頂，個別查詢沒問題但整體超容量</td></tr>
+      <tr><td>資料成長</td><td>數週/數月延遲緩慢上升，表大小持續成長</td></tr>
+      <tr><td>N+1 查詢模式</td><td>某查詢請求數極高但個別很快，單一 trace 有數百個資料庫 span</td></tr>
+      <tr><td>Schema 變更</td><td>退化時間點跟一次遷移對上，索引被刪、欄位型別改了</td></tr>
+      <tr><td>應用程式帶來的爛查詢</td><td>部署當下出現新查詢模式，依呼叫服務篩選找出問題應用程式</td></tr>
+      <tr><td>連線耗盡</td><td>活動連線到頂，新連線被拒</td></tr>
+      <tr><td>過期的統計資訊</td><td>執行計畫的列數預估嚴重不準</td></tr>
+    </table></div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>識別效能退化</h3>
+    <p>效能退化是指原本表現好的查詢開始變差，可能悄悄發生、累積一段時間才造成明顯中斷。資料庫本身只回報「現在」的統計狀態，DBM 針對正規化查詢把關鍵指標存成時間序列（Metrics 分頁），才能回頭比對歷史資料。</p>
+    <p><b>DBM 怎麼偵測：</b>自動偵測並標成 Recommendations 裡的「<b>Query Load Increase</b>」，會自動關聯查詢工作負載變化、使用者或服務活動突增、schema 修改、最近的部署。</p>
+    <p><b>常見原因：</b>計畫退化、schema 變更（索引被刪掉會標成 Missing Index）、資料成長、應用程式變更、基礎架構變更。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>DBM Recommendations 完整類型表</h3>
+    <div class="table-wrap"><table>
+      <tr><th>建議類型</th><th>偵測到什麼</th><th>建議動作</th></tr>
+      <tr><td>Missing Index</td><td>對大表做全表掃描，高成本 Sequential Scan</td><td>對篩選欄位建索引，直接給出 `CREATE INDEX` 語句</td></tr>
+      <tr><td>Unused Index</td><td>索引存在但從沒被用到</td><td>刪掉沒用的索引，減少寫入負擔和儲存空間</td></tr>
+      <tr><td>Function in Filter</td><td>`WHERE` 對欄位套用函式，索引用不上</td><td>建立函式索引/表達式索引，或重寫查詢</td></tr>
+      <tr><td>Suboptimal Index Scan</td><td>有索引但首欄跟篩選條件對不上</td><td>建立欄位順序對應篩選模式的索引</td></tr>
+      <tr><td>High-Impact Blocker</td><td>某查詢頻繁卡住其他查詢</td><td>調查這條阻塞查詢，縮短交易、優化查詢</td></tr>
+      <tr><td>Long-Running Query</td><td>跑得比同主機其他查詢異常久</td><td>優化查詢、補索引、拆成更小操作</td></tr>
+      <tr><td>Query Load Increase</td><td>執行時間相較歷史基準線顯著增加</td><td>調查計畫變化、schema 變更、或資料成長</td></tr>
+      <tr><td>Low Disk Space</td><td>資料庫主機磁碟空間快用完</td><td>增加儲存容量、清理舊資料</td></tr>
+      <tr><td>Anomalous Wait Events</td><td>等待事件模式明顯偏離正常基準線</td><td>調查是哪種等待類型突增並對應處理</td></tr>
+    </table></div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>實戰案例：把熱門商品查詢真正優化到底</h3>
+    <p>先去程式碼裡看實際查詢邏輯（<code>dbm.py</code>），發現篩選商品的門檻設得太寬，抓的不是真正熱賣商品，而是一個範圍很大的群體。</p>
+    <div class="stepper-nav">
+      <button class="active" data-step="1" onclick="setStep(this,'opt')">第一次優化</button>
+      <button data-step="2" onclick="setStep(this,'opt')">第二次優化</button>
+    </div>
+    <div class="step-panel active opt-step" data-step="1">
+      <p><b>縮小查詢範圍：</b>把產生篩選門檻的隨機範圍從 `random.randint(1, 7000)` 改成 `random.randint(5000, 7000)`：</p>
+      <div class="example"><pre><code>SELECT id, description, order_count, last_hour, image_url, NULL AS is_preorder
+FROM items
+WHERE order_count::int > {random.randint(5000, 7000)}
+UNION
+SELECT id, description, order_count, last_hour, image_url, is_preorder
+FROM preorder_items
+WHERE order_count::int > {random.randint(5000, 7000)}</code></pre></div>
+      <p>重啟服務、等幾分鐘後回到 Query Metrics 依 Average Rows 排序驗證：查詢樣本成本已下降，方向對了。再看 Traces 分頁，這次耗時比之前（原本超過 225ms）明顯降低。但整體成本還是偏高，回頭看 Explain Plan Map View，<b>排序（Sort）操作依然占了這條查詢總成本的 75%</b>，是下一個要處理的瓶頸。</p>
+    </div>
+    <div class="step-panel opt-step" data-step="2">
+      <p><b>拿掉 UNION：</b>查詢邏輯用 `UNION` 把 `items` 和 `preorder_items` 兩張表的結果合併。`UNION` 不只是把兩批結果接在一起，還會自動去除重複的列，而要去除重複，資料庫必須先把所有結果排序過一遍，這正是 Map View 裡那個高成本排序節點的來源。</p>
+      <p>進一步理解：`preorder_items` 裡的商品一旦正式上架，會被標記成 `false`，代表沒必要同時查兩張表再 `UNION` 去重，更好的做法是讓開發團隊調整資料寫入邏輯，把已上架商品直接維護進 `items` 表，查詢端只需要簡化成只查一張表：</p>
+      <div class="example"><pre><code>SELECT *
+FROM items
+WHERE order_count::int > {random.randint(5000, 7000)}</code></pre></div>
+      <p>重啟服務，回到 Query Metrics 依 <b>Rows per Query</b> 排序驗證，成本比前一次優化又大幅下降，因為現在整條查詢只剩單一個掃描操作，不再需要 `UNION` 去重造成的排序負擔。</p>
+    </div>
+    <div class="examtip" style="margin-top:16px;"><span class="lbl">這個案例示範的核心觀念</span>DBM 不是只能拿來「找問題」，改完程式碼之後，同一套 Query Metrics、Explain Plans、Query Samples、APM Trace 也能拿來「驗證修復有沒有效」，用實際數字（cost、耗時、rows）取代「感覺應該有變快」的猜測。整趟調查（鎖定問題排除 → 找出高負載查詢 → Explain Plan 鎖定排序瓶頸 → 歷史趨勢確認 → APM Trace 確認實際影響 → 兩輪優化迭代驗證）就是把本章前面每一段診斷框架實際跑過一遍的完整示範，互動版見獨立分頁「架構全覽」。</div>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 5 ===================== -->
+<section class="chapter" data-chapter="5" style="--accent:var(--c5);--accent-bg:var(--c5-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Chapter 05 · Dashboards &amp; Alerting</div>
+    <h2>儀表板與告警設計</h2>
+    <p class="lead">怎麼用儀表板監控資料庫健康、怎麼設定效能告警，以及怎麼分辨一個告警設計是有效訊號還是純噪音。前半段是實際看過的內建儀表板，後半段是考試專屬知識。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>內建儀表板</h3>
+    <p>啟用 Postgres 基礎架構整合後，Datadog 自動提供兩個現成儀表板，不用從零開始畫，可從 Query Metrics 或 Query Samples 頁面上方的 Dashboards 連結進去。</p>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">Postgres - Metrics<span class="chev">▸</span></div>
+      <div class="acc-body"><p>把資料庫效能相關的關鍵指標集中呈現，快速看出目前的活動量和資源使用狀況。</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">Postgres - Overview<span class="chev">▸</span></div>
+      <div class="acc-body"><p>整個 Postgres 執行狀況的總覽：資源使用狀況（死列、各表磁碟用量、掃描次數最多/最少的索引）；<b>鎖定（Locks）區塊</b>依鎖定模式分類的鎖定數量與死結總數（<span class="term">鎖定模式</span>依「這個鎖有多霸道」分好幾種，從只是讀資料的溫和模式到動整張表結構的最霸道模式；<span class="term">死結</span>是 A 在等 B 放開的東西、B 也在等 A 放開的東西，兩邊永遠等不到，Postgres 偵測到通常會強制中止其中一邊）；<b>列數（Rows）區塊</b>新增/更新/刪除列數，以及目前連線數。</p></div>
+    </div>
+    <div class="examtip"><span class="lbl">可以複製並自訂</span>先複製一份，永遠不要直接改原始版本（Agent 更新時會被覆蓋），再加自己的 widget、拿掉不相關的、加範本變數方便篩選。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>DBM 專屬監控類型</h3>
+    <p>從 Monitors &gt; New Monitor &gt; Database Monitoring 建立，可以針對 Query Samples、Query Metrics、Explain Plans、等待事件設定告警：</p>
+    <div class="grid g3">
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">Waiting Queries</div><div class="md">卡住的查詢數量超過門檻</div><div class="full">看 1 個月歷史資料了解正常範圍，門檻設在正常尖峰之上（例如平常 &lt;3000 就設 4000）。</div></div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">Long Running Queries</div><div class="md">跑超過某時長門檻的查詢數量太多</div><div class="full">可以用 `Duration:>30s` 只算超過 30 秒的查詢。</div></div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">Explain Plan Cost Change</div><div class="md">執行計畫成本週對週的顯著變化</div><div class="full">抓出計畫退化，設定上需要建立兩組查詢（目前 vs. 用 Timeshift 抓一週前）並對差值告警。</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>主機層級的 Metric 監控</h3>
+    <div class="grid g4">
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">門檻（Threshold）</div><div class="md">超過固定值就告警</div><div class="full">例如 CPU 連續 5 分鐘 &gt;85%、連線數 &gt;上限 90%、複寫延遲 &gt;30 秒。</div></div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">變化（Change）</div><div class="md">跟前一段時間比變化太大</div><div class="full">例如查詢量比上週同時段掉了超過 50%。</div></div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">異常（Anomaly）</div><div class="md">機器學習偵測偏離歷史模式</div><div class="full">考慮時段和星期幾的季節性，適合波動明顯、有週期規律的指標。</div></div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">預測（Forecast）</div><div class="md">真正超過門檻前先告警</div><div class="full">例如磁碟用量成長速度預估 3 天後會滿。</div></div>
+    </div>
+    <p style="margin-top:14px;"><b>複合監控（Composite）：</b>用布林邏輯組合多個監控，例如只在「錯誤率高」<b>而且</b>「總請求量夠大」時才告警，避免只有 2 個請求時錯誤率高就誤報。</p>
+    <div class="table-wrap"><table>
+      <tr><th>告警</th><th>監控類型</th><th>門檻思路</th></tr>
+      <tr><td>資料庫主機 CPU 過高</td><td>Metric（threshold）</td><td>連續 5 分鐘 &gt;85%，依主機分組</td></tr>
+      <tr><td>連線數接近上限</td><td>Metric（threshold）</td><td>&gt;max_connections 的 90%，依主機分組</td></tr>
+      <tr><td>複寫延遲過高</td><td>Metric（threshold）</td><td>連續 3 分鐘 &gt;30 秒，依 replica 分組</td></tr>
+      <tr><td>查詢延遲異常</td><td>Metric（anomaly）</td><td>對平均查詢耗時做異常偵測</td></tr>
+      <tr><td>磁碟快滿了</td><td>Metric（forecast）</td><td>預估 48 小時內達 95%</td></tr>
+      <tr><td>等待查詢暴增</td><td>DBM（waiting queries）</td><td>連續 5 分鐘數量 &gt;4000</td></tr>
+      <tr><td>長時間執行查詢</td><td>DBM（long running）</td><td>耗時 &gt;30 秒的查詢數超過門檻</td></tr>
+      <tr><td>執行計畫成本退化</td><td>DBM（explain plan）</td><td>週對週成本變化超過門檻</td></tr>
+      <tr><td>偵測到死結</td><td>Metric（threshold）</td><td>過去 10 分鐘死結數 &gt;0</td></tr>
+      <tr><td>查詢量下降</td><td>Metric（change）</td><td>跟上週同時段比掉超過 50%</td></tr>
+    </table></div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>告警聚合方式：Simple vs. Multi Alert</h3>
+    <div class="cmp c2">
+      <div class="col"><h4>Simple Alert</h4><p>跨所有回報來源做彙總，一個或多個群組超標就觸發一次告警，用這種策略能降低通知噪音。</p></div>
+      <div class="col"><h4>Multi Alert</h4><p>依你設定的分組參數各自套用告警。例如依 `@db.user` 分組，每個觸發條件的資料庫使用者都各自收到一則告警，粒度更細，但也可能吵很多。</p></div>
+    </div>
+    <div class="examtip"><span class="lbl">考試重點</span>資料庫監控通常用依 host 分組的 <b>Multi Alert</b> 最合理，你想知道的是「哪一台」主機出問題，不是只知道「某台主機」有事。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>無效告警的徵兆與修法</h3>
+    <div class="table-wrap"><table>
+      <tr><th>徵兆</th><th>怎麼修</th></tr>
+      <tr><td>Flapping（來回震盪）：門檻設得太貼近正常運作範圍</td><td>拉長評估視窗；加恢復門檻；對指標套用移動平均/速率平滑短暫尖峰；用「at all times」評估方式</td></tr>
+      <tr><td>一直在告警：門檻沒反映實際環境狀況</td><td>看 1 個月歷史資料重新評估門檻；已知不會修的問題就設定靜音（附原因和到期日）或刪除</td></tr>
+      <tr><td>從來不告警：門檻設太高或監控指標不代表問題</td><td>重新檢視監控的必要性與門檻</td></tr>
+      <tr><td>通知太多：依高基數標籤分組（如 query_signature）</td><td>不需要細粒度時改用 Simple Alert；降低分組基數改依 host；通知規則導到不同管道</td></tr>
+      <tr><td>沒有可行動的資訊：通知沒告訴收件人該做什麼</td><td>訊息帶入範本變數（{{host.name}}、{{value}}、{{threshold}}）；加相關儀表板和 runbook 連結</td></tr>
+    </table></div>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 6 ===================== -->
+<section class="chapter" data-chapter="6" style="--accent:var(--c6);--accent-bg:var(--c6-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Chapter 06 · Database Fundamentals</div>
+    <h2>資料庫基礎知識附錄</h2>
+    <p class="lead">考試範圍以外、但要看懂 DBM 畫面必備的通用資料庫知識，不是 DBM 專屬的內容，只保留其他章節沒講過的部分。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>什麼是資料庫</h3>
+    <p>資料庫是一套有組織的系統，用來儲存、擷取、管理資料，取代把資訊散落在檔案、試算表、文件裡的做法。</p>
+    <div class="analogy"><span class="lbl">Analogy</span>可以想成一座倉庫：你可以把所有庫存都丟進一個大房間，每次要找東西就整間翻過一遍；或者分類放進標好籤的架子、排、箱子，搭配一套目錄系統告訴你東西確切在哪裡。資料庫就是那個整理好的倉庫。</div>
+    <p><b>為什麼不能只用檔案：</b>檔案在遇到「多人同時讀寫不會弄壞」「幾百萬筆紀錄裡有效率地搜尋」「斷電時資料不會寫到一半」「不同種類資料之間的關聯」這些需求時很快就撐不住，資料庫解決了這些問題。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>表、列、欄、主鍵、外鍵</h3>
+    <p>資料庫最常見的組織方式是<b>表（table）</b>，類似一份試算表：一張表代表一種東西的類型，每一<b>列（row）</b>是一個具體實例，每一<b>欄（column）</b>是一個屬性。每張表通常有一個<b>主鍵（primary key）</b>，唯一辨識每一列的欄位；表之間常透過<b>外鍵（foreign key）</b>關聯，一張表裡的某欄位指向另一張表的主鍵。</p>
+    <p class="trace-note">表/列/欄/索引更完整的實際範例見第 1 章的結構描述段落。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>SQL 與 CRUD</h3>
+    <p><span class="term">SQL</span>（結構化查詢語言）是跟關聯式資料庫溝通的方式，是宣告式語言：你告訴資料庫「你要什麼」，不是「怎麼拿到它」，引擎自己想辦法找最好的執行方式。主要操作對應 <span class="term">CRUD</span>：Create（<code>INSERT</code>）、Read（<code>SELECT</code>）、Update（<code>UPDATE</code>）、Delete（<code>DELETE</code>）。</p>
+    <div class="examtip"><span class="lbl">考試重點</span>DBM 證照考試不需要你「寫」SQL，只考「解讀」，但理解這些語句在做什麼，能幫你看懂 Datadog 裡的正規化查詢和執行計畫。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>資料庫管理系統（DBMS）</h3>
+    <p>DBMS 是執行並管理資料庫的軟體，當大家說「Postgres」或「MySQL」時，指的是這套軟體本身，不是資料本身，負責儲存、查詢執行、並發控制、安全性、備份等。</p>
+    <div class="examtip"><span class="lbl">考試重點</span>Datadog DBM 目前支援 <b>PostgreSQL、MySQL、SQL Server、Oracle、MongoDB、Amazon DocumentDB、ClickHouse</b>。考試是引擎無關的，不會考特定引擎知識，但要知道 DBM 支援哪些引擎。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>主從架構與連線池</h3>
+    <p>資料庫遵循<b>主從（client-server）</b>模型：資料庫伺服器執行 DBMS 並持有資料，客戶端透過網路連到伺服器，每個連線都會消耗伺服器資源。<span class="term">連線池</span>（透過 PgBouncer、ProxySQL 或應用程式層級）在多個請求之間重複使用連線以降低開銷。</p>
+    <div class="examtip"><span class="lbl">考試重點</span>Datadog Agent <b>必須直接連到資料庫主機</b>，不能透過連線池或負載平衡器，因為經過 proxy 可能導致 Agent 隨時間看到不同的主機、產生不準確的指標。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>自架 vs. 受管資料庫</h3>
+    <p><b>自架（self-hosted）</b>資料庫跑在你自己掌控的基礎架構上，安裝、修補、備份、擴容都是你的責任。<b>受管（managed）</b>資料庫（AWS RDS、Azure SQL、Google Cloud SQL）由雲端廠商負責運行，你只需要設定和使用。DBM 兩者都支援，但受管常需要特定參數群組或 IAM 角色，自架則需要 Agent 直接用 localhost 或 socket 存取（設定差異見第 2 章）。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>查詢的生命週期、複寫、Buffer Pool</h3>
+    <p><b>查詢的生命週期：</b>解析（語法檢查）→ 規劃/優化（引擎決定「怎麼」執行）→ 執行（實際的資料存取或修改），DBM 在規劃階段（執行計畫）和執行階段（延遲、影響列數、等待事件）分別呈現資料。</p>
+    <p><b>複寫：</b>把資料從主節點（writer）複製到一個或多個複本節點（reader），提供高可用性和讀取擴展。要監控：複寫延遲、複寫狀態。</p>
+    <p><b>Buffer Pool / Shared Buffers：</b>資料庫把常用資料留在記憶體裡（MySQL/SQL Server 叫 buffer pool，Postgres 叫 shared buffers）避免每次讀磁碟，<b>快取命中率</b>通常 &gt;95% 代表表現良好。</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>吞吐量、延遲與資源使用率</h3>
+    <p><b>吞吐量</b>是資料庫每單位時間處理幾個查詢，<b>延遲</b>是每個查詢個別花多久完成，負載升高時兩者常呈反向關聯。資源競爭的核心是 <b>CPU、記憶體、磁碟 I/O、網路</b>，把這些跟查詢指標放在一起監控很重要，CPU 尖峰可能對應到某條特別耗費的查詢，高磁碟 I/O 可能代表缺索引造成全表掃描。</p>
+    <div class="examtip"><span class="lbl">回傳列數 vs. 檢查列數</span>優化良好的查詢只檢查它需要回傳的列數。如果查詢回傳 10 列卻檢查了 1000 萬列，這是強烈訊號，代表在做不必要的工作，通常是缺索引或篩選條件寫得不好，這個比例是判斷查詢效率最實用的指標之一。</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>索引的進階概念</h3>
+    <p>索引讓資料庫不用掃描整張表就能快速找到列，類似書本後面的索引頁（基礎概念和實際範例見第 1 章）。三個沒在別處出現過的進階術語：</p>
+    <ul>
+      <li><b>B-tree 索引</b>：最常見的索引類型，適合相等和範圍查詢。</li>
+      <li><b>涵蓋索引（covering index）</b>：包含查詢需要的所有欄位，引擎完全不需要回頭查表。</li>
+      <li><b>索引膨脹（index bloat）</b>：隨著時間因更新和刪除，索引可能變得比需要的更大，拖累效能。</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ===================== ARCHITECTURE OVERVIEW ===================== -->
+<section class="chapter" data-chapter="7" style="--accent:var(--c9);--accent-bg:var(--c9-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Architecture Overview · One Real Incident, Start to Finish</div>
+    <h2>架構全覽：Storedog 鎖定事件全追蹤</h2>
+    <p class="lead">這一頁不是抽象架構圖，而是把第 2 章、第 4 章分散提到的同一次真實 Storedog 調查，完整串成一條線：從一般健康檢查發現異常鎖定，到排除鎖定、找出下一個高負載查詢、鎖定 Sort 瓶頸，一路優化到底。每個判斷關卡都附上「如果走另一條路會怎樣」。</p>
+  </div>
+
+  <div class="factory-legend">
+    <div class="lgi"><span class="sw" style="background:var(--c1);"></span>發現異常</div>
+    <div class="lgi"><span class="sw" style="background:var(--c2);"></span>鎖定排查</div>
+    <div class="lgi"><span class="sw" style="background:var(--c3);"></span>查詢排查</div>
+    <div class="lgi"><span class="sw" style="background:var(--c4);"></span>執行計畫分析</div>
+    <div class="lgi"><span class="sw" style="background:var(--c5);"></span>優化與驗證</div>
+    <div class="lgi"><span class="sw" style="background:var(--c6);"></span>回饋改善</div>
+  </div>
+
+  <div class="trace">
+
+    <div class="card trace-step" style="--accent:var(--c1);">
+      <h3><span class="dot"></span>STEP 01 · 從一般健康檢查發現異常</h3>
+      <p>團隊沒有收到任何告警觸發，也沒有使用者回報功能變慢，這次調查純粹是例行的一般健康檢查。從 <b>APM &gt; Database Monitoring</b> 進入 Databases 總覽頁，展開 Summary Graphs 的 <b>Wait Group Activity</b> 圖表，看到資料庫上同時存在 CPU 等待、閒置、鎖定這幾種等待事件，其中鎖定事件的比例明顯偏高，是這次最需要優先處理的訊號。</p>
+      <p class="trace-note">呼應第 1 章「等待事件」：鎖定等待突增就是一個快速訊號，代表一個或多個查詢正在阻塞其他查詢。</p>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c2);">
+      <h3><span class="dot"></span>STEP 02 · 翻活動連線快照，找到 # WAITERS</h3>
+      <p>切到 <b>Active Connections</b> 分頁，點選查詢持續時間圖上比較高的尖峰點，查看該時間點的活動連線（每 10 秒一次的 <code>pg_stat_activity</code> 快照）。翻幾張快照後，找到 <b># WAITERS</b> 欄位有數字、等待分組圖表上出現紅色長條的那一筆，展開看到完整 SQL。</p>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c2);">
+      <h3><span class="dot"></span>STEP 03 · 揭露真相：一個被遺忘的測試 LOCK TABLE</h3>
+      <p>完整 SQL 顯示：開發團隊有人在寫一條更新訂單數量的查詢時，語法沒寫好，用了 <code>LOCK TABLE</code>，而且還設成排程工作（cronjob）定期跑，導致大量其他查詢被卡住。</p>
+    </div>
+
+    <div class="card trace-step gate" style="--accent:var(--c2);">
+      <h3><span class="dot"></span>STEP 04 · 判斷關卡：這條鎖能不能直接停掉？</h3>
+      <p>停掉一條鎖住的查詢之前，要先判斷它是不是可以被安全中止的東西。</p>
+      <div class="branch-wrap">
+        <div class="branch-main">✓ 查明是之前測試某功能時留下的殘留 cronjob，跟 Storedog 正常業務邏輯無關，可以安全停掉 ▼</div>
+        <div class="branch-arrow">⇢</div>
+        <div class="branch-box"><span class="bb-lbl">✗ 另一種可能：合法的 schema migration</span>如果這條 <code>LOCK TABLE</code> 其實是一個正在進行中的 <code>ALTER TABLE</code>／<code>CREATE INDEX</code> 這類需要排他鎖的合法 DDL，就<b>不該</b>直接 <code>stop_locks</code> 中止它，而應該讓它跑完，並把類似的操作排到低流量時段執行，這正是第 4 章「調查阻塞」提到的判斷原則，也是這一步真正在做的事。</div>
+      </div>
+    </div>
+
+    <div class="card trace-step gate" style="--accent:var(--c3);">
+      <h3><span class="dot"></span>STEP 05 · 用 Blocking Queries 的 Time Impact 量化影響</h3>
+      <p>切到 <b>Blocking Queries</b> 分頁，能看到「造成阻塞的查詢」（Root Blocking Queries）和「正在等待這個阻塞的查詢」（Waiting Queries）兩組圖表。</p>
+      <div class="branch-wrap">
+        <div class="branch-main">✓ <b>Time Impact</b> 欄位確認這條 `LOCK TABLE` 查詢已經讓其他查詢等了超過 15 秒，影響確實顯著，值得優先處理 ▼</div>
+        <div class="branch-arrow">⇢</div>
+        <div class="branch-box"><span class="bb-lbl">✗ 另一種可能：Time Impact 很低</span>如果 Time Impact 只有零點幾秒、且沒有持續發生，代表這條阻塞只是偶發的正常鎖競爭，不需要特別介入處理，繼續觀察即可，不必馬上動用 <code>stop_locks</code>。</div>
+      </div>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c3);">
+      <h3><span class="dot"></span>STEP 06 · 執行 stop_locks，鎖定事件排除</h3>
+      <div class="example"><pre><code>stop_locks</code></pre></div>
+      <p class="trace-note">鎖定問題排除之後，才輪到下一個症狀：熱門商品查詢負擔過重。這一步示範了第 1 章「九大健康指標」裡強調的「單一指標說不了完整的故事」：鎖定事件排除，不代表資料庫已經完全健康，還有下一層問題等著被發現。</p>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c3);">
+      <h3><span class="dot"></span>STEP 07 · 轉向 Query Metrics，找到下一個高負載查詢</h3>
+      <p>Storedog 新加了一個「熱門商品排行」小工具，每隔幾秒就對 <code>items</code> 表跑一次查詢抓出最常被下單的前十項商品，這條查詢造成資料庫負擔很重、執行時間很長。切到 <b>Query Metrics</b> 分頁，點選 <b>Average Rows</b> 這欄的欄位標題排序整張表，<code>SELECT id, description...</code> 這條查詢排在最前面。</p>
+      <button class="reveal-btn" onclick="openNodePanel('query-metrics-vs-samples')">為什麼從 Query Metrics 開始查、不是 Query Samples？點開看判斷邏輯</button>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c4);">
+      <h3><span class="dot"></span>STEP 08 · Explain Plan Map View 鎖定 Sort 瓶頸</h3>
+      <p>點進正規化查詢面板的 Explain Plans 分頁，Plan Operations 表格列出這條查詢會用到的所有操作，成本相當高。往下的 Map View 把整個執行計畫畫成視覺化樹狀圖，直接看出<b>排序（Sort）操作占了最大部分的成本</b>，是這條查詢執行時間過長的主要原因。</p>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c4);">
+      <h3><span class="dot"></span>STEP 09 · 用 APM Trace 確認實際影響</h3>
+      <p>正規化查詢面板右上角點 View Query Samples，這幾筆樣本成本大約落在 7000 左右，偏高。點進其中一筆，打開 Explain Plan Sample 面板切到 Trace 分頁：是 <code>/get-item</code> 路由的 GET 請求觸發了這條查詢，整個請求耗時約 1.06 秒，其中這條查詢就占了 256ms，拖慢了整個請求四分之一左右的時間。</p>
+      <p class="trace-note">這一步把「查詢本身效能不好」跟「對呼叫它的服務造成多少實際影響」串起來，是判斷要不要優先處理這條查詢的關鍵證據，呼應第 3 章的 APM-DBM 關聯機制。</p>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c5);">
+      <h3><span class="dot"></span>STEP 10 · 第一次優化：縮小查詢範圍</h3>
+      <p>去程式碼裡看實際查詢邏輯（<code>dbm.py</code>），發現篩選商品的門檻設得太寬。把產生篩選門檻的隨機範圍從 <code>random.randint(1, 7000)</code> 改成 <code>random.randint(5000, 7000)</code>，收斂成只挑真正銷量最高的一小群，重啟服務、等幾分鐘後回到 Query Metrics 驗證：成本下降，方向對了，但 Map View 顯示 <b>Sort 依然占了 75% 的成本</b>。</p>
+    </div>
+
+    <div class="card trace-step gate" style="--accent:var(--c5);">
+      <h3><span class="dot"></span>STEP 11 · 判斷關卡：Sort 瓶頸的真正來源是什麼？</h3>
+      <p>回頭看查詢邏輯，是用 <code>UNION</code> 把 <code>items</code> 和 <code>preorder_items</code> 兩張表的結果合併起來。</p>
+      <div class="branch-wrap">
+        <div class="branch-main">✓ 查明 `UNION` 不只是把兩批結果接在一起，還會自動去除重複的列，而要去除重複，資料庫必須先把所有結果排序過一遍才能比對，這正是那個高成本排序節點的來源 ▼</div>
+        <div class="branch-arrow">⇢</div>
+        <div class="branch-box"><span class="bb-lbl">✗ 另一種可能：誤判成索引問題</span>如果沒有先去看 Map View 具體是哪個節點在吃成本，很容易誤以為 Sort 瓶頸是「缺索引」，跑去加一個根本無關的索引，實際上索引解決不了 `UNION` 去重造成的排序成本，白費工夫還可能拖慢寫入。</div>
+      </div>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c5);">
+      <h3><span class="dot"></span>STEP 12 · 第二次優化：拿掉 UNION</h3>
+      <p><code>preorder_items</code> 裡的商品一旦正式上架，會被標記成 <code>false</code>，代表其實沒有必要同時查兩張表再做 <code>UNION</code> 去重。更好的做法是讓開發團隊調整資料寫入邏輯，把已上架的商品直接維護進 <code>items</code> 表，查詢端只需要簡化成只查一張表。改完重啟服務，回到 Query Metrics 改依 <b>Rows per Query</b> 排序驗證，成本比前一次優化又大幅下降，因為現在整條查詢只剩單一個掃描操作。</p>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c6);">
+      <h3><span class="dot"></span>STEP 13 · 回饋進 Recommendations 與告警設計</h3>
+      <p>這整趟調查的證據，回頭變成兩件事的輸入：如果這條查詢的退化是慢慢發生而非一次性的程式碼問題，DBM Recommendations 的 <b>Query Load Increase</b> 發現本來就會自動標出來；而這次鎖定事件也提醒團隊，可以針對 <b>Waiting Queries</b> 或 <b>Long Running Queries</b>（見第 5 章）設定 DBM 監控，讓下一次類似的殘留 cronjob 不用等到例行健康檢查才被發現，而是主動告警。</p>
+      <p class="trace-note">整趟調查（鎖定問題排除 → 找出高負載查詢 → Explain Plan 鎖定排序瓶頸 → APM Trace 確認實際影響 → 兩輪優化迭代驗證 → 回饋進監控設計）就是把第 4 章整章的診斷框架，實際跑過一遍的完整示範。</p>
+    </div>
+
+  </div>
+</section>
+
+</main>
+
+<div class="node-panel" id="nodePanel">
+  <div class="node-panel-backdrop" onclick="closeNodePanel()"></div>
+  <div class="node-panel-content" id="nodePanelContent">
+    <button class="node-panel-close" onclick="closeNodePanel()" aria-label="關閉">✕</button>
+    <div class="node-panel-tag" id="nodePanelTag"></div>
+    <div class="node-panel-title" id="nodePanelTitle"></div>
+    <div class="node-panel-body" id="nodePanelBody"></div>
+  </div>
+</div>
+
+<footer>DBM STUDY MAP · 依 Yuan 的 Obsidian Study Notes 整理 · 六章節 + 架構全覽</footer>
+
+<script>
+function setActiveChapter(ch){
+  document.querySelectorAll('.chapter').forEach(function(s){
+    s.classList.toggle('active', s.dataset.chapter === ch);
+  });
+  document.querySelectorAll('nav.tabs button').forEach(function(b){
+    b.classList.toggle('active', b.dataset.ch === ch);
+  });
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+document.querySelectorAll('nav.tabs button').forEach(function(b){
+  b.addEventListener('click', function(){ setActiveChapter(b.dataset.ch); });
+});
+setActiveChapter('1');
+
+function toggleAcc(head){
+  var item = head.parentElement;
+  var body = item.querySelector('.acc-body');
+  var isOpen = item.classList.contains('open');
+  if(isOpen){
+    item.classList.remove('open');
+    body.style.maxHeight = null;
+  } else {
+    item.classList.add('open');
+    body.style.maxHeight = body.scrollHeight + 40 + 'px';
+  }
+}
+
+function toggleMini(el){
+  el.classList.toggle('open');
+}
+
+function setStep(btn, group){
+  var nav = btn.parentElement;
+  nav.querySelectorAll('button').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  var step = btn.dataset.step;
+  document.querySelectorAll('.'+group+'-step').forEach(function(p){
+    p.classList.toggle('active', p.dataset.step === step);
+  });
+}
+
+function toggleP(btn, id){
+  var row = btn.parentElement;
+  row.querySelectorAll('button').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.querySelectorAll('.toggle-panel').forEach(function(p){
+    p.classList.toggle('active', p.id === id);
+  });
+}
+
+// ---------- Floating node detail panels ----------
+var NODE_DATA = {
+  'explain-statement': { tag:'見第 2 章', accent:'var(--c2)', title:'explain_statement 函式：完整內容與運作原理', body:
+    '<p>這個函式要在每個想收集執行計畫的資料庫裡都建立一份：</p>'+
+    '<pre><code>CREATE OR REPLACE FUNCTION datadog.explain_statement(\n'+
+    '  l_query TEXT,\n'+
+    '  OUT explain JSON\n'+
+    ')\n'+
+    'RETURNS SETOF JSON AS\n'+
+    '$$\n'+
+    'DECLARE\n'+
+    'curs REFCURSOR;\n'+
+    'plan JSON;\n\n'+
+    'BEGIN\n'+
+    "  OPEN curs FOR EXECUTE pg_catalog.concat('EXPLAIN (FORMAT JSON) ', l_query);\n"+
+    '  FETCH curs INTO plan;\n'+
+    '  CLOSE curs;\n'+
+    '  RETURN QUERY SELECT plan;\n'+
+    'END;\n'+
+    '$$\n'+
+    "LANGUAGE 'plpgsql'\n"+
+    'RETURNS NULL ON NULL INPUT\n'+
+    'SECURITY DEFINER;</code></pre>'+
+    '<div class="pk-diagram">'+
+      '<div class="pk-hub">Agent 送一句查詢文字進來<br><small style="font-weight:400;color:var(--text-faint);">參數 l_query</small></div>'+
+      '<div class="pk-arrow">▼</div>'+
+      '<div class="pk-branch-grid">'+
+        '<div class="pk-item">函式內部自動組出<br><code>EXPLAIN (FORMAT JSON) &lt;這句查詢&gt;</code><small>不用 Agent 自己組語法</small></div>'+
+        '<div class="pk-item">用 SECURITY DEFINER 執行<small>用「建立函式的人」的權限跑，而不是唯讀 Agent 使用者的權限</small></div>'+
+        '<div class="pk-item pk-branch-single">回傳 Postgres 產生的執行計畫（JSON 格式）</div>'+
+      '</div>'+
+    '</div>'+
+    '<p><b>為什麼需要這個函式：</b>Agent 本身用唯讀使用者連線，不能直接對任意一句查詢執行 <code>EXPLAIN</code>；`SECURITY DEFINER` 把「執行 EXPLAIN」這個動作包裝成一個安全的固定入口，讓唯讀使用者能透過這個函式間接拿到執行計畫，而不需要真的被授予執行任意 `EXPLAIN` 的權限。</p>'+
+    '<p><b>考試重點：</b>如果查詢樣本沒有相關的執行計畫，第一個要檢查的就是這個函式有沒有正確建立，執行計畫能不能被收集到，直接取決於它。</p>' },
+
+  'query-metrics-vs-samples': { tag:'見第 4 章', accent:'var(--c3)', title:'為什麼從 Query Metrics 開始查，不是 Query Samples？', body:
+    '<p>兩者的差別不是「誰比較好」，是「回答的問題不一樣」：</p>'+
+    '<div class="pk-diagram">'+
+      '<div class="pk-hub">問題：哪一條查詢正在拖累資料庫？</div>'+
+      '<div class="pk-arrow">▼</div>'+
+      '<div class="pk-branch-grid">'+
+        '<div class="pk-item">Query Metrics<small>趨勢分析師：彙總 15 個月歷史，回答「哪個模式吃最多資源」</small></div>'+
+        '<div class="pk-item">Query Samples<small>事件調查員：15 天內個別快照，回答「這一次具體慢在哪」</small></div>'+
+      '</div>'+
+      '<div class="pk-arrow">▼</div>'+
+      '<div class="pk-hub small">正確順序：先用 Query Metrics 定位「是誰」<br><small style="font-weight:400;color:var(--text-faint);">再用 Query Samples 深入「這一次為什麼」</small></div>'+
+    '</div>'+
+    '<p>如果反過來，一開始就跳進 Query Samples 找異常，因為它只是 15 天內的抽樣、沒有排序過的彙總視角，很容易被單一次的偶發慢查詢誤導，找不到真正持續在吃資源的模式。這也是這一頁 STEP 07 從 Query Metrics 依 Average Rows 排序開始查的原因。</p>' },
+};
+
+function openNodePanel(id){
+  var data = NODE_DATA[id];
+  if(!data) return;
+  document.getElementById('nodePanelTag').textContent = data.tag;
+  document.getElementById('nodePanelTitle').textContent = data.title;
+  document.getElementById('nodePanelBody').innerHTML = data.body;
+  document.getElementById('nodePanelContent').style.setProperty('--panel-accent', data.accent);
+  document.getElementById('nodePanel').classList.add('open');
+}
+function closeNodePanel(){
+  document.getElementById('nodePanel').classList.remove('open');
+}
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape'){ closeNodePanel(); }
+});
+</script>
+
+</body>
+</html>
