@@ -1,0 +1,1749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Datadog Database Monitoring: The Complete Understanding Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f2ecd9;
+  --surface:#fffdf6;
+  --surface2:#e8e0c5;
+  --border:#2a2a45;
+  --text:#201f33;
+  --text-dim:#4a4864;
+  --text-faint:#8a87a0;
+  --on-accent:#201f33;
+
+  --c1:#b8860c; /* Telemetry concepts & health indicators - dark goldenrod */
+  --c1-bg:rgba(184,134,12,0.14);
+  --c2:#0e8fa3; /* Infrastructure integration & setup - deep teal-cyan */
+  --c2-bg:rgba(14,143,163,0.14);
+  --c3:#7c3fd8; /* APM and DBM correlation - violet */
+  --c3-bg:rgba(124,63,216,0.14);
+  --c4:#c92d8f; /* Query analysis & troubleshooting - raspberry magenta */
+  --c4-bg:rgba(201,45,143,0.14);
+  --c5:#0f9668; /* Dashboard & alert design - deep emerald */
+  --c5-bg:rgba(15,150,104,0.14);
+  --c6:#1f5fd6; /* Database fundamentals appendix - royal blue */
+  --c6-bg:rgba(31,95,214,0.14);
+  --c9:#b8541f; /* Architecture overview - terracotta */
+  --c9-bg:rgba(184,84,31,0.14);
+
+  --danger:#cc3520;
+  --ok:#148a34;
+}
+
+*{box-sizing:border-box;border-radius:0 !important;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Noto Sans TC','IBM Plex Sans',sans-serif;
+  line-height:1.75;
+  -webkit-font-smoothing:antialiased;
+}
+header.top .eyebrow, .chapter-head .kicker, .lbl, th, .fb,
+.stepper-nav button, .cmp .col h4, .panel-mock .ph, .stbadge, footer{
+  font-family:'JetBrains Mono',monospace;
+}
+code, .mono{
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.88em;
+  background:#efe6ff;
+  color:#5b3fae;
+  padding:0.1em 0.45em;
+  border:1px solid #c9b3f0;
+}
+pre code{
+  display:block;
+  padding:14px 16px;
+  overflow-x:auto;
+  line-height:1.6;
+  white-space:pre;
+}
+
+/* ---------- Header ---------- */
+header.top{
+  padding:48px 24px 32px;
+  text-align:center;
+  border-bottom:4px solid var(--text);
+  background:var(--bg);
+}
+header.top .eyebrow{
+  letter-spacing:0.14em;
+  font-size:10px;
+  color:var(--text-faint);
+  margin-bottom:18px;
+}
+header.top h1{
+  font-family:'IBM Plex Sans',sans-serif;
+  font-weight:700;
+  font-size:clamp(28px,4.2vw,42px);
+  margin:0 0 20px;
+  letter-spacing:-0.01em;
+  line-height:1.3;
+  color:var(--c1);
+  text-shadow:3px 3px 0 rgba(32,31,51,0.16);
+}
+header.top p.sub{
+  color:var(--text-dim);
+  max-width:640px;
+  margin:0 auto;
+  font-size:14.5px;
+}
+
+/* ---------- Nav / world map ---------- */
+nav.tabs{
+  position:sticky;
+  top:0;
+  z-index:50;
+  padding:16px;
+  background:var(--bg);
+  border-bottom:4px solid var(--text);
+}
+nav.tabs .tabs-inner.worldmap{
+  display:grid;
+  grid-template-columns:minmax(90px,1fr) 32px minmax(90px,1fr) 32px minmax(90px,1fr);
+  grid-auto-rows:auto;
+  align-items:center;
+  gap:6px;
+  max-width:900px;
+  margin:0 auto;
+  overflow-x:auto;
+  overflow-y:visible;
+  padding-top:22px;
+  scrollbar-width:none;
+}
+nav.tabs .tabs-inner.worldmap::-webkit-scrollbar{display:none;}
+.wpath-h{
+  height:4px;
+  align-self:center;
+  background:repeating-linear-gradient(to right, var(--text-faint) 0 6px, transparent 6px 12px);
+}
+.wpath-v{
+  width:4px;
+  height:100%;
+  min-height:24px;
+  justify-self:center;
+  background:repeating-linear-gradient(to bottom, var(--text-faint) 0 6px, transparent 6px 12px);
+}
+nav.tabs button{
+  position:relative;
+  flex:0 0 auto;
+  font-family:'Noto Sans TC','IBM Plex Sans',sans-serif;
+  font-size:12px;
+  font-weight:600;
+  line-height:1.4;
+  color:var(--text-dim);
+  background:var(--surface);
+  border:3px solid var(--border);
+  padding:8px 6px;
+  min-width:86px;
+  cursor:pointer;
+  transition:transform 0.1s linear;
+  white-space:normal;
+  text-align:center;
+}
+nav.tabs button .num{
+  display:block;
+  font-size:9px;
+  margin-bottom:4px;
+  opacity:0.7;
+}
+nav.tabs button:hover{color:var(--text);border-color:var(--text-faint);}
+nav.tabs button:active{transform:translate(2px,2px);}
+nav.tabs button.active{
+  color:var(--on-accent);
+  background:var(--accent);
+  border-color:var(--text);
+  box-shadow:3px 3px 0 0 rgba(32,31,51,0.30);
+}
+nav.tabs button.active::before{
+  content:'▲';
+  position:absolute;
+  top:-20px;
+  left:50%;
+  transform:translateX(-50%);
+  color:var(--c1);
+  font-size:13px;
+  animation:blink 0.7s steps(2) infinite;
+}
+@keyframes blink{50%{opacity:0;}}
+@media (max-width:820px){
+  nav.tabs .tabs-inner.worldmap{display:flex;flex-direction:column;gap:8px;padding-top:20px;}
+  .wpath-h, .wpath-v{display:none;}
+  nav.tabs button{width:100%;min-width:0;}
+}
+
+.overview-divider{
+  max-width:900px;
+  margin:14px auto 10px;
+  text-align:center;
+  color:var(--text-faint);
+  font-size:11px;
+  position:relative;
+}
+.overview-divider::before, .overview-divider::after{
+  content:'';
+  position:absolute;
+  top:50%;
+  width:38%;
+  border-top:2px dashed var(--border);
+}
+.overview-divider::before{left:0;}
+.overview-divider::after{right:0;}
+.overview-wrap{max-width:900px;margin:0 auto;text-align:center;}
+nav.tabs button.overview-tab{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-size:11.5px;
+  font-weight:600;
+  padding:8px 16px;
+  border:2px solid var(--c9);
+  background:var(--surface);
+  color:var(--c9);
+  box-shadow:2px 2px 0 0 rgba(32,31,51,0.15);
+}
+nav.tabs button.overview-tab:hover{transform:translate(-2px,-2px);box-shadow:3px 3px 0 0 rgba(32,31,51,0.2);}
+nav.tabs button.overview-tab.active{
+  background:var(--c9);
+  color:var(--on-accent);
+  box-shadow:2px 2px 0 0 rgba(32,31,51,0.30);
+}
+
+/* ---------- Main / chapters ---------- */
+main{max-width:1120px;margin:0 auto;padding:44px 24px 100px;}
+.chapter{display:none;}
+.chapter.active{display:block;animation:fadeUp 0.25s steps(3) both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+@media (prefers-reduced-motion: reduce){
+  .chapter.active{animation:none;}
+  *{transition:none !important;animation:none !important;}
+}
+
+.chapter-head{margin-bottom:36px;}
+.chapter-head .kicker{
+  font-size:11px;
+  letter-spacing:0.08em;
+  color:var(--accent);
+  margin-bottom:14px;
+}
+.chapter-head h2{
+  font-size:clamp(24px,3.2vw,32px);
+  margin:0 0 16px;
+  font-weight:700;
+  line-height:1.4;
+  color:var(--text);
+}
+.chapter-head .lead{
+  color:var(--text-dim);
+  font-size:15.5px;
+  max-width:760px;
+}
+
+.card{
+  position:relative;
+  background:var(--surface);
+  border:3px solid var(--border);
+  border-top:5px solid var(--accent);
+  padding:26px 28px;
+  margin-bottom:24px;
+  box-shadow:5px 5px 0 0 rgba(32,31,51,0.22);
+}
+.card::before{
+  content:'';
+  position:absolute;top:-3px;left:-3px;
+  width:9px;height:9px;
+  background:var(--bg);
+}
+.card::after{
+  content:'';
+  position:absolute;bottom:-3px;right:-3px;
+  width:9px;height:9px;
+  background:var(--bg);
+}
+.card h3{
+  font-size:18px;
+  font-weight:700;
+  line-height:1.5;
+  margin:0 0 16px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  color:var(--text);
+}
+.card h3 .dot{
+  width:9px;height:9px;
+  margin-top:6px;
+  background:var(--accent);
+  flex:0 0 auto;
+}
+.card p{margin:0 0 12px;color:var(--text);}
+.card p:last-child{margin-bottom:0;}
+.card ul, .card ol{margin:0 0 12px;padding-left:22px;}
+.card li{margin-bottom:8px;}
+
+.term{
+  display:inline-block;
+  font-weight:700;
+  color:var(--accent);
+}
+
+.analogy{
+  background:var(--accent-bg);
+  border:3px solid var(--accent);
+  padding:16px 18px;
+  margin:14px 0;
+  font-size:14.5px;
+}
+.analogy .lbl{
+  font-size:10px;
+  letter-spacing:0.06em;
+  color:var(--accent);
+  margin-bottom:10px;
+  display:block;
+}
+
+.example{
+  background:var(--surface2);
+  border:3px solid var(--border);
+  padding:14px 18px;
+  margin:14px 0;
+  font-size:14px;
+}
+.example .lbl{
+  font-size:10px;
+  letter-spacing:0.06em;
+  color:var(--text-faint);
+  margin-bottom:10px;
+  display:block;
+}
+
+.examtip{
+  background:rgba(204,53,32,0.10);
+  border:3px solid var(--danger);
+  padding:14px 18px;
+  margin:14px 0;
+  font-size:14px;
+}
+.examtip .lbl{
+  font-size:10px;
+  letter-spacing:0.06em;
+  color:var(--danger);
+  margin-bottom:10px;
+  display:block;
+}
+
+.honest{
+  background:rgba(160,106,0,0.10);
+  border:3px dashed #a06a00;
+  padding:14px 18px;
+  margin:14px 0;
+  font-size:14px;
+  color:var(--text-dim);
+}
+.honest .lbl{
+  font-size:10px;
+  letter-spacing:0.06em;
+  color:#a06a00;
+  margin-bottom:10px;
+  display:block;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  margin:14px 0;
+  font-size:14px;
+}
+th,td{
+  padding:10px 12px;
+  border-bottom:2px solid var(--border);
+  text-align:left;
+  vertical-align:top;
+}
+th{
+  font-size:10px;
+  letter-spacing:0.02em;
+  color:var(--accent);
+  border-bottom:3px solid var(--accent);
+}
+tr:last-child td{border-bottom:none;}
+.table-wrap{overflow-x:auto;margin:14px 0;}
+
+/* accordion */
+.acc-item{
+  border:3px solid var(--border);
+  margin-bottom:10px;
+  overflow:hidden;
+  background:var(--surface2);
+}
+.acc-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:14px 18px;
+  cursor:pointer;
+  font-size:12.5px;
+  line-height:1.7;
+  color:var(--text);
+  user-select:none;
+}
+.acc-head:hover{background:rgba(32,31,51,0.05);}
+.acc-head .chev{
+  color:var(--accent);
+  font-family:'JetBrains Mono',monospace;
+  transition:transform 0.15s linear;
+  flex:0 0 auto;
+  margin-left:12px;
+}
+.acc-item.open .chev{transform:rotate(90deg);}
+.acc-body{
+  max-height:0;
+  overflow:hidden;
+  transition:max-height 0.25s linear;
+  padding:0 18px;
+  font-size:14px;
+  color:var(--text-dim);
+}
+.acc-item.open .acc-body{padding:0 18px 16px;}
+
+/* grid of mini cards */
+.grid{display:grid;gap:14px;}
+.grid.g4{grid-template-columns:repeat(4,1fr);}
+.grid.g3{grid-template-columns:repeat(3,1fr);}
+.grid.g2{grid-template-columns:repeat(2,1fr);}
+@media (max-width:820px){
+  .grid.g4{grid-template-columns:repeat(2,1fr);}
+  .grid.g3{grid-template-columns:1fr;}
+  .grid.g2{grid-template-columns:1fr;}
+}
+@media (max-width:480px){
+  .grid.g4{grid-template-columns:1fr;}
+}
+.mini{
+  border:3px solid var(--border);
+  padding:14px 16px;
+  background:var(--surface2);
+  cursor:pointer;
+  transition:border-color 0.1s linear, transform 0.1s linear;
+}
+.mini:hover{border-color:var(--accent);transform:translate(-2px,-2px);box-shadow:2px 2px 0 0 var(--accent);}
+.mini .mt{font-size:12.5px;margin-bottom:8px;color:var(--accent);}
+.mini .md{font-size:12.5px;color:var(--text-dim);}
+.mini .full{display:none;font-size:13px;color:var(--text);margin-top:10px;padding-top:10px;border-top:2px solid var(--border);}
+.mini.open .full{display:block;}
+
+/* step simulator */
+.stepper-nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
+.stepper-nav button{
+  font-size:10.5px;
+  padding:9px 14px;
+  border:3px solid var(--border);
+  background:var(--surface2);
+  color:var(--text-dim);
+  cursor:pointer;
+  transition:transform 0.1s linear;
+}
+.stepper-nav button:active{transform:translate(2px,2px);}
+.stepper-nav button.active{
+  background:var(--accent);
+  color:var(--on-accent);
+  border-color:var(--text);
+  box-shadow:3px 3px 0 0 rgba(32,31,51,0.30);
+}
+.step-panel{display:none;}
+.step-panel.active{display:block;animation:fadeUp 0.2s steps(3) both;}
+.flowbox{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  margin:14px 0;
+}
+.fb{
+  padding:12px 16px;
+  border:3px solid var(--accent);
+  background:var(--accent-bg);
+  font-size:11px;
+  line-height:1.7;
+  color:var(--text);
+}
+.farrow{color:var(--accent);font-size:16px;}
+
+/* comparison columns */
+.cmp{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:14px 0;}
+.cmp.c2{grid-template-columns:repeat(2,1fr);}
+@media (max-width:820px){.cmp{grid-template-columns:1fr;}}
+.cmp .col{
+  border:3px solid var(--border);
+  padding:16px;
+  background:var(--surface2);
+}
+.cmp .col.good{border-color:var(--ok);}
+.cmp .col.bad{border-color:var(--danger);}
+.cmp .col h4{
+  margin:0 0 12px;
+  font-size:11px;
+  color:var(--accent);
+  letter-spacing:0.02em;
+}
+.cmp .col.good h4{color:var(--ok);}
+.cmp .col.bad h4{color:var(--danger);}
+.cmp .col p{font-size:13.5px;color:var(--text-dim);margin:0;}
+
+/* toggle */
+.toggle-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.toggle-row button{
+  font-size:11px;
+  padding:9px 16px;
+  border:3px solid var(--border);
+  background:var(--surface2);color:var(--text-dim);
+  cursor:pointer;transition:transform 0.1s linear;
+}
+.toggle-row button:active{transform:translate(2px,2px);}
+.toggle-row button.active{background:var(--accent);border-color:var(--text);color:var(--on-accent);box-shadow:3px 3px 0 0 rgba(32,31,51,0.30);}
+.toggle-panel{display:none;}
+.toggle-panel.active{display:block;animation:fadeUp 0.2s steps(3) both;}
+
+/* signal / detail panel mock */
+.panel-mock{
+  border:3px solid var(--border);
+  background:var(--surface2);
+  overflow:hidden;
+  margin:14px 0;
+}
+.panel-mock .ph{
+  padding:12px 16px;
+  background:var(--accent);
+  border-bottom:3px solid var(--border);
+  font-size:11px;
+  color:var(--on-accent);
+}
+.panel-mock .pr{
+  padding:12px 16px;
+  border-bottom:2px solid var(--border);
+  display:flex;
+  gap:14px;
+}
+.panel-mock .pr:last-child{border-bottom:none;}
+.panel-mock .pr .pk{
+  flex:0 0 150px;
+  font-size:12.5px;
+  color:var(--text-faint);
+  font-weight:600;
+}
+.panel-mock .pr .pv{font-size:13px;color:var(--text);}
+
+/* one-trace (architecture overview) */
+.factory-legend{
+  display:flex;
+  flex-wrap:wrap;
+  gap:14px;
+  margin-bottom:24px;
+  padding:14px 18px;
+  background:var(--surface2);
+  border:3px solid var(--border);
+  font-size:12.5px;
+  color:var(--text-dim);
+}
+.factory-legend .lgi{display:flex;align-items:center;gap:7px;}
+.factory-legend .sw{width:13px;height:13px;flex:0 0 auto;border:2px solid var(--text);}
+
+.trace{display:flex;flex-direction:column;}
+.trace-step{margin-bottom:40px;}
+.trace-step:last-child{margin-bottom:0;}
+.trace-step.gate{border-top-style:dashed;}
+.trace-note{font-size:12.5px;color:var(--text-faint);font-style:italic;margin-top:8px;}
+
+.reveal-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  margin-top:12px;
+  padding:9px 16px;
+  border:3px solid var(--accent);
+  background:var(--accent-bg);
+  color:var(--accent);
+  font-weight:700;
+  font-size:13px;
+  cursor:pointer;
+  transition:transform 0.08s linear;
+}
+.reveal-btn:hover{transform:translate(-2px,-2px);}
+.reveal-btn::before{content:'▶ ';}
+
+.branch-wrap{
+  display:grid;
+  grid-template-columns:1fr 40px minmax(0,280px);
+  align-items:center;
+  gap:0;
+  margin-top:14px;
+}
+.branch-main{font-size:13px;color:var(--text-dim);}
+.branch-arrow{
+  text-align:center;
+  color:var(--text-faint);
+  font-size:16px;
+}
+.branch-box{
+  padding:12px 14px;
+  border:3px dashed var(--border);
+  background:var(--surface2);
+  font-size:12.5px;
+  color:var(--text-dim);
+}
+.branch-box .bb-lbl{
+  display:block;
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;
+  letter-spacing:0.04em;
+  color:var(--text-faint);
+  margin-bottom:6px;
+}
+@media (max-width:640px){
+  .branch-wrap{grid-template-columns:1fr;}
+  .branch-arrow{display:none;}
+  .branch-box{margin-top:8px;}
+}
+
+/* floating node detail panel */
+.node-panel{
+  display:none;
+  position:fixed;
+  inset:0;
+  z-index:200;
+}
+.node-panel.open{display:block;}
+.node-panel-backdrop{
+  position:absolute;
+  inset:0;
+  background:rgba(32,31,51,0.45);
+}
+.node-panel-content{
+  position:absolute;
+  top:0;right:0;
+  height:100%;
+  width:min(460px, 92vw);
+  background:var(--surface);
+  border-left:5px solid var(--panel-accent, var(--c1));
+  box-shadow:-6px 0 0 0 rgba(32,31,51,0.2);
+  overflow-y:auto;
+  padding:26px 24px 40px;
+  animation:panelSlide 0.18s ease both;
+}
+@keyframes panelSlide{from{transform:translateX(24px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+@media (prefers-reduced-motion: reduce){.node-panel-content{animation:none;}}
+.node-panel-close{
+  position:absolute;
+  top:16px;right:16px;
+  width:32px;height:32px;
+  border:3px solid var(--border);
+  background:var(--surface2);
+  color:var(--text);
+  font-size:14px;
+  cursor:pointer;
+}
+.node-panel-tag{
+  font-family:'JetBrains Mono',monospace;
+  font-size:11px;
+  letter-spacing:0.04em;
+  color:var(--panel-accent, var(--c1));
+  margin:0 40px 10px 0;
+}
+.node-panel-title{
+  font-size:19px;
+  font-weight:700;
+  margin:0 40px 16px 0;
+  line-height:1.5;
+  color:var(--text);
+}
+.node-panel-body{font-size:14.5px;color:var(--text);}
+.node-panel-body p{margin:0 0 12px;}
+.node-panel-body ul{margin:0 0 12px;padding-left:20px;}
+.node-panel-body li{margin-bottom:6px;}
+.node-panel-body b{color:var(--panel-accent, var(--c1));}
+
+.pk-diagram{margin:6px 0 22px;}
+.pk-hub{
+  padding:13px 14px;
+  text-align:center;
+  font-weight:700;
+  font-size:13px;
+  border:3px solid var(--panel-accent, var(--c1));
+  background:var(--surface2);
+  color:var(--panel-accent, var(--c1));
+}
+.pk-arrow{text-align:center;color:var(--text-faint);font-size:14px;margin:4px 0;}
+.pk-branch-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.pk-item{
+  padding:10px 8px;
+  text-align:center;
+  font-size:11.5px;
+  line-height:1.5;
+  font-weight:600;
+  border:2px solid var(--border);
+  background:var(--surface2);
+  color:var(--text);
+}
+.pk-item small{display:block;font-weight:400;color:var(--text-faint);font-size:10px;margin-top:3px;}
+.pk-hub.small{font-size:11.5px;font-weight:600;padding:10px 12px;}
+.pk-branch-single{grid-column:1 / -1;}
+
+footer{
+  text-align:center;
+  padding:40px 24px 60px;
+  color:var(--text-faint);
+  font-size:11px;
+  line-height:2;
+}
+
+/* focus visibility */
+button:focus-visible, .acc-head:focus-visible, .mini:focus-visible{
+  outline:2px solid var(--text);
+  outline-offset:2px;
+}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="eyebrow">DATADOG DATABASE MONITORING · DBM FUNDAMENTALS</div>
+  <p style="margin:0 0 4px;"><a href="../dbm-study-map/" style="font-size:12px;color:var(--text-faint);text-decoration:underline;">繁體中文版 →</a> · <a href="../dbm-study-map-jp/" style="font-size:12px;color:var(--text-faint);text-decoration:underline;">日本語版はこちら →</a></p>
+  <h1>DBM: The Complete Understanding Map</h1>
+  <p class="sub">From "what a standard integration shows versus what DBM adds" to "how one real locking incident was diagnosed and optimized all the way through," using the same Storedog environment to weave six notes into a single map.</p>
+</header>
+
+<nav class="tabs" id="tabs">
+  <div class="tabs-inner worldmap">
+    <button data-ch="1" class="active" style="grid-column:1;grid-row:1;"><span class="num">01</span>Telemetry Concepts &amp; Health Indicators</button>
+    <button data-ch="2" style="grid-column:3;grid-row:1;"><span class="num">02</span>Infrastructure Integration &amp; Setup</button>
+    <button data-ch="3" style="grid-column:5;grid-row:1;"><span class="num">03</span>APM and DBM Correlation</button>
+    <button data-ch="4" style="grid-column:5;grid-row:3;"><span class="num">04</span>Query Analysis &amp; Troubleshooting</button>
+    <button data-ch="5" style="grid-column:3;grid-row:3;"><span class="num">05</span>Dashboard &amp; Alert Design</button>
+    <button data-ch="6" style="grid-column:1;grid-row:3;"><span class="num">06</span>Database Fundamentals Appendix</button>
+
+    <div class="wpath-h" aria-hidden="true" style="grid-column:2;grid-row:1;"></div>
+    <div class="wpath-h" aria-hidden="true" style="grid-column:4;grid-row:1;"></div>
+    <div class="wpath-v" aria-hidden="true" style="grid-column:5;grid-row:2;"></div>
+    <div class="wpath-h" aria-hidden="true" style="grid-column:4;grid-row:3;"></div>
+    <div class="wpath-h" aria-hidden="true" style="grid-column:2;grid-row:3;"></div>
+  </div>
+
+  <div class="overview-divider" aria-hidden="true"><span>◆</span></div>
+  <div class="overview-wrap">
+    <button class="overview-tab" data-ch="7">◆ Architecture Overview · Storedog Lock Incident, Full Trace</button>
+  </div>
+</nav>
+
+<main>
+
+<!-- ===================== CHAPTER 1 ===================== -->
+<section class="chapter active" data-chapter="1" style="--accent:var(--c1);--accent-bg:var(--c1-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Chapter 01 · Telemetry &amp; Health</div>
+    <h2>Telemetry Concepts &amp; Health Indicators</h2>
+    <p class="lead">This chapter answers two foundational questions: which engines DBM supports, and what actually separates a standard integration from DBM. It then breaks the database's "vital signs" into nine health indicators, and unfolds three lenses into six telemetry types one by one. Once this chapter is done, all the data sources used in later troubleshooting steps will make sense.</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Supported Database Engines</h3>
+    <div class="table-wrap"><table>
+      <tr><th>Engine</th><th>Notes</th></tr>
+      <tr><td><b>PostgreSQL</b></td><td>Requires the <code>pg_stat_statements</code> extension, plus the <code>pg_monitor</code> role granted to the Datadog user.</td></tr>
+      <tr><td><b>MySQL</b></td><td>Requires Performance Schema to be enabled. Setup steps differ between self-hosted and cloud-hosted instances.</td></tr>
+      <tr><td><b>SQL Server</b></td><td>Requires a read-only login with specific permissions. A stored procedure handles execution plan collection.</td></tr>
+      <tr><td><b>Oracle</b></td><td>Requires a specific Oracle package and a dedicated Datadog user with the appropriate grants.</td></tr>
+      <tr><td><b>MongoDB</b></td><td>Supports both Atlas and self-hosted deployments. Telemetry types differ from relational engines.</td></tr>
+    </table></div>
+    <div class="examtip"><span class="lbl">Exam Tip</span>The exam is "database engine agnostic": it will not test engine-specific SQL syntax or configuration details, only the investigation workflow itself, which is identical across all supported engines and differs only in setup. All hands-on examples in this map use PostgreSQL, matching the <span class="term">Storedog</span> lab environment.</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Standard Integration vs. DBM: What Extra Do You Get</h3>
+    <p>A <span class="term">standard integration</span> is a general integration like Postgres or SQL Server, collecting "host level / instance level" metrics, an "outside-in" view of the database. <span class="term">DBM</span> does not replace it, it layers a full set of query-level telemetry on top of the standard integration.</p>
+    <div class="toggle-row">
+      <button class="active" onclick="toggleP(this,'nodbm')">Standard Integration Only</button>
+      <button onclick="toggleP(this,'hasdbm')">Full DBM Layered On</button>
+    </div>
+    <div class="toggle-panel active" id="nodbm">
+      <div class="example"><span class="lbl">You get</span>aggregate numbers such as connection count, SQL compilation rate, buffer pool utilization, disk I/O, and replication status, telling you whether the database is "healthy or not." <span class="lbl" style="margin-top:10px;">You don't get</span>the "why": query-level detail is a complete black box. Setup is simple, and the Agent user only needs basic <code>SELECT</code> privileges.</div>
+    </div>
+    <div class="toggle-panel" id="hasdbm">
+      <div class="example"><span class="lbl">You additionally get</span>Query Metrics (aggregate stats for the top 200 normalized queries), Query Samples (actual execution snapshots at a point in time, retained 15 days), automatically collected Explain Plans, Wait Event analysis, blocking query insights, normalization and obfuscation, APM correlation, and DBM Recommendations. <span class="lbl" style="margin-top:10px;">The cost</span>the Agent YAML needs <code>dbm: true</code> added, extra privileges are required (Postgres needs <code>pg_monitor</code>), and the connection must go directly to the database host, not through a proxy, load balancer, or connection pool. For most workloads the extra overhead is usually under 1% of query execution time and 1% of CPU.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Nine Health Indicators: The Database's Vital Signs</h3>
+    <p>Think of it like a doctor checking a patient's vital signs: heart rate, blood pressure, temperature. Expand each item to see how to interpret it:</p>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">① Connections<span class="chev">▸</span></div>
+      <div class="acc-body"><p>How many clients are connected to the database, and how far it is from the limit. A steady climb may be a connection leak, a sudden spike may be a traffic burst or an application misconfiguration, and long-idle connections waste resources.</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">② Query Volume and Throughput<span class="chev">▸</span></div>
+      <div class="acc-body"><p>How many queries are processed per second (reads vs. writes). A sudden drop may mean an upstream application is broken; a sudden spike may mean some runaway process is flooding the database.</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">③ Query Latency<span class="chev">▸</span></div>
+      <div class="acc-body"><p>Average, p50, p95, p99, max. <b>p95/p99 matter especially</b> because the average masks outliers, for example an average of 10ms with a p99 of 2 seconds means 1% of users have a terrible experience.</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">④ Active Sessions and Database Load (Wait Event Analysis)<span class="chev">▸</span></div>
+      <div class="acc-body"><p>Instead of only looking at "how many queries ran," look at what resource the query is waiting on at that moment, four broad categories: <b>CPU</b> (competing for compute, consider optimizing the query or scaling up the instance), <b>I/O</b> (waiting on disk reads/writes, possibly a missing index or a buffer pool that's too small), <b>Lock/Latch</b> (waiting for another session to release a lock, usually contention caused by a long transaction), <b>Network</b> (waiting on data transfer, possibly an oversized result set or high latency).</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">⑤ Blocking Queries<span class="chev">▸</span></div>
+      <div class="acc-body"><p>A single long transaction holding a lock can cascade into dozens of blocked queries. DBM can visualize the "root blocking query" and the queries stuck behind it; see the real lock incident in Chapter 4 and Chapter 7.</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">⑥ Resource Utilization (CPU/Memory/Disk/I/O)<span class="chev">▸</span></div>
+      <div class="acc-body"><p>The database's "physical limit": no matter how well a query is written, the host still goes down without CPU, memory, or disk space. CPU sustained &gt;80% means it's close to its limit; for memory, check the cache hit ratio; running out of disk space is a catastrophic failure.</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">⑦ Replication Health<span class="chev">▸</span></div>
+      <div class="acc-body"><p>Replication lag (how far the replica trails the primary) and replication status (whether it's connected and staying in sync). Lag that's too high means you're reading stale data; a disconnect means you've lost your failover backup.</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">⑧ Database Engine-Specific Telemetry<span class="chev">▸</span></div>
+      <div class="acc-body"><p>Postgres looks at vacuum operations (a steadily growing dead tuple count means autovacuum can't keep up); SQL Server looks at connection count, system memory, and throughput; MongoDB looks at slow operations, execution plans, and replication status changes.</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">⑨ DBM Recommendations Themselves Are Also a Health Signal<span class="chev">▸</span></div>
+      <div class="acc-body"><p>Not just raw metrics: DBM actively analyzes and flags high-impact blocking queries, unused indexes, and low-disk-space warnings, each recommendation carries a severity tier. See the full type table in Chapter 4.</p></div>
+    </div>
+    <div class="example"><span class="lbl">The key to holistic interpretation is "correlation"</span>a single metric never tells the whole story: high CPU + one query eating most of the database's time → that query needs optimizing; rising latency + increased lock waits → it's a blocking problem, not a resource problem; connection spike + falling throughput → it's connection saturation, not poor query efficiency; high I/O + low cache hit ratio → you need more memory, or the query is scanning too much data.</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Six Telemetry Types: Unfolding Three Lenses One by One</h3>
+    <p>The official docs condense the data types into three broad categories, three different "lenses" on the same database; the six telemetry types below are what those three lenses look like once unfolded:</p>
+    <div class="cmp">
+      <div class="col"><h4>Metrics · Satellite View</h4><p>Host-level integration metrics, answering "how is the database doing overall," and the basis for dashboards and threshold alerts. <b>Limitation:</b> only shows "what happened," not "who caused it."</p></div>
+      <div class="col"><h4>Query Metrics · Street View</h4><p>Aggregate performance stats for each normalized query, turning the database from a black box into something you can reason about at the query level.</p></div>
+      <div class="col"><h4>Query Samples · Microscope View</h4><p>Individual snapshots of what actually executed at a given moment. <b>Limitation:</b> just a biased sample, not a complete record.</p></div>
+    </div>
+    <p>A typical investigation order: Metrics ("the database is under pressure") → Query Metrics ("this query pattern is eating 40% of database time") → Query Samples ("this one execution took 12 seconds at 3:47 PM"). In the actual UI, add Explain Plans, Wait Events, Active Sessions, and Schemas, unfolding into six:</p>
+    <div class="table-wrap"><table>
+      <tr><th>Telemetry Type</th><th>Question It Answers</th></tr>
+      <tr><td>Query Metrics</td><td>Which query is slowest / most resource-hungry?</td></tr>
+      <tr><td>Query Samples</td><td>What specifically was slow this time?</td></tr>
+      <tr><td>Explain Plans</td><td>How did the database actually execute this query?</td></tr>
+      <tr><td>Wait Events</td><td>What is the query waiting on?</td></tr>
+      <tr><td>Active Sessions</td><td>What was happening in the database at that moment?</td></tr>
+      <tr><td>Schemas</td><td>Is the table's structure reasonable?</td></tr>
+    </table></div>
+    <p style="margin-top:10px;">Typical investigation order: <b>Query Metrics → Query Samples → Explain Plans → Schemas → Wait Events / Active Sessions</b>.</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Query Metrics: Normalization and query_signature</h3>
+    <p>DBM groups all executions sharing the same <span class="term">query signature</span> regardless of parameter values, computing average latency, total execution time, rows returned, and call count.</p>
+    <div class="analogy"><span class="lbl">What normalization is</span>replacing the actual parameter values passed into a query with placeholders, so queries with different parameters but identical logic are treated as the same "query signature":
+      <pre style="margin-top:10px;"><code>SELECT * FROM orders WHERE user_id = 98712 AND status = 'pending'
+SELECT * FROM orders WHERE user_id = 55103 AND status = 'shipped'</code></pre>
+      After normalization both are classified under the same query signature: <code>SELECT * FROM orders WHERE user_id = ? AND status = ?</code>. As long as the structure is the same (table name, columns, operators, and clause order all match), it's treated as the same signature; any structural difference (an extra column, a different `WHERE` order, an extra `JOIN`) makes it a different signature, aggregated separately.
+    </div>
+    <div class="examtip"><span class="lbl">Exam Tip</span>Filter using <code>query_signature</code>, not the <code>query</code> field. Reason: tag names get truncated to 200 characters, query text can be long and the `query` tag isn't necessarily unique; `query_signature` is a fixed-length hash and the reliable way to identify a query.</div>
+    <div class="example"><span class="lbl">Hands-on example: an e-commerce checkout page suddenly gets slow</span>Sorting Query Metrics by "total execution time" reveals that <code>SELECT * FROM orders WHERE user_id = ? AND status = ?</code> is consuming the most resources: average latency 850ms (only 120ms last week), 3,200 calls per minute, and an average of 4,500 rows returned (only 50 last week). The spike in rows returned suggests a missing `LIMIT` or a broken index.</div>
+    <div class="examtip"><span class="lbl">Retention</span>The official docs (Database Monitoring Data Collected, Data Retention Periods) explicitly list Query Metrics as retained for <b>15 months</b>.</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Query Samples: From "Slow on Average" to "Why Was This One Slow"</h3>
+    <p>An individual query execution captured at a collection moment: the exact query text, duration, host, and associated execution plan, directly linked to the APM trace (see Chapter 3).</p>
+    <div class="example"><span class="lbl">Hands-on example</span>Query Metrics tells you that query is slow "on average"; switching to Query Samples finds one execution that took 2.3 seconds on host <code>postgres-replica-02</code>, correlated with an APM trace from <code>/api/v1/checkout</code> on <code>checkout-service</code>. Drilling into the trace reveals a user with 12,000 historical orders, which made this particular execution slow.</div>
+    <div class="examtip"><span class="lbl">Exam Tip</span>Retention is <b>15 days</b>, an order of magnitude less than Query Metrics' 15 months, a commonly tested contrast point. DBM samples rather than capturing everything; a query not showing up in the samples very likely just wasn't captured during that window, not that it didn't execute.</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Explain Plans: Unpacking Every Term from Scratch</h3>
+    <p>An execution plan is a representation of the steps the query planner chose to execute a query. The whole thing can be thought of as a "kitchen ticket": the customer's order (SQL) just says "I want a steak," and the kitchen internally decides how to make it, that whole set of internal decisions and steps is the execution plan.</p>
+    <div class="stepper-nav">
+      <button class="active" data-step="1" onclick="setStep(this,'plan')">1. No index: Seq Scan</button>
+      <button data-step="2" onclick="setStep(this,'plan')">2. Create a composite index</button>
+      <button data-step="3" onclick="setStep(this,'plan')">3. After indexing: Index Scan</button>
+      <button data-step="4" onclick="setStep(this,'plan')">4. How to read the cost</button>
+      <button data-step="5" onclick="setStep(this,'plan')">5. Map View spots the bottleneck</button>
+    </div>
+    <div class="step-panel active plan-step" data-step="1">
+      <p><b>Who decides how it's done: the query planner, and nodes.</b>The query planner is the chef in the kitchen figuring out "how," the customer only says what they want to eat, and the chef has to work out the steps, those steps are the execution plan; each line is a "node," and when the action is complex several nodes stack up, which is also why the Map View looks like a tree.</p>
+      <p><b>Seq Scan (sequential scan):</b>imagine looking for something in a warehouse with nothing sorted, you can only open boxes one by one.</p>
+      <div class="example"><pre><code>Seq Scan on orders  (cost=0.00..15420.00 rows=4500)
+  Filter: (user_id = 98712 AND status = 'pending')</code></pre></div>
+    </div>
+    <div class="step-panel plan-step" data-step="2">
+      <p>Imagine the warehouse door has a list posted, "Category A items are in row 3," one glance at the list tells you where to go, that's <b>Index Scan</b>. Actually building that list:</p>
+      <div class="example"><pre><code>CREATE INDEX idx_orders_user_status
+ON orders (user_id, status);</code></pre>Using `user_id` as the primary sort key, with rows sharing the same `user_id` then sorted by `status`; when building it, the database pulls out each row's `(user_id, status)` values, sorts them, and stores them separately in their own data structure (PostgreSQL defaults to B-tree).</div>
+      <p><b>Why the column order matters:</b>`user_id` has far higher selectivity than `status` (`user_id` is nearly unique per value, while `status` usually only has a handful of values like `pending`, `shipped`, `cancelled`), putting the higher-selectivity column first lets the "jump to the target location" step narrow the range as much as possible.</p>
+    </div>
+    <div class="step-panel plan-step" data-step="3">
+      <div class="example"><pre><code>Index Scan using idx_orders_user_status on orders  (cost=0.42..8.50 rows=3)</code></pre>Cost dropped dramatically from 15,420 to 8.5.</div>
+      <p>Actual execution steps for the query <code>SELECT * FROM orders WHERE user_id = 98712 AND status = 'pending'</code>: ① the planner sees the index covers both columns used in `WHERE`, and chooses Index Scan; ② binary search within the index (splitting in half each time) quickly locates the position where `user_id = 98712` starts, needing only log(N) comparisons instead of N; ③ it reads forward from that position, since rows with the same `user_id` sit contiguously in the index; ④ `status` is the secondary sort key, so `pending` rows are grouped together and don't need row-by-row checking; ⑤ each index entry carries a pointer to the actual row in the table, and once matching entries are found, the pointer is followed back to the table to read the real data. The entire process never looks at the 499,997 rows that don't match.</p>
+    </div>
+    <div class="step-panel plan-step" data-step="4">
+      <p><b>What happens to the data after it's fetched:</b>Filter (corresponds to `WHERE`), Sort (corresponds to `ORDER BY`, usually has to wait until everything is piled on the table before it can start sorting), Join (`Nested Loop`, for each row in a small list go find the match in the other set / `Hash Join`, when neither side is small, build a hash table from one side first / `Merge Join`, when both sides are already sorted, zip them together like a zipper), Aggregate (`COUNT`/`SUM`/`GROUP BY`, usually the last step).</p>
+      <p><b>cost:</b>not money or seconds spent, more like the chef's internal score for "how much of a hassle is this approach," written as "startup cost..total cost," it's an educated estimate, only comparable against other steps within the same plan, never across queries or machines. <b>rows:</b>the chef's guess at "roughly how many rows this step leaves behind"; when the guess is way off from reality, that's a signal "the chef may have picked the wrong approach this time."</p>
+    </div>
+    <div class="step-panel plan-step" data-step="5">
+      <p>If the whole process stacks up many actions, DBM draws the whole thing as a tree, using color intensity or box size to directly tell you which box is the most expensive, no need to mentally compare each one yourself.</p>
+      <div class="example"><span class="lbl">Hands-on example</span>Looking at the execution plan for a query sample shows a Seq Scan, the database scanning the entire `orders` table row by row (500,000 rows), and the Map View shows this node accounts for 98% of the total cost. Fix: create a `(user_id, status)` composite index, dropping cost from 15,420 to 8.5.</div>
+      <div class="examtip"><span class="lbl">Note</span>not every query has an execution plan: some queries are too short to be sampled with a plan attached, some are structurally excluded (for example transactions with certain lock modes), and collection requires the <code>explain_statement</code> function to be correctly set up (see Chapter 2). If a query sample has no associated plan, check that function first.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Wait Events: The Bank Teller Hall</h3>
+    <div class="analogy"><span class="lbl">Analogy</span>Think of the database as a bank teller hall, each "connection" is a customer being served, and at every moment a customer is either "being served" or "waiting on something."</div>
+    <p><b>CPU wait:</b>the query is genuinely being processed, this is normal busyness; a consistently high share usually means the query involves a large amount of data or computation. <b>Lock wait:</b>this connection wants to touch a piece of data already locked by another connection, for example <code>Lock:transactionid</code> means waiting for an entire other transaction to finish, and a spike means a transaction has been stuck open too long. <b>I/O wait:</b>waiting for data to be read from disk into memory or written to disk; a high share usually means a large data volume or disk speed can't keep up. <b>Idle:</b>the connection currently has no query running but is still holding a slot. <b>Blocking:</b>the flip side of lock wait, when A is waiting for B to release a lock, we say "B is blocking A"; the Active Connections tab tells you directly "who is blocking whom."</p>
+    <p class="trace-note">See the real-world case in Chapter 4 and Chapter 7: a spike in <code>Lock:transactionid</code>, tracing it via <code>stop_locks</code>, and the root cause being a test <code>LOCK TABLE</code> cronjob that was never cleaned up.</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Active Sessions: A Snapshot Every 10 Seconds</h3>
+    <p>A periodic snapshot of the database's active connection state, captured roughly every 10 seconds, capturing currently executing queries, duration, wait status, and which connections are blocking others. It's used together with Wait Events: Wait Events tell you "a spike happened," Active Sessions tell you "what exactly was running when the spike happened."</p>
+    <div class="analogy"><span class="lbl">Analogy</span>If Wait Events is a live broadcast of "what one customer is waiting on right now," Active Sessions is a security system taking a photo of the whole hall every few seconds. Because it's "periodic snapshots on file" rather than continuous recording, whatever happens between two photos isn't recorded, but you can still flip back through them frame by frame to find what happened at the moment of the anomaly. When multiple connections are stuck for the same reason at once, they can be chained into a "blocking chain" that names exactly which connection, running which query, caused it.</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Schemas: Is the Table Structure Reasonable</h3>
+    <p>Think of a table as a filing cabinet, where each row is a form with a consistent format. A <b>column</b> is a field every form has; the <b>data type</b> dictates what can go in that field (for example <code>numeric(10,2)</code>); the <b>primary key</b> never repeats across forms, and the database automatically creates an index for it by default; an <b>index</b> is a list that helps locate data quickly, and index size refers to how much storage that extra list itself takes up, it's not free.</p>
+    <div class="examtip"><span class="lbl">Foundational terms the exam adds</span><b>B-tree</b> (the tree structure most database indexes default to, making "split in half" binary search possible), <b>covering index</b> (the index itself already contains every column the query needs, no need to go back to the table at all), <b>index bloat</b> (an index accumulates a large number of no-longer-valid entries as data changes, taking up more space and slowing queries down, requiring periodic rebuilding or cleanup). Structural information like table names, column names, and index names is not within the scope of obfuscation and shows up in full on the Schemas page.</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Data Privacy and Obfuscation</h3>
+    <p>Query Samples capture the actual query text as executed, and databases often store user emails, payment info, and personal data. Before the Agent sends data to Datadog, it does two things: <b>query normalization</b> (literal values replaced with `?` placeholders, and also the mechanism that strips literal values before leaving the host) and <b>parameter obfuscation</b> (another layer of protection, enabled by default, covering cases normalization doesn't reach, such as comments within the query text).</p>
+    <div class="table-wrap"><table>
+      <tr><th>Data Type</th><th>Obfuscated by Default</th></tr>
+      <tr><td>Query parameter values (bound literals)</td><td>Yes</td></tr>
+      <tr><td>Comments within query text</td><td>Yes</td></tr>
+      <tr><td>Table and column names</td><td>No</td></tr>
+      <tr><td>Index names</td><td>No</td></tr>
+      <tr><td>Execution plan structure</td><td>No</td></tr>
+      <tr><td>Host metadata and database tags</td><td>No</td></tr>
+    </table></div>
+    <div class="examtip"><span class="lbl">A commonly tested blind spot</span>if the table or column names themselves contain sensitive information (for example a table called <code>credit_cards</code>), those names will be visible as-is; if the database's logs are sent to Datadog, they may contain the full SQL query text including bound parameters, since obfuscation only applies to the DBM telemetry pipeline, logs take a different path; <b>comments</b> within SQL queries may be collected by the Agent without obfuscation, something to watch for particularly in the trace-correlation comment mechanism in Chapter 3, since that mechanism itself relies on carrying the trace ID inside a SQL comment.</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Two Things to Know Before Investigating Hands-On</h3>
+    <ol>
+      <li><b>DBM is sampling, not full capture.</b>A query not showing up in Query Samples very likely just wasn't captured during that time window, not that it didn't execute.</li>
+      <li><b>There is propagation delay.</b>There's a short delay between a query executing and its metrics appearing in DBM views; wait a few minutes before checking updated data when verifying a fix.</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 2 ===================== -->
+<section class="chapter" data-chapter="2" style="--accent:var(--c2);--accent-bg:var(--c2-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Chapter 02 · Setup &amp; Instrumentation</div>
+    <h2>Infrastructure Integration &amp; Setup</h2>
+    <p class="lead">For the six telemetry types from the previous chapter to actually show up on screen, you first have to walk through this entire setup process. This chapter uses the Storedog environment, starting from the most basic Postgres integration, all the way to fully enabling DBM and verifying success, then fills in the breadth the exam covers that a single lab environment can't show.</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>The Lab Environment: Storedog</h3>
+    <p><span class="term">Storedog</span> is the e-commerce app used for hands-on examples in this chapter, letting users search, browse, and purchase products. The architecture includes a web frontend, a backend server, and two PostgreSQL databases: one storing spree backend-related data, and the other storing ads, discount codes, and product data. Many of the queries seen in Chapter 1 and Chapter 4 come from these two databases handling Storedog's business logic.</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Step One vs. Step Two: How Much You Can See with Infrastructure Integration Alone</h3>
+    <p>Before enabling full DBM, let's first see how much visibility Postgres infrastructure integration and APM alone provide, as a baseline for comparing what DBM adds on top.</p>
+    <div class="toggle-row">
+      <button class="active" onclick="toggleP(this,'step1')">Step One: Infrastructure Integration Only</button>
+      <button onclick="toggleP(this,'step2')">Step Two: Upgrade to Full DBM</button>
+    </div>
+    <div class="toggle-panel active" id="step1">
+      <p><b>Create a read-only user and grant privileges:</b></p>
+      <div class="example"><pre><code>CREATE user datadog WITH PASSWORD 'datadog';
+GRANT pg_monitor TO datadog;
+GRANT SELECT ON pg_stat_database TO datadog;</code></pre>Creates a user called `datadog`; grants `pg_monitor` so it can read stats and activity info but not modify data; additionally grants read access to `pg_stat_database` (database-wide statistics).</div>
+      <p><b>Verify the privileges:</b></p>
+      <div class="example"><pre><code>docker exec lab-postgres-1 psql -x -h postgres -U datadog postgres -c \
+"select * from pg_stat_database LIMIT(1);" \
+&& echo -e "\e[0;32mPostgres connection - OK\e[0m" \
+|| echo -e "\e[0;31mCannot connect to Postgres\e[0m"</code></pre>Successfully querying data confirms the user and privileges are set up correctly. This read-only user is what actually goes into the Agent config's credentials later.</div>
+      <p><b>Autodiscovery: how a Docker label lets the Agent connect to the database automatically.</b>Because Storedog has two logical databases, the Agent config carries two sets of connection info:</p>
+      <div class="example"><pre><code>postgres:
+  image: postgres:13-alpine
+  environment:
+    - DD_DBM_PROPAGATION_MODE=full
+  labels:
+    com.datadoghq.ad.check_names: '["postgres", "postgres"]'
+    com.datadoghq.ad.init_configs: '[{}, {}]'
+    com.datadoghq.ad.instances: '[
+        {
+          "host":"%%host%%", "port":5432,
+          "username":"datadog", "password":"datadog",
+          "relations": [{"relation_name": "advertisement"},
+                        {"relation_name": "discount"},
+                        {"relation_name": "items"}],
+          "query_samples": {"enabled": true, "explain_parameterized_queries": true},
+          "collect_function_metrics": true,
+          "collection_interval": 1
+        },
+        {
+          "host":"%%host%%", "port":5432,
+          "username":"datadog", "password":"datadog",
+          "dbname": "spree_starter_development",
+          "relations": [{"relation_regex": "spree_.*"}],
+          "query_samples": {"enabled": true, "explain_parameterized_queries": true},
+          "collect_function_metrics": true,
+          "collection_interval": 1
+        }]'</code></pre></div>
+      <p><code>host: "%%host%%"</code> uses a template variable that the Agent automatically substitutes with the container's actual network address at startup; `relations` lists specific tables via `relation_name`, or covers all matching tables at once via `relation_regex`; `query_samples` turns on query sample collection and allows execution plan collection to also be attempted for parameterized queries; `collection_interval: 1` is a high-frequency setting for lab purposes. These labels already cover DBM-related fields, meaning the environment is pre-paved, but the full functionality behind it isn't officially enabled yet at this step.</p>
+      <p><b>What can be seen at this stage:</b>two ready-made dashboards, <b>Postgres - Metrics</b> and <b>Postgres - Overview</b>, are provided automatically (see Chapter 5), and APM (via the Tracer + Agent APM feature, see Chapter 3) records queries and their duration from the "application calling the database" angle, with the Postgres service findable under <b>APM &gt; Software Catalog</b>. Up to this point, only aggregate-level resource metrics are visible, none of the six telemetry types from Chapter 1 yet.</p>
+    </div>
+    <div class="toggle-panel" id="step2">
+      <p>Only a few small changes are needed on top of the original integration: first let the Agent know to connect in DBM mode (<code>dbm: true</code>), then get the database itself ready to be probed for detail (two parameters in <code>postgresql.conf</code>), then create the privileges and helper functions DBM needs inside the database (<code>dbm_setup.sql</code>), and finally restart and verify.</p>
+      <p><b>Adding <code>dbm: true</code>:</b>both sets of connection config each need one line added above the `host` parameter:</p>
+      <div class="example"><pre><code>com.datadoghq.ad.instances: '[
+    {
+      "dbm": true,
+      "host":"%%host%%", "port":5432,
+      "username":"datadog", "password":"datadog",
+      "relations": [{"relation_name": "advertisement"},
+                    {"relation_name": "discount"},
+                    {"relation_name": "items"},
+                    {"relation_name": "preorder_items"},
+                    {"relation_name": "influencer"}],
+      "query_samples": {"enabled": true, "explain_parameterized_queries": true},
+      "max_relations": 400,
+      "collect_function_metrics": true,
+      "collection_interval": 1
+    },
+    { "dbm": true, "host":"%%host%%", "port":5432,
+      "username":"datadog", "password":"datadog",
+      "relations": [{"relation_regex": "spree_.*"}],
+      "query_samples": {"enabled": true, "explain_parameterized_queries": true},
+      "max_relations": 400,
+      "collect_function_metrics": true,
+      "collection_interval": 1
+    }]'</code></pre>Both instances only got the `"dbm": true,` line added; the rest of the connection config is completely unchanged. Restart to apply: <code>docker compose stop postgres && docker compose up postgres -d</code>.</div>
+      <p><b><code>postgresql.conf</code> settings:</b></p>
+      <div class="example"><pre><code>shared_preload_libraries = 'pg_stat_statements'
+track_activity_query_size = 4096</code></pre><code>shared_preload_libraries</code> specifies that `pg_stat_statements` be preloaded at startup; this extension continuously records in the background "how many times each normalized query ran and how long it took," the underlying basis for collecting Query Metrics; `track_activity_query_size` is raised to 4096 to ensure collected query samples don't get truncated. This lives in the database's own config file, a different thing from the Agent-side `dbm: true`, and both sides need DBM turned on for it to actually work.</div>
+      <p><b><code>dbm_setup.sql</code>: grants, schema creation, helper function creation.</b>Run once for each database you want DBM to monitor:</p>
+      <div class="example"><pre><code>GRANT SELECT ON pg_stat_database TO datadog;
+CREATE SCHEMA datadog;
+GRANT USAGE ON SCHEMA datadog TO datadog;
+GRANT USAGE ON SCHEMA public TO datadog;
+GRANT pg_monitor TO datadog;
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements;</code></pre></div>
+      <button class="reveal-btn" onclick="openNodePanel('explain-statement')">Expand for the full explain_statement function and how it works</button>
+      <p style="margin-top:14px;"><b>Execution result:</b></p>
+      <div class="example"><pre><code>GRANT SELECT ON pg_stat_database TO datadog;
+GRANT
+CREATE SCHEMA datadog;
+psql:/root/lab/dbm_setup.sql:2: ERROR:  schema "datadog" already exists
+GRANT USAGE ON SCHEMA datadog TO datadog;
+GRANT
+...
+CREATE OR REPLACE FUNCTION datadog.explain_statement(...)
+CREATE FUNCTION</code></pre>The `ERROR: schema "datadog" already exists` in the middle isn't fatal; in `psql -a` mode a non-fatal error like this just gets skipped while execution continues, because this setup script has been run more than once against the same database.</div>
+      <p><b>Restart and verify:</b><code>docker restart lab-postgres-1</code>, because `shared_preload_libraries` only loads at startup. Right after restarting, at `Total Runs: 1` the DBM-related fields still won't show, which is normal, they need a few runs to appear. <b>Once fully enabled, three new lines should show up:</b></p>
+      <div class="example"><pre><code>Database Monitoring Activity Samples: Last Run: 2, Total: 11
+Database Monitoring Query Metrics: Last Run: 2, Total: 11
+Database Monitoring Query Samples: Last Run: 2, Total: 191</code></pre>Their appearance means the Agent is genuinely collecting this data, not just infrastructure-integration-level `Metric Samples`.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>The Wider Picture: What the Exam Covers That a Single Postgres Lab Doesn't Show</h3>
+    <p>Everything hands-on above is based on "self-hosted Postgres + Docker"; the exam covers wider ground. Below are the parts the lab has no chance to touch, but that need to be understood conceptually.</p>
+    <div class="grid g3">
+      <div class="mini" tabindex="0" onclick="toggleMini(this)">
+        <div class="mt">Self-hosted database</div>
+        <div class="md">Agent installed directly on the database host</div>
+        <div class="full">Same as this chapter's lab environment, giving full visibility into the health of the machine actually running the database process, with the Agent granted read-only access.</div>
+      </div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)">
+        <div class="mt">Cloud-managed (RDS, Azure SQL, Cloud SQL)</div>
+        <div class="md">Can't install software directly on the managed instance</div>
+        <div class="full">The Agent has to be installed on a separate host with network access (for example EC2) and configured to connect to each managed instance. System metrics like CPU/memory/disk are collected directly through that cloud provider's Datadog integration.</div>
+      </div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)">
+        <div class="mt">Kubernetes</div>
+        <div class="md">Cluster Agent paired with DBM</div>
+        <div class="full">Cluster checks can run against pods, with the Cluster Agent automatically distributing database instances across a set of Agents to ensure each instance is only checked once.</div>
+      </div>
+    </div>
+    <div class="example" style="margin-top:14px;"><span class="lbl">Basic YAML structure (similar across engines, the same thing as this chapter's `dbm: true`)</span><pre><code>init_config:
+instances:
+  - dbm: true
+    host: localhost
+    port: 5432
+    username: datadog
+    password: 'ENC[datadog_user_database_password]'</code></pre>The config file path is `conf.d/&lt;CHECK_NAME&gt;.d/conf.yaml`. <b>The official recommendation is no more than 30 database instances per Agent.</b></div>
+
+    <p style="margin-top:16px;"><b>Database user privileges: cross-engine comparison</b>(common pattern: create a dedicated `datadog` user with only the minimum privileges monitoring needs):</p>
+    <div class="table-wrap"><table>
+      <tr><th>Engine</th><th>Required Privileges/Setup</th></tr>
+      <tr><td>Postgres</td><td>the <code>pg_monitor</code> role, `pg_stat_statements` installed, a `datadog` schema with the right grants (matching the `dbm_setup.sql` actually done in this chapter)</td></tr>
+      <tr><td>MySQL</td><td>`performance_schema` enabled, various `SELECT` and `REPLICATION CLIENT` grants, the `datadog.explain_statement` stored procedure</td></tr>
+      <tr><td>SQL Server</td><td><code>VIEW SERVER STATE</code> and <code>VIEW DATABASE STATE</code> privileges, `CONNECT` access to each database, specific driver configuration</td></tr>
+    </table></div>
+    <div class="examtip"><span class="lbl">Exam Tip</span>engine-specific SQL syntax isn't tested, but understand the concept: the Agent user needs "read access to performance views," and insufficient privileges mean DBM gets no data.</div>
+
+    <div class="acc-item" style="margin-top:16px;">
+      <div class="acc-head" onclick="toggleAcc(this)">Verifying the setup took effect (full five steps)<span class="chev">▸</span></div>
+      <div class="acc-body">
+        <p><b>Step 1:</b>run <code>sudo datadog-agent status</code>; a healthy integration shows under Running Checks with lines for `Database Monitoring Query Metrics`, `Query Samples`. <b>Step 2:</b>use a command-line tool like `psql` (Postgres) or `sqlcmd` (SQL Server) to confirm the credentials, host, and port also connect outside the Agent. <b>Step 3:</b>verify privileges, for example confirming the `datadog` user can query at least one row from `pg_stat_statements`. <b>Step 4:</b>check whether data is coming into the Database Monitoring page in the Datadog UI. <b>Step 5:</b>verify network connectivity to the Datadog endpoints: <code>telnet dbm-metrics-intake.&lt;site&gt; 443</code>, <code>telnet dbquery-intake.&lt;site&gt; 443</code>, common failure causes are proxy settings or a firewall blocking outbound traffic.</p>
+        <p>DBM-specific data collection relies on four parallel asynchronous jobs inside the Agent: <b>Statement Metrics</b> (queries `pg_stat_statements` etc., collecting aggregate metrics per query), <b>Statement Samples</b> (samples active query snapshots and runs `EXPLAIN`), <b>Activity Monitoring</b> (collects active connections, wait events, blocking queries), <b>Metadata Collection</b> (collects schema info, database configuration, host configuration); each job is scheduled and reports independently, and one failing doesn't necessarily affect the others.</p>
+      </div>
+    </div>
+
+    <p style="margin-top:16px;"><b>Tunable settings:</b></p>
+    <div class="table-wrap"><table>
+      <tr><th>Setting</th><th>Default / Description</th></tr>
+      <tr><td>Query Metrics collection interval</td><td>10 seconds, can be stretched to 30 seconds when the database is busy to reduce overhead</td></tr>
+      <tr><td>Query Samples collection interval</td><td>1 second (this is the lab's `collection_interval: 1`), also the basis for how execution plans get collected</td></tr>
+      <tr><td>Query Activity collection interval</td><td>1 second, cannot be smaller than the Query Samples collection interval</td></tr>
+      <tr><td>Reported Hostname</td><td>overrides the hostname shown in the UI, important when the Agent connects through a proxy or runs in a container with a generic hostname</td></tr>
+      <tr><td>Ignore Databases</td><td>excludes databases you don't want monitored, for example `template0`, `rdsadmin`, `cloudsqladmin`</td></tr>
+      <tr><td>Schema Collection</td><td>collected every 10 minutes by default, powering the Schema Explorer</td></tr>
+      <tr><td>Custom Queries</td><td>reports custom SQL results as metrics, for monitoring business metrics (queue depth, order count)</td></tr>
+    </table></div>
+    <p><b>Where tags come from:</b>`tags` explicitly set in the Agent config, infrastructure tags automatically collected from the host, global host tags from `datadog.yaml` (requires `propagate_agent_tags: true`), tags derived from the database itself (`db`, `user`, `client`, `query_signature`, `query`), and tags added from the trace context once DBM-APM correlation is enabled (see Chapter 3).</p>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 3 ===================== -->
+<section class="chapter" data-chapter="3" style="--accent:var(--c3);--accent-bg:var(--c3-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Chapter 03 · APM Correlation</div>
+    <h2>APM and DBM Correlation</h2>
+    <p class="lead">The previous two chapters covered the six telemetry types themselves and how to set up DBM to collect them; this chapter covers something else: how the database-side telemetry DBM collects gets linked to the application-side telemetry APM collects.</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>The Problem Being Solved</h3>
+    <p>Without correlation, DBM and APM are two separate worlds. APM tells you "this API endpoint is slow, that database span took 2 seconds," but not "why" it's slow; DBM tells you "this normalized query has high latency," but not which service caused it. Once connected, developers can understand database performance without directly accessing the database, and DBAs can understand how a specific service's request traffic affects database load.</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Three Layers of the Mechanism: Tracer, Agent, Trace ID Injection</h3>
+    <p>This correlation isn't some special setting on the database itself, it's jointly enabled by application-side configuration plus the Agent's APM functionality, matching exactly with Chapter 2's Storedog lab environment.</p>
+    <div class="stepper-nav">
+      <button class="active" data-step="1" onclick="setStep(this,'apm')">Layer One: Tracer</button>
+      <button data-step="2" onclick="setStep(this,'apm')">Layer Two: Agent APM Port</button>
+      <button data-step="3" onclick="setStep(this,'apm')">Layer Three: SQL Comment Injection</button>
+    </div>
+    <div class="step-panel active apm-step" data-step="1">
+      <p>Services like <code>backend</code> and <code>worker</code> load an init file such as <code>datadog-tracer-backend.rb</code>, a dd-trace library config file responsible for automatically attaching tracing when the Ruby/Rails application starts. Once installed, the Tracer automatically intercepts the application's calls to the database (for example SQL issued through ActiveRecord), with no manual code changes needed from engineers.</p>
+      <p>This is the fundamental reason Postgres can appear as a "service" in APM: it's the application side reporting "it called the database," the database itself has no idea it's being traced. Once set up, the Postgres service can be found under <b>APM &gt; Software Catalog</b>.</p>
+    </div>
+    <div class="step-panel apm-step" data-step="2">
+      <p>The Agent container has <code>DD_APM_ENABLED=true</code> and <code>DD_APM_NON_LOCAL_TRAFFIC=true</code> set, and opens port <b>8126</b>, the dedicated channel the Agent uses to receive trace data sent from each service. Spans produced by the Tracer on the application side are sent to the Agent through this port, and the Agent forwards them on to Datadog. Every application service also has <code>DD_AGENT_HOST=datadog</code> set, telling the Tracer which Agent to send data to.</p>
+    </div>
+    <div class="step-panel apm-step" data-step="3">
+      <p>With just a Tracer and APM, you only get span-level information about "the application called the database and it took this long"; being able to jump from an APM trace directly to the Query Samples and Explain Plans detail collected by DBM relies on injecting the trace ID into DBM's data collection.</p>
+      <p>The APM tracer prepends the trace context (trace ID, span ID, service name, environment) as a <b>SQL comment</b> in front of the actual query text before sending it out:</p>
+      <div class="example"><pre><code>/*dddbs='orders-db',ddps='checkout-service',ddtid='abc123'*/ SELECT * FROM orders WHERE id = ?</code></pre>The database only executes the `SELECT` part (the comment is ignored, with no performance impact); when the Agent collects query samples it reads this comment, extracts the trace metadata, and builds the correlation. This is also why the environment variable <code>DD_DBM_PROPAGATION_MODE=full</code> is set individually across multiple services in Chapter 2 such as `postgres`, `backend`, and `worker`, because both sides need it set for things to line up.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Three Propagation Modes</h3>
+    <div class="grid g3">
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">full</div><div class="md">Full trace information</div><div class="full">Sends complete trace information (trace ID, span ID, service name, environment), enabling two-way navigation: jump from a trace span to a DBM query sample, and also jump from a DBM sample back to the full trace. Recommended for most integrations, and what's actually used in the Chapter 2 lab environment.</div></div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">service</div><div class="md">Only sends service name</div><div class="full">No trace/span ID included; you can tell which service caused the database load, but can't jump to a specific trace.</div></div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">disabled</div><div class="md">Nothing sent at all</div><div class="full">DBM and APM stay fully independent with no correlation, back to the "two unrelated worlds" state described at the start of this chapter.</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Four Conditions Needed to Enable Correlation</h3>
+    <ul>
+      <li>DBM is configured and collecting data (<code>dbm: true</code>, see Chapter 2).</li>
+      <li>APM is configured with tracing (a Datadog tracing library installed, or OpenTelemetry with the right attributes).</li>
+      <li>Propagation Mode is set in the Tracer (configured per language, or via the environment variable <code>DD_DBM_PROPAGATION_MODE=full</code>).</li>
+      <li>Unified Service Tagging (<code>DD_SERVICE</code>, <code>DD_ENV</code>, <code>DD_VERSION</code> must all be set, ensuring service/env/version tags match on both the APM and DBM sides).</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Relationship to Query Normalization/Obfuscation (An Important Distinction)</h3>
+    <p>Chapter 1 mentioned that query text goes through normalization and obfuscation before being sent to Datadog, a mechanism protecting the <b>bound parameter values</b> in a query from leaking. The trace ID injection here follows a completely different path: it touches the <b>comment</b> at the very front of the query text, not the query's own parameters, and <b>comments are not obfuscated</b>.</p>
+    <div class="examtip"><span class="lbl">A commonly tested blind spot</span>if an application adds its own extra comment containing sensitive information to the SQL (for example a user ID or session token), that will also be collected by the Agent and sent to Datadog, unobfuscated. Obfuscation only covers parameter values, not the SQL comment itself.</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Summary: The Typical Investigation Flow</h3>
+    <p>Postgres itself has absolutely no special configuration to work with APM; it's the application installing a Tracer and sending spans to an Agent with APM enabled, and <code>DD_DBM_PROPAGATION_MODE</code> then uses the trace ID inside the SQL comment to connect those spans to the query data collected on the database side.</p>
+    <div class="flowbox">
+      <div class="fb">APM spots a slow<br>API endpoint</div><span class="farrow">→</span>
+      <div class="fb">Follows the correlation to<br>the specific slow query in DBM</div><span class="farrow">→</span>
+      <div class="fb">Checks the execution plan and<br>wait events to confirm the root cause</div>
+    </div>
+    <p class="trace-note">See the full hands-on example in Chapter 4, "From Query Sample to APM Trace to Confirm Actual Impact."</p>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 4 ===================== -->
+<section class="chapter" data-chapter="4" style="--accent:var(--c4);--accent-bg:var(--c4-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Chapter 04 · Diagnosis in Practice</div>
+    <h2>Query Analysis &amp; Troubleshooting (Hands-On Case Study)</h2>
+    <p class="lead">This is the heaviest chapter: a generalized diagnostic framework merged into a single narrative with one real Storedog database investigation, the framework is the skeleton, and the hands-on case is woven into the matching sections as a demonstration. This chapter covers "how to use it"; the full interactive lock-incident trace is on its own tab, "Architecture Overview."</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Common Performance Problem Pattern Reference</h3>
+    <div class="table-wrap"><table>
+      <tr><th>Pattern</th><th>Description</th><th>Where to Look</th></tr>
+      <tr><td>Slow queries</td><td>A specific query pattern takes too long</td><td>Query Metrics, sorted by Average latency or Total time</td></tr>
+      <tr><td>Resource saturation</td><td>Host CPU/memory/disk I/O/connection count exhausted</td><td>Built-in dashboards, the Metrics tab of host details</td></tr>
+      <tr><td>Blocking/lock contention</td><td>A query is waiting for another query to release a lock</td><td>The Blocks tab in Metrics, wait event analysis</td></tr>
+      <tr><td>Query degradation</td><td>A once-fast query has gotten slow</td><td>Query Load Increase in Recommendations, comparing execution plans in Query Metrics</td></tr>
+      <tr><td>Inefficient query pattern</td><td>Few rows returned but many rows examined, expensive joins, full table scans</td><td>Execution plans in Query Samples (look for Sequential Scan / COLLSCAN)</td></tr>
+    </table></div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Where to Start Looking</h3>
+    <p>The starting point differs depending on how you discovered the problem: <b>an alert fired</b> (start from the monitor that fired, see Chapter 5), <b>a user reported a specific feature being slow</b> (start from APM to find the slow trace, then jump to DBM), <b>a routine health check</b> (start from the Databases page), <b>proactive review</b> (start from Recommendations).</p>
+    <div class="examtip"><span class="lbl">The starting point of the hands-on case</span>this chapter's Storedog investigation also starts from a "routine health check," spotting an anomalous locking event on the Wait Group Activity chart from the Databases overview page. See the full interactive trace on the separate "Architecture Overview" tab.</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Query Metrics vs. Query Samples: When to Use Which</h3>
+    <div class="cmp c2">
+      <div class="col"><h4>Query Metrics · The Trend Analyst</h4><p>Aggregates historical performance data, the top 200 normalized queries, retained 15 months. Answers: "Which query pattern eats the most database time?" "Has this query gotten slower this month?" "How many calls per second?" <b>Can't do:</b>show a specific single execution, or what happened at a specific moment.</p></div>
+      <div class="col"><h4>Query Samples · The Incident Investigator</h4><p>Individual snapshots of queries running at a point in time, with execution detail and execution plans attached, retained 15 days. Answers: "What was running when latency spiked at 3:47 PM?" "Was it a full table scan?" "Who was running this query?"</p></div>
+    </div>
+    <div class="example"><span class="lbl">Hands-on example: sorting Query Metrics to find a suspicious query</span>Storedog recently added a "trending products" widget that runs a query against the `items` table every few seconds to grab the top ten most-ordered products, and this query is putting heavy load on the database. Switching to the Query Metrics tab and sorting by the Average Rows column header, `SELECT id, description...` sits at the very top; the `?` placeholder in the query text is the result of normalization.</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>What Execution Plans Are Telling You</h3>
+    <div class="table-wrap"><table>
+      <tr><th>Scan Type</th><th>Meaning</th><th>Good or Bad</th></tr>
+      <tr><td>Index Seek / Index Scan</td><td>Uses an index to find rows</td><td>Good, efficient</td></tr>
+      <tr><td>Sequential Scan / Full Table Scan / COLLSCAN</td><td>Reads every row of the entire table</td><td>Bad on large tables, usually a missing index</td></tr>
+      <tr><td>Bitmap Heap Scan (Postgres)</td><td>Builds a bitmap from an index, then reads the table</td><td>Decent for moderate selectivity</td></tr>
+      <tr><td>Index Only Scan (Postgres)</td><td>All data comes from the index, no need to touch the table</td><td>Best, a covering index</td></tr>
+    </table></div>
+    <p><b>Join strategies:</b>Nested Loop (for each row of table A, scan table B, suited to small tables or indexed lookups), Hash Join (build a hash table from the smaller side, suited to large amounts of unsorted data), Merge Join (sort both sides first then merge, suited to data that's already sorted). See Chapter 1 for the complete first-principles breakdown of execution plan node types.</p>
+    <div class="example"><span class="lbl">Hands-on example: Map View catches the real cost bottleneck</span>on the normalized query panel's Explain Plans tab, the Plan Operations table lists the operations this query uses, and the cost is quite high. The Map View further down draws the whole execution plan as a visualized tree, and this time shows the <b>Sort operation accounting for the largest share of the cost</b>, the main reason this query's execution time is too long.</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Reading APM Alongside DBM</h3>
+    <div class="table-wrap"><table>
+      <tr><th>What APM Shows</th><th>What to Check in DBM</th><th>Possible Cause</th></tr>
+      <tr><td>Database span is 90% of total trace time</td><td>Query Metrics: is this query slow on average?</td><td>Unoptimized query</td></tr>
+      <tr><td>Database span latency fluctuates wildly</td><td>Wait events: any lock waits? I/O spikes?</td><td>Resource contention or blocking</td></tr>
+      <tr><td>Database spans are fast but there are hundreds of them</td><td>Query Metrics: abnormally high request count within a single trace</td><td>N+1 query problem</td></tr>
+      <tr><td>Database errors spike</td><td>Host metrics: are connections maxed out? Is disk full?</td><td>Infrastructure saturation</td></tr>
+      <tr><td>Latency spike lines up with a deploy</td><td>Query Metrics: did the plan change? A new query pattern?</td><td>Regression from a code change</td></tr>
+    </table></div>
+    <div class="example"><span class="lbl">Hands-on example: from a Query Sample to an APM Trace to confirm real impact</span>clicking View Query Samples in the top right of the normalized query panel shows these samples with costs around 7000, on the high side. Drilling into one, opening the Explain Plan Sample panel and switching to the Trace tab shows the APM trace this query corresponds to: triggered by a GET request on the `/get-item` route, with the whole request taking about 1.06 seconds, of which this query accounted for 256ms, roughly a quarter of the entire request's time.</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>The N+1 Query Problem</h3>
+    <p>Instead of using a single `JOIN` to get all related data at once, the application runs one query per item. Example: an e-commerce page displays a list of 100 orders, and each needs to display the customer's name.</p>
+    <div class="cmp c2">
+      <div class="col good"><h4>Efficient (1 query)</h4><p><pre style="margin:0;"><code>SELECT orders.id, orders.total, customers.name
+FROM orders
+JOIN customers ON orders.customer_id = customers.id
+WHERE orders.created_at > '2024-01-01'</code></pre></p></div>
+      <div class="col bad"><h4>N+1 (101 queries)</h4><p>One query runs first to grab all orders, then the application loops over the results, running a separate query for each order to look up the customer's name, 100 orders means 101 round trips to the database.</p></div>
+    </div>
+    <p><b>Why it matters:</b>each individual query might be fast (2ms), but 101 of them add up to over 200ms, and it gets much worse once the data volume scales to 10,000 rows. The trickiest part is that N+1 often goes unnoticed during development, since the test database has few rows, only showing up once production data volume grows.</p>
+    <div class="examtip"><span class="lbl">How DBM helps you catch it</span>opening a slow trace in APM shows a flame graph stacked with hundreds of tiny, nearly identical database spans; in DBM Query Metrics, this normalized query's <b>Requests</b> count is abnormally high, with individual executions possibly fast (low Average latency) but <b>Total time</b> high. <b>Both showing up together is a clear signal.</b>How to fix it: the fix lives in the application code, not the database itself, common approaches are using a `JOIN` to fetch everything at once, eager loading, or batching into a single query with `WHERE id IN (...)`.</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Investigating Latency / Investigating Load / Investigating Blocking</h3>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">Investigating latency: four steps<span class="chev">▸</span></div>
+      <div class="acc-body"><p>① Confirm whether the database is the root cause (look at the slow trace's flame graph; if the database span accounts for most of the request time, it's the bottleneck); ② sort Query Metrics by Average latency to find the slowest query pattern, but also check Total time; ③ drill into query details for Explain Plans (a full table scan? expensive joins/sorts?), wait events, Hosts Running This Query, and the Metrics tab (a slow climb or a sudden jump); ④ compare execution plans across different points in time, if performance got worse after a new plan appeared, that's plan degradation.</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">Investigating load: where to look<span class="chev">▸</span></div>
+      <div class="acc-body"><p>The active connections timeline at the top of the host details page can be broken down by wait group; if most connections are waiting on CPU that means compute-intensive, mostly waiting on I/O means disk-intensive, mostly waiting on locks means contention; sort Query Metrics by Percent time to see which query pattern takes up the largest share of total database time.</p>
+      <div class="table-wrap"><table>
+        <tr><th>Pattern</th><th>What You See</th><th>Possible Cause</th></tr>
+        <tr><td>Slow increase over weeks</td><td>CPU and I/O climbing steadily</td><td>Data growth, needs scaling or optimization</td></tr>
+        <tr><td>Sudden spike at a specific time</td><td>All metrics jump at once</td><td>A deploy, a batch job, or a traffic surge</td></tr>
+        <tr><td>Periodic spikes</td><td>Load follows a predictable cycle</td><td>Scheduled jobs, business peak hours</td></tr>
+        <tr><td>One host maxed out, others idle</td><td>Uneven distribution</td><td>Misconfigured load balancer, hot partitioning</td></tr>
+      </table></div></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">Investigating blocking: a full hands-on example<span class="chev">▸</span></div>
+      <div class="acc-body">
+        <p>Blocking is one query holding a lock while another query needing the same lock waits, and in severe cases this forms a blocking chain: A blocks B, B blocks C. Look at host details → the Blocking Queries tab (a visualized tree showing who's blocking whom), wait event analysis (lock/latch waits dominating means the problem is "contention," not "resource exhaustion"), and DBM Recommendations (automatically detects and flags high-impact blockers).</p>
+        <div class="example"><span class="lbl">Hands-on example: Storedog's LOCK TABLE incident and stop_locks</span>expanding the Wait Group Activity chart from the Databases overview page shows CPU wait, idle, and locking wait events all present at once, and this time locking is the one that most needs priority attention. Switching to the Active Connections tab and flipping through a few snapshots finds the one with a number in the <b># WAITERS</b> column and a red bar on the wait group chart, and expanding it reveals the full SQL: someone on the dev team wrote a query to update order quantities with bad syntax, using `LOCK TABLE`, and even set it up as a scheduled cronjob running periodically, causing a large number of other queries to get stuck. Switching to the Blocking Queries tab, the <b>Time Impact</b> column confirms this query has already made other queries wait more than 15 seconds. This query was left over from testing some feature earlier and has nothing to do with Storedog's normal operation, so it gets stopped directly: <code>stop_locks</code>. See the full interactive trace (with the alternative branch at every step) on the separate "Architecture Overview" tab.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Root Cause Diagnosis Using DBM Data</h3>
+    <p>Ask four questions in order: ① what is the symptom (high latency? dropped connections? errors? timeouts?); ② where is it happening (one host or all? one query or all?); ③ when did it start (suddenly or gradually? does it line up with a deploy/schedule/traffic change? DBM's historical data can pinpoint that moment precisely); ④ why is it happening:</p>
+    <div class="table-wrap"><table>
+      <tr><th>Root Cause Category</th><th>Evidence DBM Provides</th></tr>
+      <tr><td>Missing index</td><td>Execution plan shows Sequential Scan, high I/O wait, rows examined far exceeds rows returned</td></tr>
+      <tr><td>Plan degradation</td><td>The same query has multiple execution plans, and the new plan's timing lines up with worse performance</td></tr>
+      <tr><td>Lock contention</td><td>High lock wait in active connections, Blocking Queries shows a chain</td></tr>
+      <tr><td>Resource exhaustion</td><td>CPU/memory/disk metrics maxed out, individual queries are fine but overall capacity is exceeded</td></tr>
+      <tr><td>Data growth</td><td>Latency rising slowly over weeks/months, table size keeps growing</td></tr>
+      <tr><td>N+1 query pattern</td><td>A query's request count is extremely high but individually fast, hundreds of database spans in a single trace</td></tr>
+      <tr><td>Schema change</td><td>Degradation timing lines up with a migration, an index was dropped, a column type changed</td></tr>
+      <tr><td>Bad query introduced by the application</td><td>A new query pattern appears at deploy time, filter by calling service to find the problematic application</td></tr>
+      <tr><td>Connection exhaustion</td><td>Active connections maxed out, new connections rejected</td></tr>
+      <tr><td>Stale statistics</td><td>The execution plan's row estimate is severely inaccurate</td></tr>
+    </table></div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Identifying Performance Degradation</h3>
+    <p>Performance degradation is when a once-fine-performing query starts getting worse, and it can happen quietly, building up over time before causing an obvious disruption. The database itself only reports "current" statistical state; DBM stores key metrics as time series for normalized queries (the Metrics tab), which is what lets you compare against historical data.</p>
+    <p><b>How DBM detects it:</b>automatically detected and flagged as "<b>Query Load Increase</b>" in Recommendations, automatically correlating changes in query workload, spikes in user or service activity, schema modifications, and recent deploys.</p>
+    <p><b>Common causes:</b>plan degradation, schema changes (a dropped index gets flagged as Missing Index), data growth, application changes, infrastructure changes.</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Full DBM Recommendations Type Table</h3>
+    <div class="table-wrap"><table>
+      <tr><th>Recommendation Type</th><th>What It Detects</th><th>Suggested Action</th></tr>
+      <tr><td>Missing Index</td><td>Full table scan on a large table, a high-cost Sequential Scan</td><td>Create an index on the filtered column, with a `CREATE INDEX` statement given directly</td></tr>
+      <tr><td>Unused Index</td><td>An index exists but has never been used</td><td>Drop the unused index to reduce write overhead and storage</td></tr>
+      <tr><td>Function in Filter</td><td>`WHERE` applies a function to a column, making the index unusable</td><td>Create a functional/expression index, or rewrite the query</td></tr>
+      <tr><td>Suboptimal Index Scan</td><td>An index exists but its leading column doesn't match the filter condition</td><td>Create an index whose column order matches the filter pattern</td></tr>
+      <tr><td>High-Impact Blocker</td><td>A query is frequently blocking other queries</td><td>Investigate this blocking query, shorten the transaction, optimize the query</td></tr>
+      <tr><td>Long-Running Query</td><td>Running abnormally longer than other queries on the same host</td><td>Optimize the query, add an index, break it into smaller operations</td></tr>
+      <tr><td>Query Load Increase</td><td>Execution time significantly increased relative to a historical baseline</td><td>Investigate plan changes, schema changes, or data growth</td></tr>
+      <tr><td>Low Disk Space</td><td>The database host is running low on disk space</td><td>Increase storage capacity, clean up old data</td></tr>
+      <tr><td>Anomalous Wait Events</td><td>Wait event pattern deviates significantly from the normal baseline</td><td>Investigate which wait type is spiking and handle it accordingly</td></tr>
+    </table></div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Hands-On Case Study: Fully Optimizing the Trending Products Query</h3>
+    <p>Start by checking the actual query logic in the code (<code>dbm.py</code>), and find that the threshold used to filter products is set far too wide, pulling in a broad group rather than genuinely best-selling items.</p>
+    <div class="stepper-nav">
+      <button class="active" data-step="1" onclick="setStep(this,'opt')">First Optimization</button>
+      <button data-step="2" onclick="setStep(this,'opt')">Second Optimization</button>
+    </div>
+    <div class="step-panel active opt-step" data-step="1">
+      <p><b>Narrowing the query scope:</b>changing the random range that generates the filter threshold from `random.randint(1, 7000)` to `random.randint(5000, 7000)`:</p>
+      <div class="example"><pre><code>SELECT id, description, order_count, last_hour, image_url, NULL AS is_preorder
+FROM items
+WHERE order_count::int > {random.randint(5000, 7000)}
+UNION
+SELECT id, description, order_count, last_hour, image_url, is_preorder
+FROM preorder_items
+WHERE order_count::int > {random.randint(5000, 7000)}</code></pre></div>
+      <p>After restarting the service and waiting a few minutes, going back to Query Metrics sorted by Average Rows confirms it: the query sample cost has dropped, the right direction. Checking the Traces tab, this time's duration is noticeably lower than before (it used to exceed 225ms). But the overall cost is still on the high side; going back to the Explain Plan Map View, the <b>Sort operation still accounts for 75% of this query's total cost</b>, the next bottleneck to tackle.</p>
+    </div>
+    <div class="step-panel opt-step" data-step="2">
+      <p><b>Removing the UNION:</b>the query logic uses `UNION` to merge results from the `items` and `preorder_items` tables. `UNION` doesn't just concatenate the two result sets, it also automatically removes duplicate rows, and to remove duplicates, the database has to sort all the results first, exactly the source of that high-cost sort node in the Map View.</p>
+      <p>Digging further: once a product in `preorder_items` officially goes live, it gets flagged `false`, meaning there's no real need to query both tables and then `UNION` to deduplicate. A better approach is having the dev team adjust the data write logic so that products already live are maintained directly in the `items` table, so the query side can simplify down to querying just one table:</p>
+      <div class="example"><pre><code>SELECT *
+FROM items
+WHERE order_count::int > {random.randint(5000, 7000)}</code></pre></div>
+      <p>After restarting the service, going back to Query Metrics sorted by <b>Rows per Query</b> confirms it: cost dropped substantially again compared to the previous optimization, because the whole query now consists of a single scan operation, no longer needing the sort overhead caused by `UNION` deduplication.</p>
+    </div>
+    <div class="examtip" style="margin-top:16px;"><span class="lbl">The core idea this case demonstrates</span>DBM isn't only for "finding problems." After the code is changed, the same set of Query Metrics, Explain Plans, Query Samples, and APM Trace tools can also be used to "verify whether the fix actually worked," replacing the guess that it "feels like it should be faster" with real numbers (cost, duration, rows). The entire investigation (clearing the locking problem → finding the high-load query → pinning the sort bottleneck with the Explain Plan → confirming with historical trends → confirming real impact with an APM Trace → two rounds of optimization and verification) is a complete demonstration of running every diagnostic step earlier in this chapter for real; see the interactive version on the separate "Architecture Overview" tab.</div>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 5 ===================== -->
+<section class="chapter" data-chapter="5" style="--accent:var(--c5);--accent-bg:var(--c5-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Chapter 05 · Dashboards &amp; Alerting</div>
+    <h2>Dashboard &amp; Alert Design</h2>
+    <p class="lead">How to use dashboards to monitor database health, how to set up performance alerts, and how to tell whether an alert design is a useful signal or pure noise. The first half covers the built-in dashboards actually seen hands-on; the second half is exam-specific knowledge.</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Built-In Dashboards</h3>
+    <p>Once the Postgres infrastructure integration is enabled, Datadog automatically provides two ready-made dashboards, no need to build from scratch, accessible via the Dashboards link at the top of the Query Metrics or Query Samples pages.</p>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">Postgres - Metrics<span class="chev">▸</span></div>
+      <div class="acc-body"><p>Brings key database performance metrics together in one place for a quick view of current activity and resource usage.</p></div>
+    </div>
+    <div class="acc-item">
+      <div class="acc-head" onclick="toggleAcc(this)">Postgres - Overview<span class="chev">▸</span></div>
+      <div class="acc-body"><p>An overview of the entire Postgres runtime state: resource usage (dead tuples, disk usage per table, indexes with the most/fewest scans); the <b>Locks section</b> showing lock counts by lock mode plus total deadlock count (<span class="term">lock mode</span> is categorized by "how aggressive this lock is," from mild modes that just read data to the most aggressive modes that touch an entire table's structure; a <span class="term">deadlock</span> is when A is waiting on something B holds and B is waiting on something A holds, neither side ever getting it, and Postgres, once it detects this, typically force-terminates one side); the <b>Rows section</b> showing rows inserted/updated/deleted, and current connection count.</p></div>
+    </div>
+    <div class="examtip"><span class="lbl">Can be cloned and customized</span>clone a copy first, never edit the original directly (it gets overwritten on Agent updates), then add your own widgets, remove irrelevant ones, and add template variables for easier filtering.</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>DBM-Specific Monitor Types</h3>
+    <p>Created from Monitors &gt; New Monitor &gt; Database Monitoring, alerts can be configured against Query Samples, Query Metrics, Explain Plans, and Wait Events:</p>
+    <div class="grid g3">
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">Waiting Queries</div><div class="md">The count of stuck queries exceeds a threshold</div><div class="full">Check 1 month of history to understand the normal range, then set the threshold above the normal peak (for example, if it's normally &lt;3000, set it to 4000).</div></div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">Long Running Queries</div><div class="md">Too many queries running past a duration threshold</div><div class="full">You can use `Duration:>30s` to only count queries exceeding 30 seconds.</div></div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">Explain Plan Cost Change</div><div class="md">A significant week-over-week change in execution plan cost</div><div class="full">Catches plan degradation; setup requires building two query sets (current vs. one week ago via Timeshift) and alerting on the difference.</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Host-Level Metric Monitoring</h3>
+    <div class="grid g4">
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">Threshold</div><div class="md">Alert once a fixed value is exceeded</div><div class="full">For example CPU &gt;85% for 5 consecutive minutes, connections &gt;90% of the limit, replication lag &gt;30 seconds.</div></div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">Change</div><div class="md">Too much change compared to the prior period</div><div class="full">For example query volume dropping more than 50% compared to the same time last week.</div></div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">Anomaly</div><div class="md">Machine learning detects deviation from the historical pattern</div><div class="full">Accounts for time-of-day and day-of-week seasonality, suited to metrics with clear fluctuation and periodic patterns.</div></div>
+      <div class="mini" tabindex="0" onclick="toggleMini(this)"><div class="mt">Forecast</div><div class="md">Alert before actually crossing the threshold</div><div class="full">For example, projecting disk usage growth to hit capacity in 3 days.</div></div>
+    </div>
+    <p style="margin-top:14px;"><b>Composite monitor:</b>combines multiple monitors with boolean logic, for example only alerting when "error rate is high" <b>AND</b> "total request volume is large enough," avoiding a false positive when a high error rate is based on just 2 requests.</p>
+    <div class="table-wrap"><table>
+      <tr><th>Alert</th><th>Monitor Type</th><th>Threshold Approach</th></tr>
+      <tr><td>Database host CPU too high</td><td>Metric (threshold)</td><td>&gt;85% for 5 consecutive minutes, grouped by host</td></tr>
+      <tr><td>Connection count near the limit</td><td>Metric (threshold)</td><td>&gt;90% of max_connections, grouped by host</td></tr>
+      <tr><td>Replication lag too high</td><td>Metric (threshold)</td><td>&gt;30 seconds for 3 consecutive minutes, grouped by replica</td></tr>
+      <tr><td>Abnormal query latency</td><td>Metric (anomaly)</td><td>Anomaly detection on average query duration</td></tr>
+      <tr><td>Disk nearly full</td><td>Metric (forecast)</td><td>Projected to reach 95% within 48 hours</td></tr>
+      <tr><td>Waiting queries spiking</td><td>DBM (waiting queries)</td><td>Count &gt;4000 for 5 consecutive minutes</td></tr>
+      <tr><td>Long-running queries</td><td>DBM (long running)</td><td>Count of queries taking &gt;30 seconds exceeds a threshold</td></tr>
+      <tr><td>Execution plan cost degradation</td><td>DBM (explain plan)</td><td>Week-over-week cost change exceeds a threshold</td></tr>
+      <tr><td>Deadlock detected</td><td>Metric (threshold)</td><td>Deadlock count &gt;0 in the past 10 minutes</td></tr>
+      <tr><td>Query volume dropping</td><td>Metric (change)</td><td>Down more than 50% vs. the same time last week</td></tr>
+    </table></div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Alert Grouping: Simple vs. Multi Alert</h3>
+    <div class="cmp c2">
+      <div class="col"><h4>Simple Alert</h4><p>Aggregates across all reporting sources, firing one alert when one or more groups cross the threshold; this strategy reduces notification noise.</p></div>
+      <div class="col"><h4>Multi Alert</h4><p>Applies the alert separately per the grouping parameter you set. For example, grouped by `@db.user`, each database user that triggers the condition gets its own alert, finer granularity, but potentially much noisier.</p></div>
+    </div>
+    <div class="examtip"><span class="lbl">Exam Tip</span>for database monitoring, a <b>Multi Alert</b> grouped by host is usually the most sensible choice; what you want to know is "which" host has a problem, not just that "some" host does.</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Signs of an Ineffective Alert and How to Fix It</h3>
+    <div class="table-wrap"><table>
+      <tr><th>Symptom</th><th>How to Fix</th></tr>
+      <tr><td>Flapping: threshold set too close to normal operating range</td><td>Lengthen the evaluation window; add a recovery threshold; apply a moving average/rate smoothing to the metric to smooth out brief spikes; use an "at all times" evaluation method</td></tr>
+      <tr><td>Alerting constantly: threshold doesn't reflect actual environment conditions</td><td>Review 1 month of history to reassess the threshold; for known won't-fix issues, mute (with a reason and expiration date) or delete</td></tr>
+      <tr><td>Never alerting: threshold set too high, or the monitored metric doesn't represent the problem</td><td>Re-examine whether the monitor is even necessary and its threshold</td></tr>
+      <tr><td>Too many notifications: grouped by a high-cardinality tag (like query_signature)</td><td>Switch to Simple Alert when fine granularity isn't needed; lower grouping cardinality by switching to host; route notification rules to different channels</td></tr>
+      <tr><td>No actionable information: the notification doesn't tell the recipient what to do</td><td>Include template variables in the message ({{host.name}}, {{value}}, {{threshold}}); add links to relevant dashboards and runbooks</td></tr>
+    </table></div>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 6 ===================== -->
+<section class="chapter" data-chapter="6" style="--accent:var(--c6);--accent-bg:var(--c6-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Chapter 06 · Database Fundamentals</div>
+    <h2>Database Fundamentals Appendix</h2>
+    <p class="lead">General database knowledge outside the exam scope but necessary for understanding what's shown in DBM, not DBM-specific content, only covering what hasn't already been discussed in other chapters.</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>What Is a Database</h3>
+    <p>A database is an organized system for storing, retrieving, and managing data, replacing the practice of scattering information across files, spreadsheets, and documents.</p>
+    <div class="analogy"><span class="lbl">Analogy</span>think of it as a warehouse: you could dump all your inventory into one big room and have to search the whole room every time you need something, or you could sort it onto labeled shelves, rows, and boxes with a catalog system telling you exactly where things are. A database is that organized warehouse.</div>
+    <p><b>Why files alone don't cut it:</b>files quickly break down when facing needs like "many people reading and writing at once without corruption," "efficiently searching across millions of records," "data not getting written halfway during a power outage," and "relationships between different kinds of data." Databases solve these problems.</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Tables, Rows, Columns, Primary Keys, Foreign Keys</h3>
+    <p>The most common way to organize a database is a <b>table</b>, similar to a spreadsheet: a table represents one type of thing, each <b>row</b> is a specific instance, and each <b>column</b> is an attribute. Every table usually has a <b>primary key</b>, a column that uniquely identifies each row; tables are commonly related through a <b>foreign key</b>, where a column in one table points to another table's primary key.</p>
+    <p class="trace-note">See the Schemas section in Chapter 1 for a fuller hands-on example of tables/rows/columns/indexes.</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>SQL and CRUD</h3>
+    <p><span class="term">SQL</span> (Structured Query Language) is how you communicate with a relational database, a declarative language: you tell the database "what you want," not "how to get it," and the engine figures out the best way to execute it itself. The main operations map to <span class="term">CRUD</span>: Create (<code>INSERT</code>), Read (<code>SELECT</code>), Update (<code>UPDATE</code>), Delete (<code>DELETE</code>).</p>
+    <div class="examtip"><span class="lbl">Exam Tip</span>the DBM certification exam doesn't require you to "write" SQL, only to "interpret" it, but understanding what these statements do helps you make sense of normalized queries and execution plans in Datadog.</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Database Management System (DBMS)</h3>
+    <p>A DBMS is the software that runs and manages a database; when people say "Postgres" or "MySQL," they mean this software itself, not the data, and it's responsible for storage, query execution, concurrency control, security, backups, and more.</p>
+    <div class="examtip"><span class="lbl">Exam Tip</span>Datadog DBM currently supports <b>PostgreSQL, MySQL, SQL Server, Oracle, MongoDB, Amazon DocumentDB, ClickHouse</b>. The exam is engine-agnostic and won't test engine-specific knowledge, but you should know which engines DBM supports.</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Client-Server Architecture and Connection Pooling</h3>
+    <p>Databases follow a <b>client-server</b> model: the database server runs the DBMS and holds the data, clients connect to the server over the network, and every connection consumes server resources. <span class="term">Connection pooling</span> (via PgBouncer, ProxySQL, or at the application layer) reuses connections across multiple requests to reduce overhead.</p>
+    <div class="examtip"><span class="lbl">Exam Tip</span>the Datadog Agent <b>must connect directly to the database host</b>, not through a connection pool or load balancer, because going through a proxy can cause the Agent to see different hosts over time, producing inaccurate metrics.</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Self-Hosted vs. Managed Databases</h3>
+    <p><b>Self-hosted</b> databases run on infrastructure you control yourself, installation, patching, backups, and scaling are all your responsibility. <b>Managed</b> databases (AWS RDS, Azure SQL, Google Cloud SQL) are operated by the cloud provider, and you only need to configure and use them. DBM supports both, but managed instances often require specific parameter groups or IAM roles, while self-hosted requires the Agent to access via localhost or a socket directly (see Chapter 2 for setup differences).</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Query Lifecycle, Replication, Buffer Pool</h3>
+    <p><b>Query lifecycle:</b>parse (syntax check) → plan/optimize (the engine decides "how" to execute) → execute (the actual data access or modification); DBM presents data separately for the planning stage (execution plans) and the execution stage (latency, rows affected, wait events).</p>
+    <p><b>Replication:</b>copying data from a primary node (writer) to one or more replica nodes (readers), providing high availability and read scaling. What to monitor: replication lag, replication status.</p>
+    <p><b>Buffer Pool / Shared Buffers:</b>the database keeps frequently used data in memory (called buffer pool in MySQL/SQL Server, shared buffers in Postgres) to avoid reading from disk every time; a <b>cache hit ratio</b> usually &gt;95% indicates good performance.</p>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Throughput, Latency, and Resource Utilization</h3>
+    <p><b>Throughput</b> is how many queries the database processes per unit of time, <b>latency</b> is how long each individual query takes to complete; the two are often inversely related as load rises. Resource contention centers on <b>CPU, memory, disk I/O, and network</b>, and it's important to monitor these alongside query metrics: a CPU spike may correspond to a particularly expensive query, and high disk I/O may indicate a missing index causing a full table scan.</p>
+    <div class="examtip"><span class="lbl">Rows returned vs. rows examined</span>a well-optimized query only examines the rows it needs to return. If a query returns 10 rows but examines 10 million, that's a strong signal it's doing unnecessary work, usually a missing index or a poorly written filter condition; this ratio is one of the most practical indicators of query efficiency.</div>
+  </div>
+
+  <div class="card">
+    <h3><span class="dot"></span>Advanced Indexing Concepts</h3>
+    <p>An index lets the database quickly find rows without scanning the whole table, similar to the index page at the back of a book (basic concepts and hands-on examples in Chapter 1). Three advanced terms not covered elsewhere:</p>
+    <ul>
+      <li><b>B-tree index</b>: the most common index type, suited to equality and range queries.</li>
+      <li><b>Covering index</b>: contains every column a query needs, so the engine never has to go back to the table.</li>
+      <li><b>Index bloat</b>: over time, updates and deletes can cause an index to grow larger than necessary, dragging down performance.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ===================== ARCHITECTURE OVERVIEW ===================== -->
+<section class="chapter" data-chapter="7" style="--accent:var(--c9);--accent-bg:var(--c9-bg);">
+  <div class="chapter-head">
+    <div class="kicker">Architecture Overview · One Real Incident, Start to Finish</div>
+    <h2>Architecture Overview: Storedog Lock Incident, Full Trace</h2>
+    <p class="lead">This page isn't an abstract architecture diagram, it's the same real Storedog investigation scattered across Chapter 2 and Chapter 4, strung into one complete line: from a routine health check discovering an anomalous lock, to clearing the lock, finding the next high-load query, pinning the Sort bottleneck, and optimizing all the way through. Every decision point includes "what if you'd gone the other way."</p>
+  </div>
+
+  <div class="factory-legend">
+    <div class="lgi"><span class="sw" style="background:var(--c1);"></span>Anomaly Discovered</div>
+    <div class="lgi"><span class="sw" style="background:var(--c2);"></span>Lock Investigation</div>
+    <div class="lgi"><span class="sw" style="background:var(--c3);"></span>Query Investigation</div>
+    <div class="lgi"><span class="sw" style="background:var(--c4);"></span>Execution Plan Analysis</div>
+    <div class="lgi"><span class="sw" style="background:var(--c5);"></span>Optimization &amp; Verification</div>
+    <div class="lgi"><span class="sw" style="background:var(--c6);"></span>Feedback &amp; Improvement</div>
+  </div>
+
+  <div class="trace">
+
+    <div class="card trace-step" style="--accent:var(--c1);">
+      <h3><span class="dot"></span>STEP 01 · Discovered During a Routine Health Check</h3>
+      <p>The team hadn't received any alert, and no user had reported anything slow, this investigation was purely a routine health check. Entering the Databases overview page from <b>APM &gt; Database Monitoring</b> and expanding the <b>Wait Group Activity</b> chart under Summary Graphs shows CPU wait, idle, and locking wait events all present at once, with the share of locking events noticeably high, the signal that most needs priority attention this time.</p>
+      <p class="trace-note">Echoes "Wait Events" in Chapter 1: a spike in lock waits is a quick signal that one or more queries are blocking others.</p>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c2);">
+      <h3><span class="dot"></span>STEP 02 · Flipping Through Active Connection Snapshots to Find # WAITERS</h3>
+      <p>Switching to the <b>Active Connections</b> tab and clicking a higher spike on the query duration chart shows the active connections at that moment (a <code>pg_stat_activity</code> snapshot taken every 10 seconds). After flipping through a few snapshots, the one with a number in the <b># WAITERS</b> column and a red bar on the wait group chart is found, and expanding it reveals the full SQL.</p>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c2);">
+      <h3><span class="dot"></span>STEP 03 · The Truth Revealed: A Forgotten Test LOCK TABLE</h3>
+      <p>The full SQL reveals: someone on the dev team wrote a query to update order quantities with bad syntax, using <code>LOCK TABLE</code>, and even set it up as a scheduled cronjob running periodically, causing a large number of other queries to get stuck.</p>
+    </div>
+
+    <div class="card trace-step gate" style="--accent:var(--c2);">
+      <h3><span class="dot"></span>STEP 04 · Decision Point: Can This Lock Just Be Stopped?</h3>
+      <p>Before stopping a locked query, you first need to determine whether it's something that can be safely terminated.</p>
+      <div class="branch-wrap">
+        <div class="branch-main">✓ Confirmed it's a leftover cronjob from testing some feature earlier, unrelated to Storedog's normal business logic, and safe to stop ▼</div>
+        <div class="branch-arrow">⇢</div>
+        <div class="branch-box"><span class="bb-lbl">✗ Another possibility: a legitimate schema migration</span>if this <code>LOCK TABLE</code> were actually a legitimate DDL operation in progress, like an <code>ALTER TABLE</code> or <code>CREATE INDEX</code> that needs an exclusive lock, it <b>should not</b> be terminated directly with <code>stop_locks</code>, it should be allowed to finish, and similar operations should be scheduled for low-traffic periods instead, exactly the judgment principle mentioned in "Investigating blocking" in Chapter 4, and what this step is really about.</div>
+      </div>
+    </div>
+
+    <div class="card trace-step gate" style="--accent:var(--c3);">
+      <h3><span class="dot"></span>STEP 05 · Quantifying Impact with Blocking Queries' Time Impact</h3>
+      <p>Switching to the <b>Blocking Queries</b> tab shows two sets of charts: "queries causing blocking" (Root Blocking Queries) and "queries waiting on this block" (Waiting Queries).</p>
+      <div class="branch-wrap">
+        <div class="branch-main">✓ The <b>Time Impact</b> column confirms this `LOCK TABLE` query has already made other queries wait more than 15 seconds, a genuinely significant impact worth prioritizing ▼</div>
+        <div class="branch-arrow">⇢</div>
+        <div class="branch-box"><span class="bb-lbl">✗ Another possibility: Time Impact is very low</span>if Time Impact is only a fraction of a second and not persistent, this blocking is just occasional normal lock contention, not requiring special intervention; continued observation is enough, no need to reach for <code>stop_locks</code> right away.</div>
+      </div>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c3);">
+      <h3><span class="dot"></span>STEP 06 · Running stop_locks, Locking Incident Cleared</h3>
+      <div class="example"><pre><code>stop_locks</code></pre></div>
+      <p class="trace-note">Only once the locking problem is cleared does the next symptom come into view: the trending products query overloading the database. This step demonstrates what "Nine Health Indicators" in Chapter 1 emphasizes, that a single metric never tells the whole story: clearing a locking incident doesn't mean the database is now fully healthy, there's another layer of problem waiting to be found.</p>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c3);">
+      <h3><span class="dot"></span>STEP 07 · Turning to Query Metrics, Finding the Next High-Load Query</h3>
+      <p>Storedog recently added a "trending products" widget that runs a query against the <code>items</code> table every few seconds to grab the top ten most-ordered products; this query is putting heavy load on the database and taking a long time to run. Switching to the <b>Query Metrics</b> tab and sorting the whole table by the <b>Average Rows</b> column header, the <code>SELECT id, description...</code> query sits at the very top.</p>
+      <button class="reveal-btn" onclick="openNodePanel('query-metrics-vs-samples')">Expand to see why investigation started with Query Metrics, not Query Samples</button>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c4);">
+      <h3><span class="dot"></span>STEP 08 · Explain Plan Map View Pinpoints the Sort Bottleneck</h3>
+      <p>Drilling into the normalized query panel's Explain Plans tab, the Plan Operations table lists every operation this query uses, and the cost is quite high. The Map View further down draws the whole execution plan as a visualized tree, directly showing the <b>Sort operation accounting for the largest share of the cost</b>, the main reason this query's execution time is too long.</p>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c4);">
+      <h3><span class="dot"></span>STEP 09 · Confirming Real Impact with an APM Trace</h3>
+      <p>Clicking View Query Samples in the top right of the normalized query panel shows these samples with costs around 7000, on the high side. Drilling into one and opening the Explain Plan Sample panel, switching to the Trace tab: a GET request on the <code>/get-item</code> route triggered this query, with the whole request taking about 1.06 seconds, of which this query accounted for 256ms, roughly a quarter of the entire request's time.</p>
+      <p class="trace-note">This step ties "the query itself performs poorly" together with "how much real impact it has on the service calling it," the key evidence for deciding whether to prioritize this query, echoing the APM-DBM correlation mechanism from Chapter 3.</p>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c5);">
+      <h3><span class="dot"></span>STEP 10 · First Optimization: Narrowing the Query Scope</h3>
+      <p>Checking the actual query logic in the code (<code>dbm.py</code>) finds the threshold used to filter products is set far too wide. Changing the random range that generates the filter threshold from <code>random.randint(1, 7000)</code> to <code>random.randint(5000, 7000)</code> narrows it down to only the genuinely best-selling group; after restarting the service and waiting a few minutes, going back to Query Metrics confirms it: cost dropped, the right direction, but the Map View shows <b>Sort still accounts for 75% of the cost</b>.</p>
+    </div>
+
+    <div class="card trace-step gate" style="--accent:var(--c5);">
+      <h3><span class="dot"></span>STEP 11 · Decision Point: What's the Real Source of the Sort Bottleneck?</h3>
+      <p>Looking back at the query logic, it uses <code>UNION</code> to merge results from the <code>items</code> and <code>preorder_items</code> tables.</p>
+      <div class="branch-wrap">
+        <div class="branch-main">✓ Confirmed `UNION` doesn't just concatenate the two result sets, it also automatically removes duplicate rows, and to remove duplicates the database must sort all the results first to compare them, exactly the source of that high-cost sort node ▼</div>
+        <div class="branch-arrow">⇢</div>
+        <div class="branch-box"><span class="bb-lbl">✗ Another possibility: mistaking it for an indexing problem</span>without first checking the Map View to see specifically which node is consuming the cost, it's easy to mistakenly assume the Sort bottleneck is "a missing index," and go add a completely unrelated index; in reality an index can't solve the sort cost caused by `UNION` deduplication, wasting effort and possibly even slowing down writes.</div>
+      </div>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c5);">
+      <h3><span class="dot"></span>STEP 12 · Second Optimization: Removing the UNION</h3>
+      <p>Once a product in <code>preorder_items</code> officially goes live, it gets flagged <code>false</code>, meaning there's actually no need to query both tables and then <code>UNION</code> to deduplicate. A better approach is having the dev team adjust the data write logic so that products already live are maintained directly in the <code>items</code> table, so the query side can simplify down to querying just one table. After making the change and restarting the service, going back to Query Metrics sorted by <b>Rows per Query</b> confirms it: cost dropped substantially again compared to the previous optimization, because the whole query now consists of a single scan operation.</p>
+    </div>
+
+    <div class="card trace-step" style="--accent:var(--c6);">
+      <h3><span class="dot"></span>STEP 13 · Feeding Back into Recommendations and Alert Design</h3>
+      <p>The evidence from this whole investigation feeds back into two things: if this query's degradation had happened gradually rather than as a one-time code issue, DBM Recommendations' <b>Query Load Increase</b> would have flagged it automatically anyway; and this locking incident also reminds the team that DBM monitors can be set up against <b>Waiting Queries</b> or <b>Long Running Queries</b> (see Chapter 5), so the next similar leftover cronjob doesn't have to wait for a routine health check to be discovered, but instead triggers a proactive alert.</p>
+      <p class="trace-note">The entire investigation (clearing the locking problem → finding the high-load query → pinning the sort bottleneck with the Explain Plan → confirming real impact with an APM Trace → two rounds of optimization and verification → feeding back into monitor design) is a complete demonstration of running the whole diagnostic framework from Chapter 4 for real.</p>
+    </div>
+
+  </div>
+</section>
+
+</main>
+
+<div class="node-panel" id="nodePanel">
+  <div class="node-panel-backdrop" onclick="closeNodePanel()"></div>
+  <div class="node-panel-content" id="nodePanelContent">
+    <button class="node-panel-close" onclick="closeNodePanel()" aria-label="Close">✕</button>
+    <div class="node-panel-tag" id="nodePanelTag"></div>
+    <div class="node-panel-title" id="nodePanelTitle"></div>
+    <div class="node-panel-body" id="nodePanelBody"></div>
+  </div>
+</div>
+
+<footer>DBM STUDY MAP · Compiled from Yuan's Obsidian Study Notes · Six Chapters + Architecture Overview</footer>
+
+<script>
+function setActiveChapter(ch){
+  document.querySelectorAll('.chapter').forEach(function(s){
+    s.classList.toggle('active', s.dataset.chapter === ch);
+  });
+  document.querySelectorAll('nav.tabs button').forEach(function(b){
+    b.classList.toggle('active', b.dataset.ch === ch);
+  });
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+document.querySelectorAll('nav.tabs button').forEach(function(b){
+  b.addEventListener('click', function(){ setActiveChapter(b.dataset.ch); });
+});
+setActiveChapter('1');
+
+function toggleAcc(head){
+  var item = head.parentElement;
+  var body = item.querySelector('.acc-body');
+  var isOpen = item.classList.contains('open');
+  if(isOpen){
+    item.classList.remove('open');
+    body.style.maxHeight = null;
+  } else {
+    item.classList.add('open');
+    body.style.maxHeight = body.scrollHeight + 40 + 'px';
+  }
+}
+
+function toggleMini(el){
+  el.classList.toggle('open');
+}
+
+function setStep(btn, group){
+  var nav = btn.parentElement;
+  nav.querySelectorAll('button').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  var step = btn.dataset.step;
+  document.querySelectorAll('.'+group+'-step').forEach(function(p){
+    p.classList.toggle('active', p.dataset.step === step);
+  });
+}
+
+function toggleP(btn, id){
+  var row = btn.parentElement;
+  row.querySelectorAll('button').forEach(function(b){ b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.querySelectorAll('.toggle-panel').forEach(function(p){
+    p.classList.toggle('active', p.id === id);
+  });
+}
+
+// ---------- Floating node detail panels ----------
+var NODE_DATA = {
+  'explain-statement': { tag:'See Chapter 2', accent:'var(--c2)', title:'The explain_statement Function: Full Content and How It Works', body:
+    '<p>This function needs to be created in every database where execution plan collection is wanted:</p>'+
+    '<pre><code>CREATE OR REPLACE FUNCTION datadog.explain_statement(\n'+
+    '  l_query TEXT,\n'+
+    '  OUT explain JSON\n'+
+    ')\n'+
+    'RETURNS SETOF JSON AS\n'+
+    '$$\n'+
+    'DECLARE\n'+
+    'curs REFCURSOR;\n'+
+    'plan JSON;\n\n'+
+    'BEGIN\n'+
+    "  OPEN curs FOR EXECUTE pg_catalog.concat('EXPLAIN (FORMAT JSON) ', l_query);\n"+
+    '  FETCH curs INTO plan;\n'+
+    '  CLOSE curs;\n'+
+    '  RETURN QUERY SELECT plan;\n'+
+    'END;\n'+
+    '$$\n'+
+    "LANGUAGE 'plpgsql'\n"+
+    'RETURNS NULL ON NULL INPUT\n'+
+    'SECURITY DEFINER;</code></pre>'+
+    '<div class="pk-diagram">'+
+      '<div class="pk-hub">Agent sends in a piece of query text<br><small style="font-weight:400;color:var(--text-faint);">the l_query parameter</small></div>'+
+      '<div class="pk-arrow">▼</div>'+
+      '<div class="pk-branch-grid">'+
+        '<div class="pk-item">The function internally assembles<br><code>EXPLAIN (FORMAT JSON) &lt;this query&gt;</code><small>the Agent doesn\'t need to build the syntax itself</small></div>'+
+        '<div class="pk-item">Executes with SECURITY DEFINER<small>runs with the privileges of "whoever created the function," not the read-only Agent user</small></div>'+
+        '<div class="pk-item pk-branch-single">Returns the execution plan Postgres generated (JSON format)</div>'+
+      '</div>'+
+    '</div>'+
+    '<p><b>Why this function is needed:</b>the Agent itself connects as a read-only user and cannot run <code>EXPLAIN</code> directly on an arbitrary query; `SECURITY DEFINER` wraps "running EXPLAIN" into a safe, fixed entry point, letting the read-only user obtain execution plans indirectly through this function without actually being granted permission to run arbitrary `EXPLAIN` statements.</p>'+
+    '<p><b>Exam Tip:</b>if a query sample has no associated execution plan, the first thing to check is whether this function was created correctly; whether execution plans can be collected depends directly on it.</p>' },
+
+  'query-metrics-vs-samples': { tag:'See Chapter 4', accent:'var(--c3)', title:'Why Start Investigating with Query Metrics, Not Query Samples?', body:
+    '<p>The difference between the two isn\'t "which is better," it\'s "they answer different questions":</p>'+
+    '<div class="pk-diagram">'+
+      '<div class="pk-hub">Question: which query is dragging down the database?</div>'+
+      '<div class="pk-arrow">▼</div>'+
+      '<div class="pk-branch-grid">'+
+        '<div class="pk-item">Query Metrics<small>the trend analyst: aggregates 15 months of history, answers "which pattern eats the most resources"</small></div>'+
+        '<div class="pk-item">Query Samples<small>the incident investigator: individual snapshots within 15 days, answers "what specifically was slow this time"</small></div>'+
+      '</div>'+
+      '<div class="pk-arrow">▼</div>'+
+      '<div class="pk-hub small">Correct order: use Query Metrics first to locate "who"<br><small style="font-weight:400;color:var(--text-faint);">then use Query Samples to dig into "why this time"</small></div>'+
+    '</div>'+
+    '<p>If reversed, jumping straight into Query Samples looking for anomalies, because it\'s only a 15-day sample with no sorted aggregate view, it\'s easy to be misled by a single occasional slow query and miss the pattern that\'s genuinely and persistently eating resources. This is also why STEP 07 on this page starts by sorting Query Metrics by Average Rows.</p>' },
+};
+
+function openNodePanel(id){
+  var data = NODE_DATA[id];
+  if(!data) return;
+  document.getElementById('nodePanelTag').textContent = data.tag;
+  document.getElementById('nodePanelTitle').textContent = data.title;
+  document.getElementById('nodePanelBody').innerHTML = data.body;
+  document.getElementById('nodePanelContent').style.setProperty('--panel-accent', data.accent);
+  document.getElementById('nodePanel').classList.add('open');
+}
+function closeNodePanel(){
+  document.getElementById('nodePanel').classList.remove('open');
+}
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape'){ closeNodePanel(); }
+});
+</script>
+
+</body>
+</html>
